@@ -1,0 +1,22 @@
+{
+  "name": "@tinkerblink/protocol",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Client TypeScript del protocollo app di Blynk Legacy (server 0.41.x). Portabile tra Node e React Native.",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "selftest": "tsx scripts/selftest.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@noble/hashes": "^2.4.0",
+    "fflate": "^0.8.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.4",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9.3"
+  },
+  "license": "MIT"
+}

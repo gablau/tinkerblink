@@ -1,0 +1,12 @@
+# Credenziali locali
+.env
+.env.*
+
+# Build Android
+.gradle/
+build/
+local.properties
+*.keystore
+*.jks
+.idea/
+*.iml
