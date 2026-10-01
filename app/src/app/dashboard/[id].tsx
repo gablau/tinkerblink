@@ -1,11 +1,10 @@
-// Dashboard (scheletro): widget in elenco, raggruppati per scheda, con valori in tempo reale.
-// La griglia a 8 colonne arriva con l'MVP.
+// Dashboard: barra delle schede (se presenti) e griglia a 8 colonne.
 import { Redirect, Stack, useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { DashboardGrid } from '@/components/DashboardGrid';
 import { StatusBanner } from '@/components/StatusBanner';
-import { WidgetCard } from '@/components/WidgetCard';
-import type { TabsWidget, Widget } from '@/model/profile';
+import type { TabsWidget } from '@/model/profile';
 import { useSession } from '@/session/SessionContext';
 import { dashboardPalette } from '@/ui/theme';
 
@@ -16,17 +15,11 @@ export default function DashboardScreen() {
   const palette = dashboardPalette(dash?.theme);
   const [tab, setTab] = useState(0);
 
-  const tabsWidget = dash?.widgets.find((w): w is TabsWidget => w.type === 'TABS');
-  const tabs = tabsWidget?.tabs ?? [];
-  const widgets = useMemo<Widget[]>(() => {
-    if (!dash) return [];
-    return dash.widgets
-      .filter((w) => w.type !== 'TABS' && (tabs.length === 0 || (w.tabId ?? 0) === tab))
-      .sort((a, b) => a.y - b.y || a.x - b.x);
-  }, [dash, tab, tabs.length]);
-
   if (!profile) return <Redirect href="/" />;
   if (!dash) return <Text style={{ padding: 16 }}>Dashboard non trovata</Text>;
+
+  const tabsWidget = dash.widgets.find((w): w is TabsWidget => w.type === 'TABS');
+  const tabs = tabsWidget?.tabs ?? [];
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
@@ -42,13 +35,7 @@ export default function DashboardScreen() {
           ))}
         </ScrollView>
       )}
-      <FlatList
-        contentContainerStyle={styles.list}
-        data={widgets}
-        keyExtractor={(w) => String(w.id)}
-        renderItem={({ item }) => <WidgetCard dashId={dash.id} widget={item} palette={palette} />}
-        ListEmptyComponent={<Text style={{ color: palette.muted, padding: 16 }}>Nessun widget</Text>}
-      />
+      <DashboardGrid dash={dash} palette={palette} tab={tabs.length > 0 ? tab : undefined} />
     </View>
   );
 }
@@ -56,5 +43,4 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   tabs: { paddingHorizontal: 8 },
   tab: { paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  list: { padding: 12, gap: 8 },
 });

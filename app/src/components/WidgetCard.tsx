@@ -1,5 +1,5 @@
-// Visualizzazione provvisoria di un widget (scheletro): titolo, tipo e valore corrente.
-// Nella fase MVP verrà sostituita dai componenti dedicati e dalla griglia della dashboard.
+// Visualizzazione provvisoria di un widget dentro la sua cella della griglia: etichetta e valore corrente.
+// Nel punto 2 dell'MVP verrà sostituita dai componenti dedicati per ogni tipo di widget.
 import { StyleSheet, Text, View } from 'react-native';
 import { toCssColor, type Widget } from '@/model/profile';
 import { useWidgetProps, useWidgetValue } from '@/session/hooks';
@@ -34,6 +34,8 @@ function describe(widget: Widget, value: string[] | undefined, labels: string[])
     case 'ENHANCED_GRAPH':
     case 'VIDEO':
     case 'TABS':
+    case 'NOTIFICATION':
+    case 'MAP':
       return '';
     default:
       return value && value.length > 0 ? value.join(' · ') : '—';
@@ -73,30 +75,36 @@ export function WidgetCard({ dashId, widget, palette }: { dashId: number; widget
 
   return (
     <View style={[styles.card, { backgroundColor: palette.card, borderColor: palette.border }]}>
-      <View style={styles.header}>
-        <Text style={[styles.label, { color: palette.text }]} numberOfLines={1}>
-          {label || TYPE_NAMES[widget.type] || widget.type}
-        </Text>
-        <Text style={[styles.meta, { color: palette.muted }]}>
-          {TYPE_NAMES[widget.type] ?? widget.type} {pin}
-        </Text>
+      <Text style={[styles.label, { color: palette.muted }]} numberOfLines={1}>
+        {label || TYPE_NAMES[widget.type] || widget.type}
+      </Text>
+      <View style={styles.body}>
+        {widget.type === 'LED' ? (
+          <View
+            style={[
+              styles.led,
+              { backgroundColor: color, borderColor: color, opacity: Math.max(0.15, Number(value?.[0] ?? 0) / 255) },
+            ]}
+          />
+        ) : text ? (
+          <Text style={[styles.value, { color }]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.5}>
+            {text}
+          </Text>
+        ) : (
+          <Text style={[styles.placeholder, { color: palette.muted }]} numberOfLines={1}>
+            {TYPE_NAMES[widget.type] ?? widget.type} {pin}
+          </Text>
+        )}
       </View>
-      {widget.type === 'LED' ? (
-        <View style={[styles.led, { backgroundColor: color, opacity: Math.max(0.12, Number(value?.[0] ?? 0) / 255) }]} />
-      ) : text ? (
-        <Text style={[styles.value, { color }]} numberOfLines={2}>
-          {text}
-        </Text>
-      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, padding: 12, gap: 6 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
-  label: { fontSize: 15, fontWeight: '600', flexShrink: 1 },
-  meta: { fontSize: 12 },
-  value: { fontSize: 22, fontWeight: '500' },
-  led: { width: 22, height: 22, borderRadius: 11 },
+  card: { flex: 1, borderWidth: StyleSheet.hairlineWidth, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 4 },
+  label: { fontSize: 11, textAlign: 'center' },
+  body: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  value: { fontSize: 20, fontWeight: '500', textAlign: 'center' },
+  placeholder: { fontSize: 11, textAlign: 'center' },
+  led: { width: 20, height: 20, borderRadius: 10, borderWidth: 1 },
 });
