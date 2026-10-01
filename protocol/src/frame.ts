@@ -6,6 +6,7 @@
 //                                      [0][msgId u16][codice u32]             per RESPONSE
 // Tutto big-endian. Per RESPONSE (comando 0) il campo u32 è il codice di stato e non c'è body.
 
+import { strFromU8, strToU8 } from 'fflate';
 import { BINARY_RESPONSE_COMMANDS, Command } from './commands.ts';
 
 export const APP_HEADER_SIZE = 7;
@@ -14,8 +15,7 @@ export const BODY_SEPARATOR = '\0';
 /** Limite difensivo in ricezione: un body più lungo indica un frame corrotto. */
 export const MAX_BODY_SIZE = 10 * 1024 * 1024;
 
-const encoder = new TextEncoder();
-const decoder = new TextDecoder();
+// UTF-8 con fflate invece di TextEncoder/TextDecoder: TextDecoder non è garantito su Hermes.
 
 export type Message =
   | { kind: 'response'; command: 0; msgId: number; code: number }
@@ -51,7 +51,7 @@ export function encodeMessage(command: number, msgId: number, body = ''): Uint8A
 function toMessage(command: number, msgId: number, body: Uint8Array): Message {
   return BINARY_RESPONSE_COMMANDS.has(command)
     ? { kind: 'binary', command, msgId, body }
-    : { kind: 'text', command, msgId, body: decoder.decode(body) };
+    : { kind: 'text', command, msgId, body: strFromU8(body) };
 }
 
 /** Header da 7 byte su stream TCP: accumula i chunk ed emette i messaggi completi. */
@@ -59,7 +59,7 @@ export class TcpCodec implements Codec {
   private buf: Uint8Array = new Uint8Array(0);
 
   encode(command: number, msgId: number, body = ''): Uint8Array {
-    const payload = encoder.encode(body);
+    const payload = strToU8(body);
     const out = new Uint8Array(APP_HEADER_SIZE + payload.length);
     const view = new DataView(out.buffer);
     view.setUint8(0, command);
@@ -100,7 +100,7 @@ export class TcpCodec implements Codec {
 /** Header da 3 byte, un messaggio per frame WebSocket binario. */
 export class WsCodec implements Codec {
   encode(command: number, msgId: number, body = ''): Uint8Array {
-    const payload = encoder.encode(body);
+    const payload = strToU8(body);
     const out = new Uint8Array(WS_HEADER_SIZE + payload.length);
     const view = new DataView(out.buffer);
     view.setUint8(0, command);

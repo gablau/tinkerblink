@@ -69,7 +69,8 @@ export function parseGraphData(raw: Uint8Array): GraphData {
     const points: GraphPoint[] = new Array(count);
     for (let i = 0; i < count; i++) {
       const value = view.getFloat64(off);
-      const ts = Number(view.getBigInt64(off + 8));
+      // int64 letto come due uint32: i timestamp in ms stanno ben sotto 2^53 e si evita BigInt.
+      const ts = view.getUint32(off + 8) * 2 ** 32 + view.getUint32(off + 12);
       points[i] = { ts, value };
       off += RECORD_SIZE;
     }

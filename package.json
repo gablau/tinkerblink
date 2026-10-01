@@ -1,0 +1,8 @@
+{
+  "name": "tinkerblink-monorepo",
+  "private": true,
+  "workspaces": [
+    "app",
+    "protocol"
+  ]
+}

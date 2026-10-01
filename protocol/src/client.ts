@@ -1,4 +1,4 @@
-import { decompressSync, strFromU8 } from 'fflate';
+import { decompressSync, strFromU8, strToU8 } from 'fflate';
 import { Command, commandName, ResponseCode, responseName } from './commands.ts';
 import { createCodec, joinBody, type Codec, type Message } from './frame.ts';
 import { parseGraphData, type GraphData, type GraphPeriod } from './graph.ts';
@@ -55,6 +55,7 @@ export class LegacyClient {
   private nextId = 1;
   private pending = new Map<number, Pending>();
   private listeners: ((m: Message) => void)[] = [];
+  private disconnectListeners: ((error?: Error) => void)[] = [];
   private pingTimer?: ReturnType<typeof setInterval>;
   private readonly opts: Required<ClientOptions>;
 
@@ -74,12 +75,18 @@ export class LegacyClient {
         p.reject(err ?? new Error('Connessione chiusa'));
       }
       this.pending.clear();
+      for (const l of this.disconnectListeners) l(err);
     });
   }
 
   /** Messaggi non richiesti dal client (aggiornamenti hardware, notifiche di stato...). */
   onMessage(listener: (m: Message) => void): void {
     this.listeners.push(listener);
+  }
+
+  /** Chiamato quando la connessione si chiude (dal server, dalla rete o con close()). */
+  onDisconnect(listener: (error?: Error) => void): void {
+    this.disconnectListeners.push(listener);
   }
 
   async connect(): Promise<void> {
@@ -97,7 +104,7 @@ export class LegacyClient {
   async loadProfile(): Promise<unknown> {
     const reply = await this.request(Command.LOAD_PROFILE_GZIPPED, '');
     if (reply.kind === 'response') throw new ProtocolError(Command.LOAD_PROFILE_GZIPPED, reply.code);
-    const bytes = reply.kind === 'binary' ? reply.body : new TextEncoder().encode(reply.body);
+    const bytes = reply.kind === 'binary' ? reply.body : strToU8(reply.body);
     return JSON.parse(strFromU8(decompressSync(bytes)));
   }
 
@@ -121,7 +128,7 @@ export class LegacyClient {
       if (reply.code === ResponseCode.NO_DATA) return null;
       throw new ProtocolError(Command.GET_ENHANCED_GRAPH_DATA, reply.code);
     }
-    const bytes = reply.kind === 'binary' ? reply.body : new TextEncoder().encode(reply.body);
+    const bytes = reply.kind === 'binary' ? reply.body : strToU8(reply.body);
     return parseGraphData(decompressSync(bytes));
   }
 
