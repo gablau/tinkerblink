@@ -1,18 +1,14 @@
-// Griglia della dashboard:
-// - 8 colonne (x, y, width, height dei widget sul server): larghezza cella = larghezza disponibile / 8;
-// - dashboard che scorre in verticale: altezza cella = larghezza cella × 1,35;
-// - con le schede la riga 0 è occupata dal widget Tabs (sostituito dalla barra delle schede),
-//   quindi la si nasconde spostando tutto su di una riga.
+// Griglia della dashboard. Le regole di posizionamento stanno in src/layout/bandLayout.ts:
+// - telefono in verticale: griglia a 8 colonne (x, y, width, height dei widget sul server; cella alta 1,35 × larghezza);
+// - schermi larghi: fasce di righe distribuite su più colonne affiancate.
+// Con le schede la riga 0 è occupata dal widget Tabs (sostituito dalla barra delle schede) e viene nascosta.
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { computeLayout } from '@/layout/bandLayout';
 import type { Dashboard, Widget } from '@/model/profile';
 import type { Palette } from '@/ui/theme';
 import { WidgetCard } from './WidgetCard';
 
-export const GRID_COLUMNS = 8;
-export const CELL_ASPECT = 1.35;
-/** Sul web/tablet la griglia non si allarga oltre questa misura, come su un telefono grande. */
-const MAX_GRID_WIDTH = 640;
 const GRID_PADDING = 4;
 /** Spazio tra un widget e l'altro (metà per lato). */
 const GAP = 4;
@@ -29,34 +25,31 @@ export function DashboardGrid({ dash, palette, tab }: Props) {
   const onLayout = (e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width);
 
   const hasTabs = tab !== undefined;
-  const rowOffset = hasTabs ? 1 : 0;
-
   const widgets = useMemo<Widget[]>(
     () => dash.widgets.filter((w) => w.type !== 'TABS' && (!hasTabs || (w.tabId ?? 0) === tab)),
     [dash, hasTabs, tab],
   );
-
-  const gridWidth = Math.min(width, MAX_GRID_WIDTH) - GRID_PADDING * 2;
-  const cellW = gridWidth / GRID_COLUMNS;
-  const cellH = cellW * CELL_ASPECT;
-  const rows = widgets.reduce((max, w) => Math.max(max, w.y + w.height - rowOffset), 0);
+  const layout = useMemo(
+    () => (width > 0 ? computeLayout(widgets, hasTabs ? 1 : 0, width - GRID_PADDING * 2) : null),
+    [widgets, hasTabs, width],
+  );
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content} onLayout={onLayout}>
-      {width > 0 && (
-        <View style={{ width: gridWidth, height: rows * cellH }}>
-          {widgets.map((w) => (
+      {layout && (
+        <View style={{ width: layout.width, height: layout.height }}>
+          {layout.placed.map((p) => (
             <View
-              key={w.id}
+              key={p.item.id}
               style={{
                 position: 'absolute',
-                left: w.x * cellW + GAP / 2,
-                top: (w.y - rowOffset) * cellH + GAP / 2,
-                width: w.width * cellW - GAP,
-                height: w.height * cellH - GAP,
+                left: p.left + GAP / 2,
+                top: p.top + GAP / 2,
+                width: p.width - GAP,
+                height: p.height - GAP,
               }}
             >
-              <WidgetCard dashId={dash.id} widget={w} palette={palette} />
+              <WidgetCard dashId={dash.id} widget={p.item} palette={palette} />
             </View>
           ))}
         </View>
