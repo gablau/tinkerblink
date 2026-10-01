@@ -1,6 +1,7 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { NoticeToast } from '@/components/NoticeToast';
 import { t } from '@/i18n';
 import { SessionProvider } from '@/session/SessionContext';
 import { FONT, useAppFonts } from '@/ui/fonts';
@@ -37,6 +38,7 @@ export default function RootLayout() {
       <SessionProvider>
         <StatusBar style="dark" />
         <RootStack />
+        <NoticeToast />
       </SessionProvider>
     </SafeAreaProvider>
   );

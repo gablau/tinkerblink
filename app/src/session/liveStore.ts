@@ -52,19 +52,17 @@ export class LiveStore {
     if (!Number.isFinite(dashId)) return false;
 
     switch (m.command) {
-      case Command.HARDWARE: {
+      // HARDWARE: scrittura del firmware. APP_SYNC: scrittura fatta da un'altra app dello stesso account
+      // (il server la rimanda alle altre app con lo stesso body, MobileHardwareLogic).
+      case Command.HARDWARE:
+      case Command.APP_SYNC: {
         // <dash>-<dev>\0vw\0<pin>\0<v1>[\0<v2>…]
         const pinType = OP_PIN_TYPE[parts[1] as keyof typeof OP_PIN_TYPE];
         const pin = Number(parts[2]);
         if (!pinType || !Number.isFinite(pin)) return false;
         const key = pinKey(dashId, deviceId, pinType, pin);
         const values = parts.slice(3);
-        const log = this.terminalLogs.get(key);
-        if (log) {
-          const text = values.join(' ');
-          const next = text === 'clr' ? [] : [...log, ...text.split('\n')].slice(-TERMINAL_MAX_LINES);
-          this.terminalLogs.set(key, next);
-        }
+        this.appendTerminal(key, values);
         this.set(this.values, key, values);
         return true;
       }
@@ -88,6 +86,22 @@ export class LiveStore {
       default:
         return false;
     }
+  }
+
+  /** Aggiornamento locale dopo una scrittura dell'app: il server non rimanda il valore a chi lo ha inviato. */
+  setLocal(key: string, values: string[]): void {
+    // Il Terminal mostra anche le righe inviate dall'app.
+    this.appendTerminal(key, values);
+    this.set(this.values, key, values);
+  }
+
+  /** Aggiunge le righe alla cronologia se il pin è di un Terminal; "clr" la svuota. */
+  private appendTerminal(key: string, values: string[]): void {
+    const log = this.terminalLogs.get(key);
+    if (!log) return;
+    const text = values.join(' ');
+    const next = text === 'clr' ? [] : [...log, ...text.split('\n')].slice(-TERMINAL_MAX_LINES);
+    this.terminalLogs.set(key, next);
   }
 
   getValue = (key: string): string[] | undefined => this.values.get(key);

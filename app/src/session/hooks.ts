@@ -36,3 +36,15 @@ export function useTerminalLog(dashId: number, widget: Widget): string[] {
   const subscribe = useCallback((cb: () => void) => (key ? store.subscribe(key, cb) : () => {}), [store, key]);
   return useSyncExternalStore(subscribe, () => (key ? store.getTerminalLog(key) : undefined)) ?? NO_LINES;
 }
+
+/** Funzione per scrivere il pin di un widget (valori come stringhe). No-op se il widget non ha un pin. */
+export function useWritePin(dashId: number, widget: Widget): (values: (string | number)[]) => void {
+  const { writePin } = useSession();
+  return useCallback(
+    (values: (string | number)[]) => {
+      if (widget.pin === undefined || widget.pin < 0 || widget.pinType !== 'VIRTUAL') return;
+      writePin(dashId, widget.deviceId ?? 0, widget.pin, values.map(String));
+    },
+    [writePin, dashId, widget],
+  );
+}

@@ -12,6 +12,7 @@ interface SessionValue extends SessionState {
   store: LiveStore;
   login(c: Credentials, rememberPassword: boolean): Promise<boolean>;
   logout(): Promise<void>;
+  writePin(dashId: number, deviceId: number, pin: number, values: string[]): boolean;
 }
 
 const SessionContext = createContext<SessionManager | null>(null);
@@ -42,5 +43,6 @@ export function useSession(): SessionValue {
     store: manager.store,
     login: manager.login,
     logout: manager.logout,
+    writePin: manager.writePin,
   };
 }

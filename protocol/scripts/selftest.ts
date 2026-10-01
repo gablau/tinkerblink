@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { unzlibSync, zlibSync } from 'fflate';
-import { encodeMessage, FrameDecoder, parseGraphData, passwordHash, WsCodec } from '../src/index.ts';
+import { LegacyClient, Command, encodeMessage, FrameDecoder, parseGraphData, passwordHash, WsCodec, type Transport } from '../src/index.ts';
 
 // Hash: confronto con un'implementazione indipendente (crypto di Node).
 {
@@ -67,6 +67,26 @@ import { encodeMessage, FrameDecoder, parseGraphData, passwordHash, WsCodec } fr
       [],
     ],
   });
+}
+
+// Permessi: in sola lettura passa solo HARDWARE (con allowHardwareWrites), mai le modifiche ai progetti.
+{
+  const written: Uint8Array[] = [];
+  const fake: Transport = {
+    framing: 'ws',
+    connect: async () => {},
+    write: (d) => void written.push(d),
+    close: () => {},
+    onData: () => {},
+    onClose: () => {},
+  };
+  const ro = new LegacyClient(fake, { readOnly: true });
+  assert.throws(() => ro.writePin(1, 0, 20, ['x']), /bloccato/);
+  const hw = new LegacyClient(fake, { readOnly: true, allowHardwareWrites: true });
+  hw.writePin(123456789, 0, 20, ['ciao']);
+  const [m] = new WsCodec().push(written[0]!);
+  assert.deepEqual(m, { kind: 'text', command: Command.HARDWARE, msgId: 1, body: '123456789-0\0vw\x0020\x00ciao' });
+  assert.throws(() => hw.send(Command.CREATE_WIDGET, '{}'), /bloccato/);
 }
 
 console.log('✅ selftest ok');

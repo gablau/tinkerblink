@@ -27,6 +27,14 @@ const en = {
   reconnecting: 'Connection lost, reconnecting…',
   paused: 'Paused',
   wrongCredentials: 'Wrong email or password',
+  deviceOffline: 'Device offline: command not delivered',
+  notConnected: 'Not connected: command not sent',
+  cancel: 'Cancel',
+  save: 'Save',
+  start: 'Start',
+  stop: 'Stop',
+  send: 'Send',
+  noStop: 'No end time',
 };
 
 type Strings = typeof en;
@@ -54,6 +62,14 @@ const it: Strings = {
   reconnecting: 'Connessione persa, riconnessione in corso…',
   paused: 'In pausa',
   wrongCredentials: 'Email o password non corrette',
+  deviceOffline: 'Dispositivo offline: comando non consegnato',
+  notConnected: 'Non connesso: comando non inviato',
+  cancel: 'Annulla',
+  save: 'Salva',
+  start: 'Inizio',
+  stop: 'Fine',
+  send: 'Invia',
+  noStop: 'Senza orario di fine',
 };
 
 const language = getLocales()[0]?.languageCode === 'it' ? 'it' : 'en';

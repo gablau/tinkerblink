@@ -1,25 +1,48 @@
 // Controlli e widget di interfaccia: Button, Styled Button, Menu, Segmented Switch, Time Input, Terminal.
-// Per ora solo visualizzazione dello stato: l'invio dei valori arriva con il punto 3 dell'MVP.
+// Le scritture passano da useWritePin (comando HARDWARE): il valore mostrato si aggiorna subito.
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, type LayoutChangeEvent } from 'react-native';
 import { t } from '@/i18n';
-import { useTerminalLog, useWidgetProps, useWidgetValue } from '@/session/hooks';
+import type { Widget } from '@/model/profile';
+import { useTerminalLog, useWidgetProps, useWidgetValue, useWritePin } from '@/session/hooks';
 import { fontSizeOf, SMALL_FONT_SIZE, VALUE_FONT_SIZE } from '@/ui/dashboardTheme';
 import { FONT } from '@/ui/fonts';
 import { isTransparent, widgetColor } from './color';
 import { formatDays, formatTimeOfDay, parseFloatValue } from './format';
+import { MenuPicker, TimeEditor, type TimeSelection } from './pickers';
+import { timeInputValue } from './time';
 import { useLabel, WidgetFrame, type WidgetViewProps } from './WidgetFrame';
 
 const BUTTON_FONT_SIZE = { SMALL: 16, MEDIUM: 22, LARGE: 30 } as const;
 
+function minMax(widget: Widget): { min: number; max: number } {
+  return {
+    min: typeof widget.min === 'number' ? widget.min : 0,
+    max: typeof widget.max === 'number' ? widget.max : 1,
+  };
+}
+
 /** Stato acceso/spento: acceso quando il valore coincide con `max` (di solito 1). */
-function useOn(dashId: number, widget: WidgetViewProps['widget']): boolean {
+function useOn(dashId: number, widget: Widget): boolean {
   const value = useWidgetValue(dashId, widget);
   const n = parseFloatValue(value?.[0] ?? '');
   if (n === null) return false;
-  const max = typeof widget.max === 'number' ? widget.max : 1;
-  const min = typeof widget.min === 'number' ? widget.min : 0;
+  const { min, max } = minMax(widget);
   return max !== min ? n === max : n !== 0;
+}
+
+/**
+ * Comportamento dei pulsanti:
+ * - push: `max` alla pressione e `min` al rilascio;
+ * - switch: ogni tocco inverte lo stato.
+ */
+function useButtonPress(dashId: number, widget: Widget, on: boolean) {
+  const write = useWritePin(dashId, widget);
+  const { min, max } = minMax(widget);
+  if (widget.pushMode) {
+    return { onPressIn: () => write([max]), onPressOut: () => write([min]) };
+  }
+  return { onPress: () => write([on ? min : max]) };
 }
 
 /** Button: pillola (raggio 50%) con bordo colorato; acceso = pieno. */
@@ -27,17 +50,19 @@ export function ButtonWidget({ dashId, widget, theme }: WidgetViewProps) {
   const props = useWidgetProps(dashId, widget);
   const label = useLabel(dashId, widget);
   const on = useOn(dashId, widget);
+  const press = useButtonPress(dashId, widget, on);
   const color = widgetColor(props.color ?? widget.color, theme);
   const onLabel = props.onLabel ?? (widget.onLabel as string | undefined) ?? 'ON';
   const offLabel = props.offLabel ?? (widget.offLabel as string | undefined) ?? 'OFF';
   const [h, setH] = useState(0);
   return (
     <WidgetFrame label={label} theme={theme}>
-      <View
+      <Pressable
+        {...press}
         onLayout={(e: LayoutChangeEvent) => setH(e.nativeEvent.layout.height)}
-        style={[
+        style={({ pressed }) => [
           styles.button,
-          { borderColor: color, borderRadius: h / 2, backgroundColor: on ? color : 'transparent' },
+          { borderColor: color, borderRadius: h / 2, backgroundColor: on ? color : 'transparent', opacity: pressed ? 0.7 : 1 },
         ]}
       >
         <Text
@@ -48,7 +73,7 @@ export function ButtonWidget({ dashId, widget, theme }: WidgetViewProps) {
         >
           {on ? onLabel : offLabel}
         </Text>
-      </View>
+      </Pressable>
     </WidgetFrame>
   );
 }
@@ -63,6 +88,7 @@ export function StyledButtonWidget({ dashId, widget, theme }: WidgetViewProps) {
   const props = useWidgetProps(dashId, widget);
   const label = useLabel(dashId, widget);
   const on = useOn(dashId, widget);
+  const press = useButtonPress(dashId, widget, on);
   const state = (on ? widget.onButtonState : widget.offButtonState) as ButtonState | undefined;
   const bg = widgetColor(on ? (props.onBackColor ?? state?.backgroundColor) : (props.offBackColor ?? state?.backgroundColor), theme);
   const fg = widgetColor(on ? (props.onColor ?? state?.textColor) : (props.offColor ?? state?.textColor), theme);
@@ -71,57 +97,76 @@ export function StyledButtonWidget({ dashId, widget, theme }: WidgetViewProps) {
   const text = on ? (props.onLabel ?? (widget.onLabel as string | undefined) ?? 'ON') : (props.offLabel ?? (widget.offLabel as string | undefined) ?? 'OFF');
   return (
     <WidgetFrame label={label} theme={theme}>
-      <View
-        style={[
+      <Pressable
+        {...press}
+        style={({ pressed }) => [
           styles.button,
-          { borderRadius: radius, borderColor: bg, borderWidth: 2, backgroundColor: outline ? 'transparent' : bg },
+          { borderRadius: radius, borderColor: bg, borderWidth: 2, backgroundColor: outline ? 'transparent' : bg, opacity: pressed ? 0.7 : 1 },
         ]}
       >
         <Text style={{ color: outline ? bg : fg, fontSize: fontSizeOf(SMALL_FONT_SIZE, widget.fontSize) + 4, fontFamily: FONT.light }} numberOfLines={1}>
           {text}
         </Text>
-      </View>
+      </Pressable>
     </WidgetFrame>
   );
 }
 
-function useLabels(dashId: number, widget: WidgetViewProps['widget']): string[] {
+function useLabels(dashId: number, widget: Widget): string[] {
   const props = useWidgetProps(dashId, widget);
   return props.labels ? props.labels.split('\0') : (widget.labels ?? []);
 }
 
-/** Menu: voce selezionata (indice a partire da 1) oppure il suggerimento, più la freccia. */
+/** Menu: voce selezionata (indice a partire da 1) oppure il suggerimento, più la freccia. Tocco = elenco. */
 export function MenuWidget({ dashId, widget, theme }: WidgetViewProps) {
   const value = useWidgetValue(dashId, widget);
   const props = useWidgetProps(dashId, widget);
   const label = useLabel(dashId, widget);
   const labels = useLabels(dashId, widget);
+  const write = useWritePin(dashId, widget);
+  const [open, setOpen] = useState(false);
   const idx = parseFloatValue(value?.[0] ?? '');
   const selected = idx !== null ? labels[idx - 1] : undefined;
   const color = widgetColor(props.color ?? widget.color, theme);
   const iconColor = widgetColor(widget.iconColor, theme);
   const text = selected ?? (widget.hint as string | undefined) ?? '';
   return (
-    <WidgetFrame label={label} theme={theme} contentStyle={styles.row}>
-      <Text
-        style={[styles.menuText, { color, fontSize: fontSizeOf(VALUE_FONT_SIZE, widget.fontSize) }, !selected && { opacity: 0.5 }]}
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.5}
-      >
-        {text}
-      </Text>
-      {!isTransparent(iconColor) && <Text style={{ color: iconColor, fontSize: 18 }}>▼</Text>}
+    <WidgetFrame label={label} theme={theme}>
+      <Pressable onPress={() => setOpen(true)} style={({ pressed }) => [styles.row, { opacity: pressed ? 0.6 : 1 }]}>
+        <Text
+          style={[styles.menuText, { color, fontSize: fontSizeOf(VALUE_FONT_SIZE, widget.fontSize) }, !selected && { opacity: 0.5 }]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.5}
+        >
+          {text}
+        </Text>
+        {!isTransparent(iconColor) && <Text style={{ color: iconColor, fontSize: 18 }}>▼</Text>}
+      </Pressable>
+      <MenuPicker
+        visible={open}
+        title={label || (widget.hint as string | undefined) || ''}
+        labels={labels}
+        selected={idx ?? undefined}
+        theme={theme}
+        accent={theme.accent}
+        onClose={() => setOpen(false)}
+        onSelect={(i) => {
+          setOpen(false);
+          write([i]);
+        }}
+      />
     </WidgetFrame>
   );
 }
 
-/** Segmented Switch: segmenti affiancati, quello selezionato pieno. */
+/** Segmented Switch: segmenti affiancati, quello selezionato pieno. Tocco = selezione. */
 export function SegmentedWidget({ dashId, widget, theme }: WidgetViewProps) {
   const value = useWidgetValue(dashId, widget);
   const props = useWidgetProps(dashId, widget);
   const label = useLabel(dashId, widget);
   const labels = useLabels(dashId, widget);
+  const write = useWritePin(dashId, widget);
   const idx = parseFloatValue(value?.[0] ?? '') ?? 0;
   const color = widgetColor(props.color ?? widget.color, theme);
   return (
@@ -130,11 +175,15 @@ export function SegmentedWidget({ dashId, widget, theme }: WidgetViewProps) {
         {labels.map((l, i) => {
           const active = i + 1 === idx;
           return (
-            <View key={i} style={[styles.segment, { backgroundColor: active ? color : 'transparent' }, i > 0 && { borderLeftWidth: 1, borderLeftColor: color }]}>
+            <Pressable
+              key={i}
+              onPress={() => !active && write([i + 1])}
+              style={[styles.segment, { backgroundColor: active ? color : 'transparent' }, i > 0 && { borderLeftWidth: 1, borderLeftColor: color }]}
+            >
               <Text style={{ color: active ? theme.buttonSelectedText : color, fontSize: 14, fontFamily: FONT.regular }} numberOfLines={1}>
                 {l}
               </Text>
-            </View>
+            </Pressable>
           );
         })}
       </View>
@@ -142,46 +191,89 @@ export function SegmentedWidget({ dashId, widget, theme }: WidgetViewProps) {
   );
 }
 
-/** Time Input: orario di inizio (e fine, se previsto) e giorni della settimana. */
+function toSeconds(raw: string | undefined): number | undefined {
+  const n = Number(raw);
+  return raw !== undefined && raw !== '' && Number.isFinite(n) && n >= 0 ? n : undefined;
+}
+
+/** Time Input: orario di inizio (e fine, se previsto) e giorni. Tocco = editor. */
 export function TimeInputWidget({ dashId, widget, theme }: WidgetViewProps) {
   const value = useWidgetValue(dashId, widget);
   const props = useWidgetProps(dashId, widget);
   const label = useLabel(dashId, widget);
+  const write = useWritePin(dashId, widget);
+  const [open, setOpen] = useState(false);
   const color = widgetColor(props.color ?? widget.color, theme);
   const format = (widget.format as string | undefined) ?? 'HH:mm';
+  const tz = (widget.tzName as string | undefined) ?? 'Europe/Rome';
   // Valore: <start>\0<stop>\0<tz>\0<giorni>\0<offset>; senza valore si usa la configurazione del widget.
   const start = value?.[0] ?? (typeof widget.startAt === 'number' && widget.startAt >= 0 ? String(widget.startAt) : undefined);
   const stop = value?.[1] ?? (typeof widget.stopAt === 'number' && widget.stopAt >= 0 ? String(widget.stopAt) : undefined);
   const days = value?.[3] ? value[3].split(',').map(Number) : ((widget.days as number[] | undefined) ?? []);
   const startText = formatTimeOfDay(start, format, t) || '--:--';
   const stopText = formatTimeOfDay(stop, format, t);
+  const allowStop = widget.isStartStopAllowed === true;
+  const allowDays = widget.isDayOfWeekAllowed !== false;
+
+  const save = (sel: TimeSelection) => {
+    setOpen(false);
+    write(timeInputValue({ start: sel.start, stop: allowStop ? sel.stop : undefined, tz, days: sel.days }));
+  };
+
   return (
     <WidgetFrame label={label} theme={theme}>
-      <Text style={{ color, fontSize: 22, fontFamily: FONT.light }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
-        {stopText ? `${startText} - ${stopText}` : startText}
-      </Text>
-      {widget.isDayOfWeekAllowed !== false && (
-        <Text style={{ color: theme.text, opacity: theme.labelAlpha, fontSize: 12, fontFamily: FONT.light }} numberOfLines={1}>
-          {formatDays(days, t)}
+      <Pressable onPress={() => setOpen(true)} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
+        <Text style={{ color, fontSize: 22, fontFamily: FONT.light }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
+          {stopText ? `${startText} - ${stopText}` : startText}
         </Text>
+        {allowDays && (
+          <Text style={{ color: theme.text, opacity: theme.labelAlpha, fontSize: 12, fontFamily: FONT.light }} numberOfLines={1}>
+            {formatDays(days, t)}
+          </Text>
+        )}
+      </Pressable>
+      {/* Montato solo quando aperto: così l'editor riparte ogni volta dal valore corrente. */}
+      {open && (
+        <TimeEditor
+          visible
+          title={label}
+          initial={{ start: toSeconds(start) ?? 0, stop: allowStop ? toSeconds(stop) : undefined, days }}
+          allowStop={allowStop}
+          allowDays={allowDays}
+          format={format}
+          theme={theme}
+          accent={theme.accent}
+          onSave={save}
+          onClose={() => setOpen(false)}
+        />
       )}
     </WidgetFrame>
   );
 }
 
-/** Terminal: riquadro con le righe ricevute (cronologia nel LiveStore, "clr" pulisce). */
+/** Terminal: righe ricevute (cronologia nel LiveStore, "clr" pulisce) e, se previsto, riga di invio. */
 export function TerminalWidget({ dashId, widget, theme }: WidgetViewProps) {
   const props = useWidgetProps(dashId, widget);
   const label = useLabel(dashId, widget);
   const lines = useTerminalLog(dashId, widget);
+  const write = useWritePin(dashId, widget);
+  // Nel Terminal `color` è lo SFONDO (trasparente = sfondo di default del tema) e `textLightOn` sceglie
+  // il testo chiaro o scuro.
   const c = widgetColor(props.color ?? widget.color, theme);
-  const color = isTransparent(c) ? theme.text : c;
+  const background = isTransparent(c) ? theme.terminalBackground : c;
+  const color = widget.textLightOn === false ? '#000000' : '#FFFFFF';
   const [scroll, setScroll] = useState<ScrollView | null>(null);
+  const [input, setInput] = useState('');
+  const send = () => {
+    if (input === '') return;
+    write([input]);
+    setInput('');
+  };
   return (
     <WidgetFrame label={label} theme={theme} contentStyle={styles.terminalOuter}>
       <ScrollView
         ref={setScroll}
-        style={[styles.terminal, { backgroundColor: theme.terminalBackground }]}
+        style={[styles.terminal, { backgroundColor: background }]}
         onContentSizeChange={() => widget.autoScrollOn !== false && scroll?.scrollToEnd({ animated: false })}
       >
         {lines.map((l, i) => (
@@ -190,6 +282,19 @@ export function TerminalWidget({ dashId, widget, theme }: WidgetViewProps) {
           </Text>
         ))}
       </ScrollView>
+      {widget.terminalInputOn === true && (
+        <TextInput
+          value={input}
+          onChangeText={setInput}
+          onSubmitEditing={send}
+          returnKeyType="send"
+          placeholder={t.send}
+          placeholderTextColor={color + '80'}
+          style={[styles.terminalInput, { color, backgroundColor: background }]}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+      )}
     </WidgetFrame>
   );
 }
@@ -203,4 +308,5 @@ const styles = StyleSheet.create({
   terminalOuter: { justifyContent: 'flex-start', paddingTop: 4 },
   terminal: { flex: 1, padding: 6 },
   terminalLine: { fontFamily: FONT.mono, fontSize: 12 },
+  terminalInput: { fontFamily: FONT.mono, fontSize: 12, paddingHorizontal: 6, paddingVertical: 4, marginTop: 2 },
 });

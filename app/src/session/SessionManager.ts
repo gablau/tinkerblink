@@ -5,9 +5,11 @@
 //   "adis" ai flussi Node-RED. Al ritorno in primo piano (resume) si riconnette e ricarica il
 //   profilo, che contiene già l'ultimo valore di ogni widget.
 // - Se la connessione cade mentre l'app è attiva, si riprova con attese crescenti.
+// - Il client è in sola lettura tranne le scritture sui pin (HARDWARE): l'app comanda i device ma non
+//   può modificare i progetti.
 import { LegacyClient, ProtocolError, ResponseCode, WebSocketTransport } from '@tinkerblink/protocol';
 import { t } from '@/i18n';
-import type { Profile } from '@/model/profile';
+import { pinKey, type Profile } from '@/model/profile';
 import { forgetPassword, saveCredentials, serverUrl, type Credentials } from './credentials';
 import { LiveStore } from './liveStore';
 
@@ -17,9 +19,14 @@ export interface SessionState {
   status: SessionStatus;
   error?: string;
   profile?: Profile;
+  /** Avviso temporaneo, per esempio device offline dopo un comando. */
+  notice?: string;
 }
 
 const RETRY_DELAYS_MS = [2000, 5000, 10000, 30000];
+const NOTICE_MS = 3000;
+/** Il server segnala gli errori di scrittura subito: oltre questo tempo il msgId non serve più. */
+const WRITE_ERROR_WINDOW_MS = 5000;
 
 function describeError(e: unknown): string {
   if (e instanceof ProtocolError) {
@@ -41,6 +48,9 @@ export class SessionManager {
   private active = true;
   private retryAttempt = 0;
   private retryTimer?: ReturnType<typeof setTimeout>;
+  private noticeTimer?: ReturnType<typeof setTimeout>;
+  /** msgId delle scritture inviate di recente, per riconoscere gli errori che le riguardano. */
+  private pendingWrites = new Set<number>();
 
   getState = (): SessionState => this.state;
 
@@ -72,6 +82,23 @@ export class SessionManager {
     await forgetPassword();
   };
 
+  /**
+   * Scrive un pin virtuale (Button, Menu, Time Input…) e aggiorna subito il valore mostrato, perché
+   * il server non rimanda il valore a chi lo ha inviato. False se non connessi.
+   */
+  writePin = (dashId: number, deviceId: number, pin: number, values: string[]): boolean => {
+    const client = this.client;
+    if (!client || this.state.status !== 'online') {
+      this.showNotice(t.notConnected);
+      return false;
+    }
+    const msgId = client.writePin(dashId, deviceId, pin, values);
+    this.pendingWrites.add(msgId);
+    setTimeout(() => this.pendingWrites.delete(msgId), WRITE_ERROR_WINDOW_MS);
+    this.store.setLocal(pinKey(dashId, deviceId, 'VIRTUAL', pin), values);
+    return true;
+  };
+
   /** App in background: chiude la connessione. */
   pause(): void {
     this.active = false;
@@ -91,14 +118,26 @@ export class SessionManager {
   dispose(): void {
     this.clearRetry();
     this.closeClient();
+    if (this.noticeTimer) clearTimeout(this.noticeTimer);
     this.listeners.clear();
   }
 
   private async open(c: Credentials): Promise<void> {
     this.closeClient();
-    const client = new LegacyClient(new WebSocketTransport(serverUrl(c.host)), { readOnly: true });
+    const client = new LegacyClient(new WebSocketTransport(serverUrl(c.host)), {
+      readOnly: true,
+      allowHardwareWrites: true,
+    });
     this.client = client;
-    client.onMessage((m) => this.store.apply(m));
+    client.onMessage((m) => {
+      if (m.kind === 'response') {
+        if (this.pendingWrites.delete(m.msgId) && m.code === ResponseCode.DEVICE_NOT_IN_NETWORK) {
+          this.showNotice(t.deviceOffline);
+        }
+        return;
+      }
+      this.store.apply(m);
+    });
     client.onDisconnect(() => {
       if (this.client !== client) return; // chiusura voluta o connessione già sostituita
       this.client = null;
@@ -139,6 +178,12 @@ export class SessionManager {
     if (this.retryTimer) clearTimeout(this.retryTimer);
     this.retryTimer = undefined;
     this.retryAttempt = 0;
+  }
+
+  private showNotice(text: string): void {
+    if (this.noticeTimer) clearTimeout(this.noticeTimer);
+    this.setState({ notice: text });
+    this.noticeTimer = setTimeout(() => this.setState({ notice: undefined }), NOTICE_MS);
   }
 
   /** Chiusura voluta: azzerare this.client prima di close() evita che parta la riconnessione. */
