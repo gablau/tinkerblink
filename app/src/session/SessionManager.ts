@@ -6,6 +6,7 @@
 //   profilo, che contiene già l'ultimo valore di ogni widget.
 // - Se la connessione cade mentre l'app è attiva, si riprova con attese crescenti.
 import { LegacyClient, ProtocolError, ResponseCode, WebSocketTransport } from '@tinkerblink/protocol';
+import { t } from '@/i18n';
 import type { Profile } from '@/model/profile';
 import { forgetPassword, saveCredentials, serverUrl, type Credentials } from './credentials';
 import { LiveStore } from './liveStore';
@@ -23,7 +24,7 @@ const RETRY_DELAYS_MS = [2000, 5000, 10000, 30000];
 function describeError(e: unknown): string {
   if (e instanceof ProtocolError) {
     if (e.code === ResponseCode.USER_NOT_AUTHENTICATED || e.code === ResponseCode.USER_NOT_REGISTERED) {
-      return 'Email o password non corrette';
+      return t.wrongCredentials;
     }
     return e.message;
   }

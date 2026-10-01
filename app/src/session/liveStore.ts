@@ -6,12 +6,17 @@ import { deviceKey, pinKey, widgetPinKey, type Profile } from '@/model/profile';
 
 type Listener = () => void;
 
+/** Righe tenute in memoria per ogni Terminal. */
+const TERMINAL_MAX_LINES = 200;
+
 const OP_PIN_TYPE = { vw: 'VIRTUAL', dw: 'DIGITAL', aw: 'ANALOG' } as const;
 
 export class LiveStore {
   private values = new Map<string, string[]>();
   private props = new Map<string, Record<string, string>>();
   private devices = new Map<string, boolean>();
+  /** Cronologia dei pin collegati a un widget Terminal (le chiavi vengono registrate in load). */
+  private terminalLogs = new Map<string, string[]>();
   private listeners = new Map<string, Set<Listener>>();
 
   /** Stato iniziale dal profilo: `value` dei widget, `pinsStorage`, stato dei device. */
@@ -19,6 +24,8 @@ export class LiveStore {
     this.values.clear();
     this.props.clear();
     this.devices.clear();
+    const previousLogs = this.terminalLogs;
+    this.terminalLogs = new Map();
     for (const [key, value] of Object.entries(profile.pinsStorage ?? {})) {
       this.values.set(key, splitBody(value));
     }
@@ -26,6 +33,8 @@ export class LiveStore {
       for (const w of dash.widgets) {
         const key = widgetPinKey(dash.id, w);
         if (key && w.value !== undefined && w.value !== null) this.values.set(key, splitBody(String(w.value)));
+        // Dopo una riconnessione il profilo viene ricaricato: la cronologia del Terminal si conserva.
+        if (key && w.type === 'TERMINAL') this.terminalLogs.set(key, previousLogs.get(key) ?? []);
       }
       for (const d of dash.devices ?? []) this.devices.set(deviceKey(dash.id, d.id), d.status === 'ONLINE');
     }
@@ -48,7 +57,15 @@ export class LiveStore {
         const pinType = OP_PIN_TYPE[parts[1] as keyof typeof OP_PIN_TYPE];
         const pin = Number(parts[2]);
         if (!pinType || !Number.isFinite(pin)) return false;
-        this.set(this.values, pinKey(dashId, deviceId, pinType, pin), parts.slice(3));
+        const key = pinKey(dashId, deviceId, pinType, pin);
+        const values = parts.slice(3);
+        const log = this.terminalLogs.get(key);
+        if (log) {
+          const text = values.join(' ');
+          const next = text === 'clr' ? [] : [...log, ...text.split('\n')].slice(-TERMINAL_MAX_LINES);
+          this.terminalLogs.set(key, next);
+        }
+        this.set(this.values, key, values);
         return true;
       }
       case Command.SET_WIDGET_PROPERTY: {
@@ -74,6 +91,7 @@ export class LiveStore {
   }
 
   getValue = (key: string): string[] | undefined => this.values.get(key);
+  getTerminalLog = (key: string): string[] | undefined => this.terminalLogs.get(key);
   getProps = (key: string): Record<string, string> | undefined => this.props.get(key);
   isDeviceOnline = (key: string): boolean => this.devices.get(key) ?? false;
 

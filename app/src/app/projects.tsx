@@ -1,9 +1,11 @@
 import { Redirect, Stack, router } from 'expo-router';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { StatusBanner } from '@/components/StatusBanner';
+import { t } from '@/i18n';
 import type { Dashboard } from '@/model/profile';
 import { useDeviceOnline } from '@/session/hooks';
 import { useSession } from '@/session/SessionContext';
+import { FONT } from '@/ui/fonts';
 import { usePalette, type Palette } from '@/ui/theme';
 
 function DeviceDot({ dashId, deviceId, palette }: { dashId: number; deviceId: number; palette: Palette }) {
@@ -18,14 +20,15 @@ function ProjectRow({ dash, palette }: { dash: Dashboard; palette: Palette }) {
       style={[styles.row, { backgroundColor: palette.card, borderColor: palette.border }]}
     >
       <Text style={[styles.name, { color: palette.text }]}>{dash.name}</Text>
-      <Text style={{ color: palette.muted }}>
-        {dash.widgets.length} widget{dash.isActive === false ? ' · non attivo' : ''}
+      <Text style={[styles.meta, { color: palette.muted }]}>
+        {t.widgetCount(dash.widgets.length)}
+        {dash.isActive === false ? ` · ${t.notActive}` : ''}
       </Text>
       <View style={styles.devices}>
         {(dash.devices ?? []).map((d) => (
           <View key={d.id} style={styles.device}>
             <DeviceDot dashId={dash.id} deviceId={d.id} palette={palette} />
-            <Text style={{ color: palette.muted, fontSize: 13 }}>{d.name}</Text>
+            <Text style={[styles.meta, { color: palette.muted, fontSize: 13 }]}>{d.name}</Text>
           </View>
         ))}
       </View>
@@ -44,7 +47,7 @@ export default function ProjectsScreen() {
         options={{
           headerRight: () => (
             <Pressable onPress={() => void logout()} hitSlop={8}>
-              <Text style={{ color: palette.accent }}>Esci</Text>
+              <Text style={styles.logout}>{t.logOut}</Text>
             </Pressable>
           ),
         }}
@@ -63,7 +66,9 @@ export default function ProjectsScreen() {
 const styles = StyleSheet.create({
   list: { padding: 12, gap: 10 },
   row: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, padding: 14, gap: 4 },
-  name: { fontSize: 17, fontWeight: '600' },
+  name: { fontSize: 20, fontFamily: FONT.regular },
+  meta: { fontSize: 14, fontFamily: FONT.regular },
+  logout: { color: '#1D1E22', fontSize: 16, fontFamily: FONT.medium },
   devices: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 4 },
   device: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   dot: { width: 8, height: 8, borderRadius: 4 },

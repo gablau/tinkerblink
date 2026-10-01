@@ -6,8 +6,8 @@ import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { computeLayout } from '@/layout/bandLayout';
 import type { Dashboard, Widget } from '@/model/profile';
-import type { Palette } from '@/ui/theme';
-import { WidgetCard } from './WidgetCard';
+import type { DashboardTheme } from '@/ui/dashboardTheme';
+import { WidgetView } from '@/widgets/WidgetView';
 
 const GRID_PADDING = 4;
 /** Spazio tra un widget e l'altro (metà per lato). */
@@ -15,12 +15,12 @@ const GAP = 4;
 
 interface Props {
   dash: Dashboard;
-  palette: Palette;
+  theme: DashboardTheme;
   /** Indice della scheda attiva, oppure undefined se la dashboard non ha schede. */
   tab?: number;
 }
 
-export function DashboardGrid({ dash, palette, tab }: Props) {
+export function DashboardGrid({ dash, theme, tab }: Props) {
   const [width, setWidth] = useState(0);
   const onLayout = (e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width);
 
@@ -35,7 +35,7 @@ export function DashboardGrid({ dash, palette, tab }: Props) {
   );
 
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.content} onLayout={onLayout}>
+    <ScrollView style={[styles.scroll, { backgroundColor: theme.background }]} contentContainerStyle={styles.content} onLayout={onLayout}>
       {layout && (
         <View style={{ width: layout.width, height: layout.height }}>
           {layout.placed.map((p) => (
@@ -49,7 +49,7 @@ export function DashboardGrid({ dash, palette, tab }: Props) {
                 height: p.height - GAP,
               }}
             >
-              <WidgetCard dashId={dash.id} widget={p.item} palette={palette} />
+              <WidgetView dashId={dash.id} widget={p.item} theme={theme} />
             </View>
           ))}
         </View>

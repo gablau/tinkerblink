@@ -1,11 +1,13 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { t } from '@/i18n';
 import { useSession } from '@/session/SessionContext';
+import { FONT } from '@/ui/fonts';
 import { usePalette } from '@/ui/theme';
 
 const MESSAGES = {
-  reconnecting: 'Connessione persa, riconnessione in corso…',
-  paused: 'In pausa',
-  connecting: 'Connessione…',
+  reconnecting: t.reconnecting,
+  paused: t.paused,
+  connecting: t.connecting,
 } as const;
 
 /** Striscia in alto quando la connessione non è attiva. */
@@ -25,5 +27,5 @@ export function StatusBanner() {
 
 const styles = StyleSheet.create({
   banner: { paddingVertical: 6, paddingHorizontal: 12 },
-  text: { color: '#fff', fontSize: 13 },
+  text: { color: '#fff', fontSize: 14, fontFamily: FONT.regular },
 });
