@@ -2,7 +2,7 @@
 // Ogni componente si iscrive solo alla sua chiave (useSyncExternalStore), così un aggiornamento
 // di un pin ridisegna solo il widget interessato.
 import { Command, splitBody, SYNC_MESSAGE_ID, type Message } from '@tinkerblink/protocol';
-import { deviceKey, pinKey, widgetPinKey, type Profile } from '@/model/profile';
+import { deviceKey, pinKey, widgetPinKey, type PinType, type Profile } from '@/model/profile';
 
 type Listener = () => void;
 /** Scrittura di un pin ricevuta dal server (per i grafici LIVE): chiave del pin, valori, ora di arrivo. */
@@ -61,6 +61,13 @@ export class LiveStore {
         if (key && w.value !== undefined && w.value !== null) this.values.set(key, splitBody(String(w.value)));
         // Il server rimanda la cronologia con la sincronizzazione; fino ad allora si tiene quella che c'era.
         if (key && w.type === 'TERMINAL') this.terminalLogs.set(key, previousLogs.get(key) ?? []);
+        // Widget a più pin (zeRGBa): ogni pin ha il suo valore in pins[i].value.
+        if (Array.isArray(w.pins)) {
+          for (const p of w.pins as { pin?: number; pinType?: PinType; value?: string }[]) {
+            if (p.pin === undefined || p.pin < 0 || !p.pinType || p.value === undefined || p.value === null) continue;
+            this.values.set(pinKey(dash.id, w.deviceId ?? 0, p.pinType, p.pin), splitBody(String(p.value)));
+          }
+        }
       }
       for (const d of dash.devices ?? []) {
         this.devices.set(deviceKey(dash.id, d.id), {

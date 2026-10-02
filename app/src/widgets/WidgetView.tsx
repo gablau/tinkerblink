@@ -4,14 +4,11 @@ import { ButtonWidget, MenuWidget, SegmentedWidget, StyledButtonWidget, Terminal
 import { FONT } from '@/ui/fonts';
 import { LabeledValue, Led, ValueDisplay } from './displays';
 import { GaugeWidget, LevelWidget } from './gauges';
+import { RgbWidget, SliderWidget, StepWidget, VerticalSliderWidget } from './sliders';
 import { SuperChartWidget } from './superchart/SuperChart';
 import { useLabel, WidgetFrame, type WidgetViewProps } from './WidgetFrame';
 
 const TYPE_NAMES: Record<string, string> = {
-  VERTICAL_STEP: 'Step',
-  VERTICAL_SLIDER: 'Slider',
-  SLIDER: 'Slider',
-  RGB: 'zeRGBa',
   MAP: 'Map',
   VIDEO: 'Video',
   NOTIFICATION: 'Notification',
@@ -48,6 +45,15 @@ export function WidgetView(props: WidgetViewProps) {
       return <TimeInputWidget {...props} />;
     case 'TERMINAL':
       return <TerminalWidget {...props} />;
+    case 'SLIDER':
+      return <SliderWidget {...props} />;
+    case 'VERTICAL_SLIDER':
+      return <VerticalSliderWidget {...props} />;
+    case 'STEP':
+    case 'VERTICAL_STEP':
+      return <StepWidget {...props} />;
+    case 'RGB':
+      return <RgbWidget {...props} />;
     case 'GAUGE':
       return <GaugeWidget {...props} />;
     case 'LEVEL_DISPLAY':

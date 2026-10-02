@@ -22,7 +22,7 @@ const DEFAULT_TITLES: Record<string, string> = {
   SLIDER: 'Slider',
   TIMER: 'Timer',
   TWO_AXIS_JOYSTICK: 'Joystick',
-  RGB: 'zeRGBa',
+  RGB: 'RGB',
   LED: 'LED',
   GAUGE: 'Gauge',
   LCD: 'LCD',

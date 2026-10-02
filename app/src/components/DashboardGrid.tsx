@@ -2,12 +2,13 @@
 // - telefono in verticale: griglia a 8 colonne (x, y, width, height dei widget sul server; cella alta 1,35 × larghezza);
 // - schermi larghi: fasce di righe distribuite su più colonne affiancate.
 // Con le schede la riga 0 è occupata dal widget Tabs (sostituito dalla barra delle schede) e viene nascosta.
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { computeLayout } from '@/layout/bandLayout';
 import type { Dashboard, Widget } from '@/model/profile';
 import type { DashboardTheme } from '@/ui/dashboardTheme';
 import { WidgetView } from '@/widgets/WidgetView';
+import { ScrollLockContext } from './scrollLock';
 
 const GRID_PADDING = 4;
 /** Spazio tra un widget e l'altro (metà per lato). */
@@ -22,6 +23,8 @@ interface Props {
 
 export function DashboardGrid({ dash, theme, tab }: Props) {
   const [width, setWidth] = useState(0);
+  const [scrollEnabled, setScrollEnabled] = useState(true);
+  const lockScroll = useCallback((locked: boolean) => setScrollEnabled(!locked), []);
   const onLayout = (e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width);
 
   const hasTabs = tab !== undefined;
@@ -35,7 +38,13 @@ export function DashboardGrid({ dash, theme, tab }: Props) {
   );
 
   return (
-    <ScrollView style={[styles.scroll, { backgroundColor: theme.background }]} contentContainerStyle={styles.content} onLayout={onLayout}>
+    <ScrollView
+      style={[styles.scroll, { backgroundColor: theme.background }]}
+      contentContainerStyle={styles.content}
+      onLayout={onLayout}
+      scrollEnabled={scrollEnabled}
+    >
+      <ScrollLockContext.Provider value={lockScroll}>
       {layout && (
         <View style={{ width: layout.width, height: layout.height }}>
           {layout.placed.map((p) => (
@@ -54,6 +63,7 @@ export function DashboardGrid({ dash, theme, tab }: Props) {
           ))}
         </View>
       )}
+      </ScrollLockContext.Provider>
     </ScrollView>
   );
 }
