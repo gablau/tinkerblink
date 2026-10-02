@@ -7,7 +7,7 @@
 // - Se la connessione cade mentre l'app è attiva, si riprova con attese crescenti.
 // - Il client è in sola lettura tranne le scritture sui pin (HARDWARE): l'app comanda i device ma non
 //   può modificare i progetti.
-import { LegacyClient, ProtocolError, ResponseCode, WebSocketTransport } from '@tinkerblink/protocol';
+import { LegacyClient, ProtocolError, ResponseCode, WebSocketTransport, type GraphData, type GraphPeriod } from '@tinkerblink/protocol';
 import { t } from '@/i18n';
 import { pinKey, type Profile } from '@/model/profile';
 import { forgetPassword, saveCredentials, serverUrl, type Credentials } from './credentials';
@@ -97,6 +97,13 @@ export class SessionManager {
     setTimeout(() => this.pendingWrites.delete(msgId), WRITE_ERROR_WINDOW_MS);
     this.store.setLocal(pinKey(dashId, deviceId, 'VIRTUAL', pin), values);
     return true;
+  };
+
+  /** Storico di un SuperChart (GET_ENHANCED_GRAPH_DATA). `null` = nessun dato; errore se non connessi. */
+  getGraphData = (req: { dashId: number; widgetId: number; period: GraphPeriod; page?: number }): Promise<GraphData | null> => {
+    const client = this.client;
+    if (!client || this.state.status !== 'online') return Promise.reject(new Error(t.notConnected));
+    return client.getGraphData(req);
   };
 
   /** App in background: chiude la connessione. */

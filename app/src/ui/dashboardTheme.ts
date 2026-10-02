@@ -21,6 +21,8 @@ export interface DashboardTheme {
   cold: string[];
   /** Colore di default dei widget (verde Blynk). */
   accent: string;
+  /** Periodi non selezionati del SuperChart. */
+  periodText: string;
 }
 
 const DARK_COLORS = ['#FFFFFF', '#23C48E', '#5F7CD8', '#04C0F8', '#ED9D00', '#D3435C', '#1D1E22', '#212227', '#B3B3B3', '#000000', '#131319', '#0a0a0d', '#535353', '#757575', '#898989', '#D8D8D8', '#191A1F', '#F5F5F5', '#3C464D', '#7D918B', '#2C2D32'];
@@ -40,6 +42,7 @@ export const DARK_THEME: DashboardTheme = {
   warm: pick(DARK_COLORS, [1, 4, 5]),
   cold: pick(DARK_COLORS, [1, 3, 2]),
   accent: DARK_COLORS[1]!,
+  periodText: DARK_COLORS[8]!,
 };
 
 export const LIGHT_THEME: DashboardTheme = {
@@ -54,6 +57,7 @@ export const LIGHT_THEME: DashboardTheme = {
   warm: pick(LIGHT_COLORS, [1, 4, 5]),
   cold: pick(LIGHT_COLORS, [1, 3, 14]),
   accent: LIGHT_COLORS[1]!,
+  periodText: LIGHT_COLORS[2]!,
 };
 
 export function dashboardTheme(theme: string | undefined): DashboardTheme {

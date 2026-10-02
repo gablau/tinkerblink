@@ -3,10 +3,10 @@ import { StyleSheet, Text } from 'react-native';
 import { ButtonWidget, MenuWidget, SegmentedWidget, StyledButtonWidget, TerminalWidget, TimeInputWidget } from './controls';
 import { FONT } from '@/ui/fonts';
 import { LabeledValue, Led, ValueDisplay } from './displays';
+import { SuperChartWidget } from './superchart/SuperChart';
 import { useLabel, WidgetFrame, type WidgetViewProps } from './WidgetFrame';
 
 const TYPE_NAMES: Record<string, string> = {
-  ENHANCED_GRAPH: 'SuperChart',
   GAUGE: 'Gauge',
   LEVEL_DISPLAY: 'Level',
   VERTICAL_STEP: 'Step',
@@ -49,6 +49,8 @@ export function WidgetView(props: WidgetViewProps) {
       return <TimeInputWidget {...props} />;
     case 'TERMINAL':
       return <TerminalWidget {...props} />;
+    case 'ENHANCED_GRAPH':
+      return <SuperChartWidget {...props} />;
     default:
       return <Placeholder {...props} />;
   }

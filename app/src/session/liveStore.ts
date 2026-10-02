@@ -5,6 +5,8 @@ import { Command, splitBody, SYNC_MESSAGE_ID, type Message } from '@tinkerblink/
 import { deviceKey, pinKey, widgetPinKey, type Profile } from '@/model/profile';
 
 type Listener = () => void;
+/** Scrittura di un pin ricevuta dal server (per i grafici LIVE): chiave del pin, valori, ora di arrivo. */
+export type PinWriteListener = (key: string, values: string[], ts: number) => void;
 
 /** Righe tenute in memoria per ogni Terminal. */
 const TERMINAL_MAX_LINES = 200;
@@ -41,6 +43,7 @@ export class LiveStore {
   /** Cronologia dei pin collegati a un widget Terminal (le chiavi vengono registrate in load). */
   private terminalLogs = new Map<string, string[]>();
   private listeners = new Map<string, Set<Listener>>();
+  private writeListeners = new Set<PinWriteListener>();
 
   /** Stato iniziale dal profilo: `value` dei widget, `pinsStorage`, stato dei device. */
   load(profile: Profile): void {
@@ -100,6 +103,8 @@ export class LiveStore {
         } else {
           this.appendTerminal(key, values);
           this.set(this.values, key, values);
+          const now = Date.now();
+          this.writeListeners.forEach((l) => l(key, values, now));
         }
         return true;
       }
@@ -144,6 +149,12 @@ export class LiveStore {
     if (!set) this.listeners.set(key, (set = new Set()));
     set.add(listener);
     return () => set.delete(listener);
+  };
+
+  /** Notifica per ogni scrittura di un pin che arriva dal server (non per le sincronizzazioni). */
+  subscribePinWrites = (listener: PinWriteListener): (() => void) => {
+    this.writeListeners.add(listener);
+    return () => this.writeListeners.delete(listener);
   };
 
   /** Notifica per qualsiasi cambio di stato dei device. */

@@ -2,6 +2,7 @@
 // pausa/ripresa della connessione in base allo stato dell'app (primo piano / background).
 import { createContext, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { AppState } from 'react-native';
+import type { GraphData, GraphPeriod } from '@tinkerblink/protocol';
 import type { Credentials } from './credentials';
 import type { LiveStore } from './liveStore';
 import { SessionManager, type SessionState } from './SessionManager';
@@ -13,6 +14,7 @@ interface SessionValue extends SessionState {
   login(c: Credentials, rememberPassword: boolean): Promise<boolean>;
   logout(): Promise<void>;
   writePin(dashId: number, deviceId: number, pin: number, values: string[]): boolean;
+  getGraphData(req: { dashId: number; widgetId: number; period: GraphPeriod; page?: number }): Promise<GraphData | null>;
 }
 
 const SessionContext = createContext<SessionManager | null>(null);
@@ -44,5 +46,6 @@ export function useSession(): SessionValue {
     login: manager.login,
     logout: manager.logout,
     writePin: manager.writePin,
+    getGraphData: manager.getGraphData,
   };
 }

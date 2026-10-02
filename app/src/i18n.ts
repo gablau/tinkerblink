@@ -39,6 +39,9 @@ const en = {
   onlineSince: (when: string) => `Online since ${when}`,
   offlineSince: (when: string) => `Offline since ${when}`,
   neverOnline: 'Never connected',
+  // SuperChart
+  graphNoData: 'No data yet',
+  graphLoading: 'Loading…',
   months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
   /** "20:50 Oct 1, 2026". */
   formatDateTime: (d: Date) =>
@@ -81,13 +84,15 @@ const it: Strings = {
   onlineSince: (when: string) => `Online da ${when}`,
   offlineSince: (when: string) => `Offline da ${when}`,
   neverOnline: 'Mai collegato',
+  graphNoData: 'Ancora nessun dato',
+  graphLoading: 'Caricamento…',
   months: ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'],
   /** "20:50 1 ott 2026". */
   formatDateTime: (d: Date) =>
     `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')} ${d.getDate()} ${it.months[d.getMonth()]} ${d.getFullYear()}`,
 };
 
-const language = getLocales()[0]?.languageCode === 'it' ? 'it' : 'en';
+export const language = getLocales()[0]?.languageCode === 'it' ? 'it' : 'en';
 
 /** Testi nella lingua del telefono (letta all'avvio dell'app). */
 export const t: Strings = language === 'it' ? it : en;
