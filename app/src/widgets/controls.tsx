@@ -45,7 +45,10 @@ function useButtonPress(dashId: number, widget: Widget, on: boolean) {
   return { onPress: () => write([on ? min : max]) };
 }
 
-/** Button: pillola (raggio 50%) con bordo colorato; acceso = pieno. */
+/**
+ * Button: raggio 50% con bordo colorato; acceso = pieno. L'altezza non supera la
+ * larghezza: in una cella più alta che larga (2×2) è un cerchio, in una più larga (4×2) una pillola.
+ */
 export function ButtonWidget({ dashId, widget, theme }: WidgetViewProps) {
   const props = useWidgetProps(dashId, widget);
   const label = useLabel(dashId, widget);
@@ -54,26 +57,31 @@ export function ButtonWidget({ dashId, widget, theme }: WidgetViewProps) {
   const color = widgetColor(props.color ?? widget.color, theme);
   const onLabel = props.onLabel ?? (widget.onLabel as string | undefined) ?? 'ON';
   const offLabel = props.offLabel ?? (widget.offLabel as string | undefined) ?? 'OFF';
-  const [h, setH] = useState(0);
+  const [area, setArea] = useState({ w: 0, h: 0 });
+  const height = Math.min(area.h, area.w);
   return (
     <WidgetFrame label={label} theme={theme}>
-      <Pressable
-        {...press}
-        onLayout={(e: LayoutChangeEvent) => setH(e.nativeEvent.layout.height)}
-        style={({ pressed }) => [
-          styles.button,
-          { borderColor: color, borderRadius: h / 2, backgroundColor: on ? color : 'transparent', opacity: pressed ? 0.7 : 1 },
-        ]}
-      >
-        <Text
-          style={{ color: on ? theme.buttonSelectedText : color, fontSize: fontSizeOf(BUTTON_FONT_SIZE, widget.fontSize), fontFamily: FONT.light }}
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.4}
-        >
-          {on ? onLabel : offLabel}
-        </Text>
-      </Pressable>
+      <View style={styles.buttonArea} onLayout={(e: LayoutChangeEvent) => setArea({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
+        {height > 0 && (
+          <Pressable
+            {...press}
+            style={({ pressed }) => [
+              styles.button,
+              { width: area.w, height, flex: 0, margin: 0, borderColor: color, borderRadius: height / 2 },
+              { backgroundColor: on ? color : 'transparent', opacity: pressed ? 0.7 : 1 },
+            ]}
+          >
+            <Text
+              style={{ color: on ? theme.buttonSelectedText : color, fontSize: fontSizeOf(BUTTON_FONT_SIZE, widget.fontSize), fontFamily: FONT.light }}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.4}
+            >
+              {on ? onLabel : offLabel}
+            </Text>
+          </Pressable>
+        )}
+      </View>
     </WidgetFrame>
   );
 }
@@ -301,6 +309,7 @@ export function TerminalWidget({ dashId, widget, theme }: WidgetViewProps) {
 
 const styles = StyleSheet.create({
   button: { flex: 1, borderWidth: 1, alignItems: 'center', justifyContent: 'center', margin: 4, paddingHorizontal: 6 },
+  buttonArea: { flex: 1, margin: 4, alignItems: 'center', justifyContent: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4 },
   menuText: { flexShrink: 1, fontFamily: FONT.light },
   segments: { flex: 1, flexDirection: 'row', borderWidth: 1, borderRadius: 4, overflow: 'hidden', marginVertical: 4 },

@@ -1,5 +1,6 @@
 import { useCallback, useSyncExternalStore } from 'react';
 import { deviceKey, widgetPinKey, type Widget } from '@/model/profile';
+import type { DeviceState } from './liveStore';
 import { useSession } from './SessionContext';
 
 const EMPTY: Record<string, string> = {};
@@ -47,4 +48,19 @@ export function useWritePin(dashId: number, widget: Widget): (values: (string | 
     },
     [writePin, dashId, widget],
   );
+}
+
+/** Stato completo di un device (online, orari di connessione e disconnessione). */
+export function useDeviceState(dashId: number, deviceId: number): DeviceState {
+  const { store } = useSession();
+  const key = deviceKey(dashId, deviceId);
+  const subscribe = useCallback((cb: () => void) => store.subscribe(key, cb), [store, key]);
+  return useSyncExternalStore(subscribe, () => store.getDevice(key));
+}
+
+/** Numero di device offline di una dashboard (badge dell'intestazione). */
+export function useOfflineCount(dashId: number, deviceIds: number[]): number {
+  const { store } = useSession();
+  useSyncExternalStore(store.subscribeDevices, store.getDevicesVersion);
+  return deviceIds.filter((id) => !store.isDeviceOnline(deviceKey(dashId, id))).length;
 }

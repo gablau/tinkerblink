@@ -150,6 +150,12 @@ export class SessionManager {
     this.store.load(profile);
     this.retryAttempt = 0;
     this.setState({ status: 'online', error: undefined, profile });
+    // Sincronizzazione delle dashboard attive (APP_SYNC). Il server rimanda lo stato di ogni widget,
+    // compresa la cronologia dei Terminal, che non è nel profilo.
+    for (const dash of profile.dashBoards) {
+      if (dash.isActive === false || this.client !== client) continue;
+      await client.syncDashboard(dash.id).catch(() => undefined);
+    }
   }
 
   private reconnectNow(): void {

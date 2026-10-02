@@ -12,9 +12,36 @@ export interface WidgetViewProps {
   theme: DashboardTheme;
 }
 
+/**
+ * Titolo di default quando il widget non ha un'etichetta.
+ * Mancano apposta i tipi con titolo facoltativo (Value Display, Labeled
+ * Value, Menu, Styled Button, Switch, Text Input…) e quelli che non mostrano l'etichetta.
+ */
+const DEFAULT_TITLES: Record<string, string> = {
+  BUTTON: 'Button',
+  SLIDER: 'Slider',
+  TIMER: 'Timer',
+  TWO_AXIS_JOYSTICK: 'Joystick',
+  RGB: 'zeRGBa',
+  LED: 'LED',
+  GAUGE: 'Gauge',
+  LCD: 'LCD',
+  TERMINAL: 'Terminal',
+  VIDEO: 'Video Streaming',
+  PLAYER: 'Music Player',
+  TABLE: 'Table',
+  TIME_INPUT: 'Time Input',
+  MAP: 'Map',
+  LEVEL_DISPLAY: 'Level H',
+  STEP: 'Step H',
+  VERTICAL_STEP: 'Step V',
+  SEGMENTED_CONTROL: 'Segmented Switch',
+};
+
 export function useLabel(dashId: number, widget: Widget): string {
   const props = useWidgetProps(dashId, widget);
-  return props.label ?? widget.label ?? '';
+  const label = props.label ?? widget.label ?? '';
+  return label !== '' ? label : (DEFAULT_TITLES[widget.type] ?? '');
 }
 
 export function WidgetFrame({

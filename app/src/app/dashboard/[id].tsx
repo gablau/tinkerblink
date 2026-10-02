@@ -4,6 +4,7 @@ import { Redirect, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { DashboardGrid } from '@/components/DashboardGrid';
+import { DevicesButton, DevicesPanel } from '@/components/Devices';
 import { StatusBanner } from '@/components/StatusBanner';
 import type { TabsWidget } from '@/model/profile';
 import { useSession } from '@/session/SessionContext';
@@ -18,6 +19,7 @@ export default function DashboardScreen() {
   const dash = profile?.dashBoards.find((d) => String(d.id) === id);
   const theme = dashboardTheme(dash?.theme);
   const [tab, setTab] = useState(0);
+  const [devicesOpen, setDevicesOpen] = useState(false);
 
   if (!profile) return <Redirect href="/" />;
   if (!dash) return <Text style={{ padding: 16 }}>{t.dashboardNotFound}</Text>;
@@ -31,8 +33,14 @@ export default function DashboardScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <Stack.Screen options={{ title: dash.name }} />
+      <Stack.Screen
+        options={{
+          title: dash.name,
+          headerRight: () => <DevicesButton dash={dash} open={devicesOpen} onPress={() => setDevicesOpen((o) => !o)} />,
+        }}
+      />
       <StatusBanner />
+      {devicesOpen && <DevicesPanel dash={dash} theme={theme} />}
       {tabs.length > 0 && (
         <ScrollView horizontal style={{ flexGrow: 0, backgroundColor: tabBg }} contentContainerStyle={styles.tabs}>
           {/* Nel JSON gli id delle schede valgono tutti 0: il tabId dei widget è la posizione della scheda. */}

@@ -27,7 +27,11 @@ export interface Device {
   id: number;
   name: string;
   boardType?: string;
+  connectionType?: string;
   status?: 'ONLINE' | 'OFFLINE';
+  /** Ultima connessione / disconnessione (ms); assenti se il device non è mai stato online. */
+  connectTime?: number;
+  disconnectTime?: number;
 }
 
 export interface Dashboard {

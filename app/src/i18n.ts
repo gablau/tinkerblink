@@ -35,6 +35,14 @@ const en = {
   stop: 'Stop',
   send: 'Send',
   noStop: 'No end time',
+  // Stato dei device
+  onlineSince: (when: string) => `Online since ${when}`,
+  offlineSince: (when: string) => `Offline since ${when}`,
+  neverOnline: 'Never connected',
+  months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+  /** "20:50 Oct 1, 2026". */
+  formatDateTime: (d: Date) =>
+    `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')} ${en.months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`,
 };
 
 type Strings = typeof en;
@@ -70,6 +78,13 @@ const it: Strings = {
   stop: 'Fine',
   send: 'Invia',
   noStop: 'Senza orario di fine',
+  onlineSince: (when: string) => `Online da ${when}`,
+  offlineSince: (when: string) => `Offline da ${when}`,
+  neverOnline: 'Mai collegato',
+  months: ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'],
+  /** "20:50 1 ott 2026". */
+  formatDateTime: (d: Date) =>
+    `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')} ${d.getDate()} ${it.months[d.getMonth()]} ${d.getFullYear()}`,
 };
 
 const language = getLocales()[0]?.languageCode === 'it' ? 'it' : 'en';

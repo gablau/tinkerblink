@@ -12,15 +12,13 @@ const MESSAGES = {
 
 /** Striscia in alto quando la connessione non è attiva. */
 export function StatusBanner() {
-  const { status, error } = useSession();
+  const { status } = useSession();
   const palette = usePalette();
   if (status !== 'reconnecting' && status !== 'paused' && status !== 'connecting') return null;
+  // Senza dettagli tecnici: durante la riconnessione l'errore è quasi sempre "rete o server non raggiungibili".
   return (
     <View style={[styles.banner, { backgroundColor: palette.danger }]}>
-      <Text style={styles.text}>
-        {MESSAGES[status]}
-        {error && status === 'reconnecting' ? ` (${error})` : ''}
-      </Text>
+      <Text style={styles.text}>{MESSAGES[status]}</Text>
     </View>
   );
 }
