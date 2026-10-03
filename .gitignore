@@ -2,6 +2,10 @@
 .env
 .env.*
 
+# Chiave di firma della release (password comprese) e APK generati
+keys/
+release/
+
 # Build Android
 .gradle/
 build/

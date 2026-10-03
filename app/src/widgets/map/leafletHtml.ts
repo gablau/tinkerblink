@@ -68,10 +68,23 @@ export function buildLeafletHtml(): string {
       markers.addLayer(m);
     });
   }
-  map.on('dragstart zoomstart', function () { userMove = true; });
+  // Vista iniziale da riapplicare quando il contenitore prende la dimensione definitiva: se la mappa nasce
+  // mentre la WebView è ancora 0×0, al ridimensionamento Leaflet sposterebbe il centro.
+  var initial = null;
+  var touched = false;
+  var el = document.getElementById('map');
+  ['touchstart', 'mousedown', 'wheel'].forEach(function (ev) {
+    el.addEventListener(ev, function () { touched = true; userMove = true; }, { passive: true });
+  });
+  if (window.ResizeObserver) {
+    new ResizeObserver(function () {
+      map.invalidateSize({ pan: false });
+      if (!touched && initial) initial();
+    }).observe(el);
+  }
+  // Si salva solo la visuale scelta dall'utente (gesti), non gli spostamenti fatti dal codice.
   map.on('moveend', function () {
     if (!userMove) return;
-    userMove = false;
     var c = map.getCenter();
     post({ type: 'view', lat: c.lat, lon: c.lng, zoom: map.getZoom() });
   });
@@ -81,13 +94,17 @@ export function buildLeafletHtml(): string {
       color = cmd.markerColor || color;
       meColor = cmd.meColor || meColor;
       (cmd.satellite ? sat : osm).addTo(map);
-      if (cmd.view) map.setView([cmd.view.lat, cmd.view.lon], cmd.view.zoom);
-      else map.setView([cmd.fallback.lat, cmd.fallback.lon], 15);
+      var view = cmd.view, fb = cmd.fallback;
+      initial = view
+        ? function () { map.setView([view.lat, view.lon], view.zoom); }
+        : function () { map.setView([fb.lat, fb.lon], 15); };
+      initial();
     } else if (cmd.type === 'points') {
       points = cmd.points || [];
       drawPoints();
-      if (cmd.fit) fit();
+      if (cmd.fit && points.length > 0) { initial = fit; fit(); }
     } else if (cmd.type === 'fit') {
+      userMove = false;
       fit();
     } else if (cmd.type === 'me') {
       var ll = [cmd.lat, cmd.lon];
@@ -98,7 +115,7 @@ export function buildLeafletHtml(): string {
         me.setLatLng(ll);
         meCircle.setLatLng(ll).setRadius(cmd.accuracy || 0);
       }
-      if (cmd.pan) map.setView(ll, Math.max(map.getZoom(), ${SINGLE_POINT_ZOOM}));
+      if (cmd.pan) { userMove = false; map.setView(ll, Math.max(map.getZoom(), ${SINGLE_POINT_ZOOM})); }
     }
   };
   // Messaggi dall'app web (iframe).

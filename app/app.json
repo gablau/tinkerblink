@@ -38,7 +38,8 @@
         {
           "locationWhenInUsePermission": "Mostra la tua posizione sul widget Map."
         }
-      ]
+      ],
+      "./plugins/withShortCxxPath"
     ],
     "experiments": {
       "typedRoutes": true
