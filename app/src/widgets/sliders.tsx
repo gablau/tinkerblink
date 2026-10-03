@@ -78,7 +78,7 @@ function useDrag(onMove: (x: number, y: number) => void, onEnd: () => void) {
 }
 
 /** Invio durante il trascinamento: al massimo uno ogni `ms`. */
-function useThrottle(ms: number) {
+export function useThrottle(ms: number) {
   const last = useRef(0);
   return (fn: () => void) => {
     const now = Date.now();
