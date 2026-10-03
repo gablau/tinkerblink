@@ -3,10 +3,11 @@
 // - schermi larghi: fasce di righe distribuite su più colonne affiancate.
 // Con le schede la riga 0 è occupata dal widget Tabs (sostituito dalla barra delle schede) e viene nascosta.
 import { useCallback, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { computeLayout } from '@/layout/bandLayout';
 import type { Dashboard, Widget } from '@/model/profile';
 import type { DashboardTheme } from '@/ui/dashboardTheme';
+import { withAlpha } from '@/widgets/color';
 import { WidgetView } from '@/widgets/WidgetView';
 import { ScrollLockContext } from './scrollLock';
 
@@ -19,9 +20,11 @@ interface Props {
   theme: DashboardTheme;
   /** Indice della scheda attiva, oppure undefined se la dashboard non ha schede. */
   tab?: number;
+  /** Modalità modifica: i widget non rispondono e un tocco apre le loro impostazioni. */
+  onWidgetPress?: (w: Widget) => void;
 }
 
-export function DashboardGrid({ dash, theme, tab }: Props) {
+export function DashboardGrid({ dash, theme, tab, onWidgetPress }: Props) {
   const [width, setWidth] = useState(0);
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const lockScroll = useCallback((locked: boolean) => setScrollEnabled(!locked), []);
@@ -59,6 +62,16 @@ export function DashboardGrid({ dash, theme, tab }: Props) {
               }}
             >
               <WidgetView dashId={dash.id} widget={p.item} theme={theme} />
+              {onWidgetPress && (
+                <Pressable
+                  onPress={() => onWidgetPress(p.item)}
+                  style={({ pressed }) => [
+                    StyleSheet.absoluteFill,
+                    styles.editOverlay,
+                    { borderColor: theme.accent, backgroundColor: pressed ? withAlpha(theme.accent, 0.25) : withAlpha(theme.background, 0.35) },
+                  ]}
+                />
+              )}
             </View>
           ))}
         </View>
@@ -71,4 +84,5 @@ export function DashboardGrid({ dash, theme, tab }: Props) {
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { alignItems: 'center', paddingVertical: GRID_PADDING, paddingBottom: 24 },
+  editOverlay: { borderWidth: 1, borderStyle: 'dashed', borderRadius: 2 },
 });

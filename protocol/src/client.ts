@@ -27,6 +27,9 @@ const READ_ONLY_COMMANDS: ReadonlySet<number> = new Set([
   Command.LOGOUT,
 ]);
 
+/** Comandi dell'editor: in sola lettura sono ammessi solo sulle dashboard di `editableDashIds`. */
+const EDIT_COMMANDS: ReadonlySet<number> = new Set([Command.CREATE_WIDGET, Command.UPDATE_WIDGET, Command.DELETE_WIDGET]);
+
 export class ProtocolError extends Error {
   constructor(
     readonly command: number,
@@ -44,6 +47,11 @@ export interface ClientOptions {
    * all'app per comandare i device senza poter modificare i progetti.
    */
   allowHardwareWrites?: boolean;
+  /**
+   * In sola lettura permette comunque i comandi dell'editor (CREATE_WIDGET, UPDATE_WIDGET, DELETE_WIDGET),
+   * ma solo su queste dashboard: il dashId è il primo campo del body. Vuoto = nessuna modifica.
+   */
+  editableDashIds?: readonly number[];
   requestTimeoutMs?: number;
   pingIntervalMs?: number;
 }
@@ -69,7 +77,14 @@ export class LegacyClient {
     private readonly transport: Transport,
     opts: ClientOptions = {},
   ) {
-    this.opts = { readOnly: true, allowHardwareWrites: false, requestTimeoutMs: 15000, pingIntervalMs: 10000, ...opts };
+    this.opts = {
+      readOnly: true,
+      allowHardwareWrites: false,
+      editableDashIds: [],
+      requestTimeoutMs: 15000,
+      pingIntervalMs: 10000,
+      ...opts,
+    };
     this.codec = createCodec(transport.framing);
     transport.onData((chunk) => {
       for (const m of this.codec.push(chunk)) this.dispatch(m);
@@ -159,7 +174,7 @@ export class LegacyClient {
 
   /** Invia un comando e attende il messaggio con lo stesso msgId. */
   request(command: number, body = ''): Promise<Message> {
-    if (!this.isAllowed(command)) {
+    if (!this.isAllowed(command, body)) {
       return Promise.reject(new Error(`Comando ${commandName(command)} bloccato: client in sola lettura`));
     }
     const msgId = this.allocId();
@@ -179,7 +194,7 @@ export class LegacyClient {
    * offline), che arriva ai listener di onMessage con lo stesso msgId restituito qui.
    */
   send(command: number, body = ''): number {
-    if (!this.isAllowed(command)) throw new Error(`Comando ${commandName(command)} bloccato: client in sola lettura`);
+    if (!this.isAllowed(command, body)) throw new Error(`Comando ${commandName(command)} bloccato: client in sola lettura`);
     const msgId = this.allocId();
     this.transport.write(this.codec.encode(command, msgId, body));
     return msgId;
@@ -194,9 +209,25 @@ export class LegacyClient {
     return this.send(Command.HARDWARE, joinBody(`${dashId}-${deviceId}`, `${pinType}w`, pin, ...values));
   }
 
-  private isAllowed(command: number): boolean {
+  /**
+   * Modifica un widget esistente (UPDATE_WIDGET, MobileUpdateWidgetLogic): body "<dashId>\0<json>".
+   * Va inviato il JSON completo del widget (stesso id e stesso tipo): il server sostituisce il widget e
+   * conserva solo il valore corrente. Si parte quindi dal JSON del profilo e si cambiano solo i campi
+   * toccati, così non si perdono i campi che il client non conosce.
+   */
+  async updateWidget(dashId: number, widget: { id: number; type: string }): Promise<void> {
+    await this.expectOk(Command.UPDATE_WIDGET, joinBody(dashId, JSON.stringify(widget)));
+  }
+
+  private isAllowed(command: number, body: string): boolean {
     if (!this.opts.readOnly) return true;
-    return READ_ONLY_COMMANDS.has(command) || (this.opts.allowHardwareWrites && command === Command.HARDWARE);
+    if (READ_ONLY_COMMANDS.has(command)) return true;
+    if (command === Command.HARDWARE) return this.opts.allowHardwareWrites;
+    if (EDIT_COMMANDS.has(command)) {
+      const dashId = Number(body.split('\0', 1)[0]);
+      return this.opts.editableDashIds.includes(dashId);
+    }
+    return false;
   }
 
   private async expectOk(command: number, body: string): Promise<void> {

@@ -1,11 +1,14 @@
 // Dashboard: barra delle schede (se presenti) e griglia con i widget.
 // Colori: tema della dashboard (Blynk / BlynkLight, enum Theme del server) e colori del widget Tabs.
-import { Redirect, Stack, useLocalSearchParams } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { DashboardGrid } from '@/components/DashboardGrid';
 import { DevicesButton, DevicesPanel } from '@/components/Devices';
 import { StatusBanner } from '@/components/StatusBanner';
+import { isEditableDash } from '@/editor/policy';
+import { te } from '@/editor/strings';
 import type { TabsWidget } from '@/model/profile';
 import { useSession } from '@/session/SessionContext';
 import { dashboardTheme } from '@/ui/dashboardTheme';
@@ -20,6 +23,9 @@ export default function DashboardScreen() {
   const theme = dashboardTheme(dash?.theme);
   const [tab, setTab] = useState(0);
   const [devicesOpen, setDevicesOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const router = useRouter();
+  const editable = dash !== undefined && isEditableDash(dash.id);
 
   if (!profile) return <Redirect href="/" />;
   if (!dash) return <Text style={{ padding: 16 }}>{t.dashboardNotFound}</Text>;
@@ -36,10 +42,22 @@ export default function DashboardScreen() {
       <Stack.Screen
         options={{
           title: dash.name,
-          headerRight: () => <DevicesButton dash={dash} open={devicesOpen} onPress={() => setDevicesOpen((o) => !o)} />,
+          headerRight: () => (
+            <View style={styles.headerRight}>
+              {editable && (
+                <Pressable onPress={() => setEditing((e) => !e)} hitSlop={10} accessibilityLabel={editing ? te.done : te.edit}>
+                  <MaterialCommunityIcons name={editing ? 'check' : 'pencil'} size={24} color="#1D1E22" />
+                </Pressable>
+              )}
+              <DevicesButton dash={dash} open={devicesOpen} onPress={() => setDevicesOpen((o) => !o)} />
+            </View>
+          ),
         }}
       />
       <StatusBanner />
+      {editing && (
+        <Text style={[styles.editHint, { color: theme.background, backgroundColor: theme.accent }]}>{te.editHint}</Text>
+      )}
       {devicesOpen && <DevicesPanel dash={dash} theme={theme} />}
       {tabs.length > 0 && (
         <ScrollView horizontal style={{ flexGrow: 0, backgroundColor: tabBg }} contentContainerStyle={styles.tabs}>
@@ -51,7 +69,12 @@ export default function DashboardScreen() {
           ))}
         </ScrollView>
       )}
-      <DashboardGrid dash={dash} theme={theme} tab={tabs.length > 0 ? tab : undefined} />
+      <DashboardGrid
+        dash={dash}
+        theme={theme}
+        tab={tabs.length > 0 ? tab : undefined}
+        onWidgetPress={editing ? (w) => router.push(`/edit/${dash.id}/${w.id}`) : undefined}
+      />
     </View>
   );
 }
@@ -60,4 +83,6 @@ const styles = StyleSheet.create({
   tabs: { paddingHorizontal: 8 },
   tab: { paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 3, borderBottomColor: 'transparent' },
   tabText: { fontSize: 14, fontFamily: FONT.medium, letterSpacing: 0.5 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 20 },
+  editHint: { textAlign: 'center', paddingVertical: 6, fontSize: 13, fontFamily: FONT.medium },
 });

@@ -87,6 +87,13 @@ import { LegacyClient, Command, encodeMessage, FrameDecoder, parseGraphData, pas
   const [m] = new WsCodec().push(written[0]!);
   assert.deepEqual(m, { kind: 'text', command: Command.HARDWARE, msgId: 1, body: '123456789-0\0vw\x0020\x00ciao' });
   assert.throws(() => hw.send(Command.CREATE_WIDGET, '{}'), /bloccato/);
+  // Editor: comandi di modifica solo sulle dashboard ammesse (dashId = primo campo del body).
+  const ed = new LegacyClient(fake, { readOnly: true, editableDashIds: [123456789] });
+  assert.doesNotThrow(() => ed.send(Command.UPDATE_WIDGET, '123456789\0{}'));
+  assert.throws(() => ed.send(Command.UPDATE_WIDGET, '999\0{}'), /bloccato/);
+  assert.throws(() => ed.send(Command.UPDATE_WIDGET, '1234567890\0{}'), /bloccato/);
+  assert.throws(() => ed.send(Command.UPDATE_DASH, '123456789\0{}'), /bloccato/);
+  assert.throws(() => ed.writePin(123456789, 0, 20, ['x']), /bloccato/);
 }
 
 console.log('✅ selftest ok');

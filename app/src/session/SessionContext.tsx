@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 import type { GraphData, GraphPeriod } from '@tinkerblink/protocol';
+import type { Widget } from '@/model/profile';
 import type { Credentials } from './credentials';
 import type { SensorsWorker } from '@/sensors/sensorsWorker';
 import type { LiveStore } from './liveStore';
@@ -17,6 +18,7 @@ interface SessionValue extends SessionState {
   logout(): Promise<void>;
   writePin(dashId: number, deviceId: number, pin: number, values: string[]): boolean;
   getGraphData(req: { dashId: number; widgetId: number; period: GraphPeriod; page?: number }): Promise<GraphData | null>;
+  updateWidget(dashId: number, widget: Widget): Promise<void>;
 }
 
 const SessionContext = createContext<SessionManager | null>(null);
@@ -50,5 +52,6 @@ export function useSession(): SessionValue {
     logout: manager.logout,
     writePin: manager.writePin,
     getGraphData: manager.getGraphData,
+    updateWidget: manager.updateWidget,
   };
 }

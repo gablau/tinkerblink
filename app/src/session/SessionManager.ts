@@ -9,7 +9,8 @@
 //   può modificare i progetti.
 import { LegacyClient, ProtocolError, ResponseCode, WebSocketTransport, type GraphData, type GraphPeriod } from '@tinkerblink/protocol';
 import { t } from '@/i18n';
-import { pinKey, type Profile } from '@/model/profile';
+import { pinKey, type Profile, type Widget } from '@/model/profile';
+import { EDITABLE_DASH_IDS } from '@/editor/policy';
 import { syncGps } from '@/sensors/gps';
 import { SensorsWorker } from '@/sensors/sensorsWorker';
 import { forgetPassword, saveCredentials, serverUrl, type Credentials } from './credentials';
@@ -113,6 +114,28 @@ export class SessionManager {
   }
 
   /** Storico di un SuperChart (GET_ENHANCED_GRAPH_DATA). `null` = nessun dato; errore se non connessi. */
+  /**
+   * Editor: salva un widget modificato (UPDATE_WIDGET) e aggiorna il profilo locale. Solo sulle dashboard
+   * ammesse (il client rifiuta le altre). Dopo il salvataggio si chiede l'APP_SYNC della dashboard, così i
+   * valori seguono un eventuale cambio di pin.
+   */
+  updateWidget = async (dashId: number, widget: Widget): Promise<void> => {
+    const client = this.client;
+    const profile = this.state.profile;
+    if (!client || !profile || this.state.status !== 'online') throw new Error(t.notConnected);
+    await client.updateWidget(dashId, widget);
+    if (this.client !== client || this.state.profile !== profile) return;
+    const next: Profile = {
+      ...profile,
+      dashBoards: profile.dashBoards.map((d) =>
+        d.id !== dashId ? d : { ...d, widgets: d.widgets.map((w) => (w.id === widget.id ? { ...widget, value: w.value } : w)) },
+      ),
+    };
+    this.setState({ profile: next });
+    if (widget.type === 'GPS_STREAMING' || widget.type === 'GPS_TRIGGER') void syncGps(next, this.credentials?.host ?? '');
+    await client.syncDashboard(dashId).catch(() => undefined);
+  };
+
   getGraphData = (req: { dashId: number; widgetId: number; period: GraphPeriod; page?: number }): Promise<GraphData | null> => {
     const client = this.client;
     if (!client || this.state.status !== 'online') return Promise.reject(new Error(t.notConnected));
@@ -148,6 +171,7 @@ export class SessionManager {
     const client = new LegacyClient(new WebSocketTransport(serverUrl(c.host)), {
       readOnly: true,
       allowHardwareWrites: true,
+      editableDashIds: EDITABLE_DASH_IDS,
     });
     this.client = client;
     client.onMessage((m) => {
