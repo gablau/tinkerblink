@@ -36,6 +36,15 @@ const DEFAULT_TITLES: Record<string, string> = {
   STEP: 'Step H',
   VERTICAL_STEP: 'Step V',
   SEGMENTED_CONTROL: 'Segmented Switch',
+  ACCELEROMETER: 'Accelermtr',
+  BAROMETER: 'Barometer',
+  GRAVITY: 'Gravity',
+  HUMIDITY: 'Humidity',
+  LIGHT: 'Light',
+  PROXIMITY: 'Proximity',
+  TEMPERATURE: 'Temperature',
+  GPS_STREAMING: 'GPS',
+  GPS_TRIGGER: 'GPS',
 };
 
 export function useLabel(dashId: number, widget: Widget): string {

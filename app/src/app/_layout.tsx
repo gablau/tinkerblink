@@ -4,6 +4,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NoticeToast } from '@/components/NoticeToast';
 import { t } from '@/i18n';
 import { SessionProvider } from '@/session/SessionContext';
+// I task del GPS in background vanno definiti all'avvio, prima che Android li richiami.
+import '@/sensors/gps';
 import { FONT, useAppFonts } from '@/ui/fonts';
 import { usePalette } from '@/ui/theme';
 

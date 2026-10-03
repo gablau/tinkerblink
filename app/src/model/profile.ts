@@ -32,6 +32,8 @@ export interface Device {
   /** Ultima connessione / disconnessione (ms); assenti se il device non è mai stato online. */
   connectTime?: number;
   disconnectTime?: number;
+  /** Token del device per l'API HTTP (usato solo dal GPS in background; non va mai mostrato). */
+  token?: string;
 }
 
 export interface Dashboard {

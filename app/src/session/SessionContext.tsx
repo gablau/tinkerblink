@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, useSyncExternalStore, t
 import { AppState } from 'react-native';
 import type { GraphData, GraphPeriod } from '@tinkerblink/protocol';
 import type { Credentials } from './credentials';
+import type { SensorsWorker } from '@/sensors/sensorsWorker';
 import type { LiveStore } from './liveStore';
 import { SessionManager, type SessionState } from './SessionManager';
 
@@ -11,6 +12,7 @@ export type { SessionStatus } from './SessionManager';
 
 interface SessionValue extends SessionState {
   store: LiveStore;
+  sensors: SensorsWorker;
   login(c: Credentials, rememberPassword: boolean): Promise<boolean>;
   logout(): Promise<void>;
   writePin(dashId: number, deviceId: number, pin: number, values: string[]): boolean;
@@ -43,6 +45,7 @@ export function useSession(): SessionValue {
   return {
     ...state,
     store: manager.store,
+    sensors: manager.sensors,
     login: manager.login,
     logout: manager.logout,
     writePin: manager.writePin,

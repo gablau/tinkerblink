@@ -10,6 +10,8 @@
 import { LegacyClient, ProtocolError, ResponseCode, WebSocketTransport, type GraphData, type GraphPeriod } from '@tinkerblink/protocol';
 import { t } from '@/i18n';
 import { pinKey, type Profile } from '@/model/profile';
+import { syncGps } from '@/sensors/gps';
+import { SensorsWorker } from '@/sensors/sensorsWorker';
 import { forgetPassword, saveCredentials, serverUrl, type Credentials } from './credentials';
 import { LiveStore } from './liveStore';
 
@@ -41,6 +43,8 @@ function describeError(e: unknown): string {
 
 export class SessionManager {
   readonly store = new LiveStore();
+  /** Sensori del telefono: attivi solo mentre la sessione è online. */
+  readonly sensors = new SensorsWorker((dashId, deviceId, pin, values) => this.writeSensor(dashId, deviceId, pin, values));
   private state: SessionState = { status: 'idle' };
   private listeners = new Set<() => void>();
   private client: LegacyClient | null = null;
@@ -79,6 +83,7 @@ export class SessionManager {
     this.closeClient();
     this.credentials = null;
     this.setState({ status: 'idle', error: undefined, profile: undefined });
+    void syncGps(null, '');
     await forgetPassword();
   };
 
@@ -98,6 +103,14 @@ export class SessionManager {
     this.store.setLocal(pinKey(dashId, deviceId, 'VIRTUAL', pin), values);
     return true;
   };
+
+  /** Scrittura dei sensori: niente avvisi (device offline, non connessi), arrivano di continuo. */
+  private writeSensor(dashId: number, deviceId: number, pin: number, values: string[]): void {
+    const client = this.client;
+    if (!client || this.state.status !== 'online') return;
+    client.writePin(dashId, deviceId, pin, values);
+    this.store.setLocal(pinKey(dashId, deviceId, 'VIRTUAL', pin), values);
+  }
 
   /** Storico di un SuperChart (GET_ENHANCED_GRAPH_DATA). `null` = nessun dato; errore se non connessi. */
   getGraphData = (req: { dashId: number; widgetId: number; period: GraphPeriod; page?: number }): Promise<GraphData | null> => {
@@ -125,6 +138,7 @@ export class SessionManager {
   dispose(): void {
     this.clearRetry();
     this.closeClient();
+    this.sensors.update(null);
     if (this.noticeTimer) clearTimeout(this.noticeTimer);
     this.listeners.clear();
   }
@@ -157,6 +171,7 @@ export class SessionManager {
     this.store.load(profile);
     this.retryAttempt = 0;
     this.setState({ status: 'online', error: undefined, profile });
+    void syncGps(profile, c.host);
     // Sincronizzazione delle dashboard attive (APP_SYNC). Il server rimanda lo stato di ogni widget,
     // compresa la cronologia dei Terminal, che non è nel profilo.
     for (const dash of profile.dashBoards) {
@@ -208,6 +223,7 @@ export class SessionManager {
 
   private setState(patch: Partial<SessionState>): void {
     this.state = { ...this.state, ...patch };
+    this.sensors.update(this.state.status === 'online' ? (this.state.profile ?? null) : null);
     this.listeners.forEach((l) => l());
   }
 }

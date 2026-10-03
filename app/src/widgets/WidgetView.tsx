@@ -10,6 +10,7 @@ import { JoystickWidget } from './joystick';
 import { LcdWidget } from './lcd';
 import { ImageGalleryWidget, TimerWidget } from './misc';
 import { MapWidget } from './map/MapWidget';
+import { GpsStreamWidget, GpsTriggerWidget, SensorIconWidget, SensorValueWidget } from './sensors';
 import { RgbWidget, SliderWidget, StepWidget, VerticalSliderWidget } from './sliders';
 import { VideoWidget } from './VideoWidget';
 import { SuperChartWidget } from './superchart/SuperChart';
@@ -88,6 +89,19 @@ export function WidgetView(props: WidgetViewProps) {
       return <LevelWidget {...props} />;
     case 'ENHANCED_GRAPH':
       return <SuperChartWidget {...props} />;
+    case 'LIGHT':
+    case 'PROXIMITY':
+    case 'BAROMETER':
+    case 'HUMIDITY':
+    case 'TEMPERATURE':
+      return <SensorValueWidget {...props} />;
+    case 'ACCELEROMETER':
+    case 'GRAVITY':
+      return <SensorIconWidget {...props} />;
+    case 'GPS_STREAMING':
+      return <GpsStreamWidget {...props} />;
+    case 'GPS_TRIGGER':
+      return <GpsTriggerWidget {...props} />;
     default:
       return <Placeholder {...props} />;
   }

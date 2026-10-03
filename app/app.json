@@ -18,7 +18,8 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": ["android.permission.RECEIVE_BOOT_COMPLETED"]
     },
     "web": {
       "bundler": "metro",
@@ -36,7 +37,9 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Mostra la tua posizione sul widget Map."
+          "locationWhenInUsePermission": "Mostra la tua posizione sul widget Map.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
         }
       ],
       "./plugins/withShortCxxPath"

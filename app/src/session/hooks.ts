@@ -1,5 +1,7 @@
 import { useCallback, useSyncExternalStore } from 'react';
 import { deviceKey, widgetPinKey, type Widget } from '@/model/profile';
+import { gpsPermission } from '@/sensors/gps';
+import { sensorValueKey } from '@/sensors/sensorsWorker';
 import type { DeviceState, MapPoint, TableState } from './liveStore';
 import { useSession } from './SessionContext';
 
@@ -109,3 +111,16 @@ export function useTable(dashId: number, widget: Widget): TableState {
 }
 
 const NO_TABLE: TableState = { rows: [], current: -1 };
+
+/** Ultimo valore letto da un sensore del telefono per un widget (anche senza pin). */
+export function useSensorValue(dashId: number, widget: Widget): string[] | undefined {
+  const { sensors } = useSession();
+  const key = sensorValueKey(dashId, widget.id);
+  const subscribe = useCallback((cb: () => void) => sensors.subscribe(key, cb), [sensors, key]);
+  return useSyncExternalStore(subscribe, () => sensors.getValue(key));
+}
+
+/** True se il GPS può funzionare anche in background (permesso "sempre" concesso). */
+export function useGpsPermission(): boolean {
+  return useSyncExternalStore(gpsPermission.subscribe, gpsPermission.get);
+}
