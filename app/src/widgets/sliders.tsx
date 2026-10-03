@@ -5,13 +5,13 @@
 //   trascinamento, al massimo una volta ogni `frequency` ms.
 // - Mentre il dito è sul controllo la dashboard non scorre (scrollLock).
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
+import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, type GestureResponderEvent, type LayoutChangeEvent } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { useScrollLock } from '@/components/scrollLock';
 import { pinKey, type PinType } from '@/model/profile';
 import { useSession } from '@/session/SessionContext';
-import { useWidgetProps, useWidgetValue, useWritePin } from '@/session/hooks';
+import { usePinValues, useWidgetProps, useWidgetValue, useWritePin } from '@/session/hooks';
 import type { DashboardTheme } from '@/ui/dashboardTheme';
 import { FONT } from '@/ui/fonts';
 import { widgetColor, withAlpha } from './color';
@@ -305,21 +305,6 @@ interface RgbPin {
   max?: number;
 }
 
-/** Valori correnti dei pin dello zeRGBa (tre chiavi del LiveStore, o una sola in modalità unita). */
-function usePinValues(keys: (string | null)[]): (string[] | undefined)[] {
-  const { store } = useSession();
-  const joined = keys.join('|');
-  const subscribe = useCallback(
-    (cb: () => void) => {
-      const subs = joined.split('|').filter((k) => k !== '').map((k) => store.subscribe(k, cb));
-      return () => subs.forEach((u) => u());
-    },
-    [store, joined],
-  );
-  const snapshot = () => keys.map((k) => (k ? store.getValue(k)?.join('\0') : undefined)).join('|');
-  const raw = useSyncExternalStore(subscribe, snapshot);
-  return raw.split('|').map((v) => (v === '' ? undefined : v.split('\0')));
-}
 
 /**
  * RGB (zeRGBa): tavolozza con la tinta in orizzontale e la luminosità in verticale

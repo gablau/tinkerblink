@@ -43,6 +43,7 @@ export interface MapPoint {
 }
 
 const NO_POINTS: MapPoint[] = [];
+const NO_COMMANDS: string[][] = [];
 
 /** "<indice>\0<lat>\0<lon>[\0<nome>]" → punto; null se non valido. */
 function parseMapPoint(values: string[]): MapPoint | null {
@@ -64,6 +65,11 @@ export class LiveStore {
    * ultimi comandi (Map.lastCommands) e li rimanda uno per uno con APP_SYNC; "clr" li cancella.
    */
   private mapPoints = new Map<string, MapPoint[]>();
+  /**
+   * Comandi degli LCD in modalità avanzata dall'ultimo "clr" ("p\0x\0y\0testo"): il componente li riapplica
+   * per ricostruire il display 16×2. Il server li tiene in memoria (LCD.lastCommands) e li rimanda con APP_SYNC.
+   */
+  private lcdCommands = new Map<string, string[][]>();
   private listeners = new Map<string, Set<Listener>>();
   private writeListeners = new Set<PinWriteListener>();
 
@@ -76,6 +82,8 @@ export class LiveStore {
     this.terminalLogs = new Map();
     const previousPoints = this.mapPoints;
     this.mapPoints = new Map();
+    const previousLcd = this.lcdCommands;
+    this.lcdCommands = new Map();
     for (const [key, value] of Object.entries(profile.pinsStorage ?? {})) {
       this.values.set(key, splitBody(value));
     }
@@ -88,6 +96,14 @@ export class LiveStore {
         if (key && w.type === 'MAP') {
           const last = w.value ? parseMapPoint(splitBody(String(w.value))) : null;
           this.mapPoints.set(key, previousPoints.get(key) ?? (last ? [last] : []));
+        }
+        if (w.type === 'LCD' && w.advancedMode === true && Array.isArray(w.pins)) {
+          const p = (w.pins as { pin?: number; pinType?: PinType; value?: string }[])[0];
+          if (p && p.pin !== undefined && p.pin >= 0 && p.pinType) {
+            const lcdKey = pinKey(dash.id, w.deviceId ?? 0, p.pinType, p.pin);
+            const last = p.value ? splitBody(String(p.value)) : null;
+            this.lcdCommands.set(lcdKey, previousLcd.get(lcdKey) ?? (last && last[0] !== 'clr' ? [last] : []));
+          }
         }
         // Widget a più pin (zeRGBa): ogni pin ha il suo valore in pins[i].value.
         if (Array.isArray(w.pins)) {
@@ -132,6 +148,7 @@ export class LiveStore {
         const values = parts.slice(3);
         const isSync = m.command === Command.APP_SYNC && m.msgId === SYNC_MESSAGE_ID;
         this.updateMap(key, values);
+        this.updateLcd(key, values);
         if (isSync && this.terminalLogs.has(key)) {
           // Sincronizzazione di un Terminal: i valori sono le ultime righe tenute dal server.
           this.terminalLogs.set(key, values.flatMap((v) => v.split('\n')).slice(-TERMINAL_MAX_LINES));
@@ -176,6 +193,7 @@ export class LiveStore {
   getValue = (key: string): string[] | undefined => this.values.get(key);
   getTerminalLog = (key: string): string[] | undefined => this.terminalLogs.get(key);
   getMapPoints = (key: string): MapPoint[] => this.mapPoints.get(key) ?? NO_POINTS;
+  getLcdCommands = (key: string): string[][] => this.lcdCommands.get(key) ?? NO_COMMANDS;
   getProps = (key: string): Record<string, string> | undefined => this.props.get(key);
   getDevice = (key: string): DeviceState => this.devices.get(key) ?? OFFLINE;
   isDeviceOnline = (key: string): boolean => this.getDevice(key).online;
@@ -207,6 +225,14 @@ export class LiveStore {
     }
     const p = parseMapPoint(values);
     if (p) this.mapPoints.set(key, [...points.filter((q) => q.index !== p.index), p]);
+  }
+
+  /** Registra il comando se il pin è di un LCD avanzato: "clr" svuota, "p" si aggiunge (al massimo 100). */
+  private updateLcd(key: string, values: string[]): void {
+    const commands = this.lcdCommands.get(key);
+    if (!commands) return;
+    if (values[0] === 'clr') this.lcdCommands.set(key, []);
+    else if (values[0] === 'p') this.lcdCommands.set(key, [...commands, values].slice(-100));
   }
 
   /** Aggiunge le righe alla cronologia se il pin è di un Terminal; "clr" la svuota. */

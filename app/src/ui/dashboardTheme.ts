@@ -33,6 +33,9 @@ export interface DashboardTheme {
   rgbBlue: string;
   /** Marker e pulsanti del widget Map. */
   mapMarker: string;
+  /** Testo dell'LCD chiaro e scuro. */
+  lcdLight: string;
+  lcdDark: string;
 }
 
 const DARK_COLORS = ['#FFFFFF', '#23C48E', '#5F7CD8', '#04C0F8', '#ED9D00', '#D3435C', '#1D1E22', '#212227', '#B3B3B3', '#000000', '#131319', '#0a0a0d', '#535353', '#757575', '#898989', '#D8D8D8', '#191A1F', '#F5F5F5', '#3C464D', '#7D918B', '#2C2D32'];
@@ -59,6 +62,8 @@ export const DARK_THEME: DashboardTheme = {
   rgbGreen: DARK_COLORS[1]!,
   rgbBlue: DARK_COLORS[3]!,
   mapMarker: DARK_COLORS[10]!,
+  lcdLight: DARK_COLORS[0]!,
+  lcdDark: DARK_COLORS[9]!,
 };
 
 export const LIGHT_THEME: DashboardTheme = {
@@ -80,6 +85,8 @@ export const LIGHT_THEME: DashboardTheme = {
   rgbGreen: LIGHT_COLORS[1]!,
   rgbBlue: LIGHT_COLORS[3]!,
   mapMarker: LIGHT_COLORS[2]!,
+  lcdLight: LIGHT_COLORS[0]!,
+  lcdDark: LIGHT_COLORS[2]!,
 };
 
 export function dashboardTheme(theme: string | undefined): DashboardTheme {

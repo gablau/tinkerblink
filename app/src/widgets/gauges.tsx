@@ -132,6 +132,29 @@ export function LevelWidget({ dashId, widget, theme }: WidgetViewProps) {
   const flipped = widget.isAxisFlipOn === true;
   const showValue = widget.showValueOn !== false;
 
+  if (widget.type === 'VERTICAL_LEVEL_DISPLAY') {
+    // Level V: titolo, valore sotto, barra che si riempie dal basso
+    // (dall'alto con isAxisFlipOn).
+    return (
+      <View style={styles.levelFrame}>
+        <Text style={[styles.levelLabel, styles.levelLabelV, { color: theme.text, opacity: theme.labelAlpha }]} numberOfLines={1}>
+          {label.toUpperCase()}
+        </Text>
+        {showValue && <Text style={[styles.levelValue, styles.levelValueV, { color: theme.pinLabel }]}>{formatMaxDigits(v)}</Text>}
+        <View style={[styles.levelTrack, { backgroundColor: withAlpha(color, 0.3) }]}>
+          <View
+            style={[
+              styles.levelRadius,
+              styles.levelBarV,
+              { backgroundColor: color, height: `${percent}%` },
+              flipped ? { top: 0 } : { bottom: 0 },
+            ]}
+          />
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.levelFrame}>
       <View style={styles.levelHeader}>
@@ -163,5 +186,8 @@ const styles = StyleSheet.create({
   levelValue: { fontSize: 10, fontFamily: FONT.regular, marginLeft: 2 },
   levelTrack: { flex: 1, borderRadius: 2, overflow: 'hidden' },
   levelRadius: { borderRadius: 2 },
+  levelLabelV: { flex: 0 },
+  levelValueV: { marginLeft: 0, marginBottom: 2 },
+  levelBarV: { position: 'absolute', left: 0, right: 0 },
   levelBar: { position: 'absolute', top: 0, bottom: 0 },
 });

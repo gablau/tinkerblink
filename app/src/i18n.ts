@@ -44,6 +44,7 @@ const en = {
   graphLoading: 'Loading…',
   // Video
   videoEmpty: 'No video URL set',
+  inputHint: 'Type a value',
   videoError: 'Unable to play the video stream',
   videoNoRtspWeb: 'RTSP streams cannot be played in the browser',
   months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
@@ -91,6 +92,7 @@ const it: Strings = {
   graphNoData: 'Ancora nessun dato',
   graphLoading: 'Caricamento…',
   videoEmpty: 'Nessun indirizzo video impostato',
+  inputHint: 'Inserisci un valore',
   videoError: 'Impossibile riprodurre lo stream video',
   videoNoRtspWeb: 'Il browser non può riprodurre gli stream RTSP',
   months: ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'],

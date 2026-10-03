@@ -4,6 +4,8 @@ import { ButtonWidget, MenuWidget, SegmentedWidget, StyledButtonWidget, Terminal
 import { FONT } from '@/ui/fonts';
 import { LabeledValue, Led, ValueDisplay } from './displays';
 import { GaugeWidget, LevelWidget } from './gauges';
+import { NumberInputWidget, TextInputWidget } from './inputs';
+import { LcdWidget } from './lcd';
 import { MapWidget } from './map/MapWidget';
 import { RgbWidget, SliderWidget, StepWidget, VerticalSliderWidget } from './sliders';
 import { VideoWidget } from './VideoWidget';
@@ -54,6 +56,12 @@ export function WidgetView(props: WidgetViewProps) {
       return <StepWidget {...props} />;
     case 'RGB':
       return <RgbWidget {...props} />;
+    case 'LCD':
+      return <LcdWidget {...props} />;
+    case 'TEXT_INPUT':
+      return <TextInputWidget {...props} />;
+    case 'NUMBER_INPUT':
+      return <NumberInputWidget {...props} />;
     case 'MAP':
       return <MapWidget {...props} />;
     case 'VIDEO':
@@ -61,6 +69,7 @@ export function WidgetView(props: WidgetViewProps) {
     case 'GAUGE':
       return <GaugeWidget {...props} />;
     case 'LEVEL_DISPLAY':
+    case 'VERTICAL_LEVEL_DISPLAY':
       return <LevelWidget {...props} />;
     case 'ENHANCED_GRAPH':
       return <SuperChartWidget {...props} />;

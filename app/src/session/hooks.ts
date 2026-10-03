@@ -74,3 +74,28 @@ export function useOfflineCount(dashId: number, deviceIds: number[]): number {
   useSyncExternalStore(store.subscribeDevices, store.getDevicesVersion);
   return deviceIds.filter((id) => !store.isDeviceOnline(deviceKey(dashId, id))).length;
 }
+
+/** Valori correnti di più pin (chiavi del LiveStore; null = pin non impostato), per i widget a più pin. */
+export function usePinValues(keys: (string | null)[]): (string[] | undefined)[] {
+  const { store } = useSession();
+  const joined = keys.join('|');
+  const subscribe = useCallback(
+    (cb: () => void) => {
+      const subs = joined.split('|').filter((k) => k !== '').map((k) => store.subscribe(k, cb));
+      return () => subs.forEach((u) => u());
+    },
+    [store, joined],
+  );
+  const snapshot = () => keys.map((k) => (k ? store.getValue(k)?.join('\0') : undefined)).join('|');
+  const raw = useSyncExternalStore(subscribe, snapshot);
+  return raw.split('|').map((v) => (v === '' ? undefined : v.split('\0')));
+}
+
+/** Comandi di un LCD in modalità avanzata dall'ultimo "clr" (chiave del suo pin). */
+export function useLcdCommands(key: string | null): string[][] {
+  const { store } = useSession();
+  const subscribe = useCallback((cb: () => void) => (key ? store.subscribe(key, cb) : () => {}), [store, key]);
+  return useSyncExternalStore(subscribe, () => (key ? store.getLcdCommands(key) : NO_COMMANDS));
+}
+
+const NO_COMMANDS: string[][] = [];
