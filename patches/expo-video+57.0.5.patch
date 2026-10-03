@@ -1,0 +1,33 @@
+diff --git a/node_modules/expo-video/android/build.gradle b/node_modules/expo-video/android/build.gradle
+index 317a8be..fbfecf1 100644
+--- a/node_modules/expo-video/android/build.gradle
++++ b/node_modules/expo-video/android/build.gradle
+@@ -23,6 +23,7 @@ dependencies {
+   implementation "androidx.media3:media3-exoplayer:${androidxMedia3Version}"
+   implementation "androidx.media3:media3-exoplayer-dash:${androidxMedia3Version}"
+   implementation "androidx.media3:media3-exoplayer-hls:${androidxMedia3Version}"
++  implementation "androidx.media3:media3-exoplayer-rtsp:${androidxMedia3Version}"
+   implementation "androidx.media3:media3-ui:${androidxMedia3Version}"
+   implementation "androidx.media3:media3-datasource-okhttp:${androidxMedia3Version}"
+ 
+diff --git a/node_modules/expo-video/android/src/main/java/expo/modules/video/utils/DataSourceUtils.kt b/node_modules/expo-video/android/src/main/java/expo/modules/video/utils/DataSourceUtils.kt
+index 460fb7b..beb6ee5 100644
+--- a/node_modules/expo-video/android/src/main/java/expo/modules/video/utils/DataSourceUtils.kt
++++ b/node_modules/expo-video/android/src/main/java/expo/modules/video/utils/DataSourceUtils.kt
+@@ -64,8 +64,15 @@ fun buildExpoVideoMediaSource(context: Context, videoSource: VideoSource): Media
+   } else {
+     buildBaseDataSourceFactory(context, videoSource)
+   }
+-  val mediaSourceFactory = buildMediaSourceFactory(context, dataSourceFactory)
+   val mediaItem = videoSource.toMediaItem(context)
++  // Blynk Legacy: RTSP sempre con RTP su TCP. Con UDP dietro un NAT (emulatore, accesso da fuori) i pacchetti
++  // non arrivano, e il ripiego automatico di Media3 su TCP rifà la SETUP senza Authorization (400).
++  if (videoSource.uri?.scheme?.startsWith("rtsp") == true) {
++    return androidx.media3.exoplayer.rtsp.RtspMediaSource.Factory()
++      .setForceUseRtpTcp(true)
++      .createMediaSource(mediaItem)
++  }
++  val mediaSourceFactory = buildMediaSourceFactory(context, dataSourceFactory)
+   return mediaSourceFactory.createMediaSource(mediaItem)
+ }
+ 

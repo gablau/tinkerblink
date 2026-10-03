@@ -42,6 +42,10 @@ const en = {
   // SuperChart
   graphNoData: 'No data yet',
   graphLoading: 'Loading…',
+  // Video
+  videoEmpty: 'No video URL set',
+  videoError: 'Unable to play the video stream',
+  videoNoRtspWeb: 'RTSP streams cannot be played in the browser',
   months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
   /** "20:50 Oct 1, 2026". */
   formatDateTime: (d: Date) =>
@@ -86,6 +90,9 @@ const it: Strings = {
   neverOnline: 'Mai collegato',
   graphNoData: 'Ancora nessun dato',
   graphLoading: 'Caricamento…',
+  videoEmpty: 'Nessun indirizzo video impostato',
+  videoError: 'Impossibile riprodurre lo stream video',
+  videoNoRtspWeb: 'Il browser non può riprodurre gli stream RTSP',
   months: ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'],
   /** "20:50 1 ott 2026". */
   formatDateTime: (d: Date) =>

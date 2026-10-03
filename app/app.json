@@ -31,7 +31,14 @@
       "expo-secure-store",
       "expo-font",
       "expo-localization",
-      "expo-splash-screen"
+      "expo-splash-screen",
+      "expo-video",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Mostra la tua posizione sul widget Map."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

@@ -1,6 +1,6 @@
 import { useCallback, useSyncExternalStore } from 'react';
 import { deviceKey, widgetPinKey, type Widget } from '@/model/profile';
-import type { DeviceState } from './liveStore';
+import type { DeviceState, MapPoint } from './liveStore';
 import { useSession } from './SessionContext';
 
 const EMPTY: Record<string, string> = {};
@@ -37,6 +37,16 @@ export function useTerminalLog(dashId: number, widget: Widget): string[] {
   const subscribe = useCallback((cb: () => void) => (key ? store.subscribe(key, cb) : () => {}), [store, key]);
   return useSyncExternalStore(subscribe, () => (key ? store.getTerminalLog(key) : undefined)) ?? NO_LINES;
 }
+
+/** Punti di un widget Map (aggiornati in tempo reale; "clr" li cancella). */
+export function useMapPoints(dashId: number, widget: Widget): MapPoint[] {
+  const { store } = useSession();
+  const key = widgetPinKey(dashId, widget);
+  const subscribe = useCallback((cb: () => void) => (key ? store.subscribe(key, cb) : () => {}), [store, key]);
+  return useSyncExternalStore(subscribe, () => (key ? store.getMapPoints(key) : NO_POINTS));
+}
+
+const NO_POINTS: MapPoint[] = [];
 
 /** Funzione per scrivere il pin di un widget (valori come stringhe). No-op se il widget non ha un pin. */
 export function useWritePin(dashId: number, widget: Widget): (values: (string | number)[]) => void {
