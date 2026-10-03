@@ -5,6 +5,7 @@ import { FONT } from '@/ui/fonts';
 import { LabeledValue, Led, ValueDisplay } from './displays';
 import { GaugeWidget, LevelWidget } from './gauges';
 import { NumberInputWidget, TextInputWidget } from './inputs';
+import { LinkButtonWidget, PlayerWidget, TableWidget } from './extras';
 import { JoystickWidget } from './joystick';
 import { LcdWidget } from './lcd';
 import { ImageGalleryWidget, TimerWidget } from './misc';
@@ -58,6 +59,12 @@ export function WidgetView(props: WidgetViewProps) {
       return <StepWidget {...props} />;
     case 'RGB':
       return <RgbWidget {...props} />;
+    case 'TABLE':
+      return <TableWidget {...props} />;
+    case 'PLAYER':
+      return <PlayerWidget {...props} />;
+    case 'LINK_BUTTON':
+      return <LinkButtonWidget {...props} />;
     case 'TIMER':
       return <TimerWidget {...props} />;
     case 'TWO_AXIS_JOYSTICK':

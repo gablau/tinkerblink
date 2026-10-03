@@ -1,6 +1,6 @@
 import { useCallback, useSyncExternalStore } from 'react';
 import { deviceKey, widgetPinKey, type Widget } from '@/model/profile';
-import type { DeviceState, MapPoint } from './liveStore';
+import type { DeviceState, MapPoint, TableState } from './liveStore';
 import { useSession } from './SessionContext';
 
 const EMPTY: Record<string, string> = {};
@@ -99,3 +99,13 @@ export function useLcdCommands(key: string | null): string[][] {
 }
 
 const NO_COMMANDS: string[][] = [];
+
+/** Righe e riga corrente di un widget Table. */
+export function useTable(dashId: number, widget: Widget): TableState {
+  const { store } = useSession();
+  const key = widgetPinKey(dashId, widget);
+  const subscribe = useCallback((cb: () => void) => (key ? store.subscribe(key, cb) : () => {}), [store, key]);
+  return useSyncExternalStore(subscribe, () => (key ? store.getTable(key) : NO_TABLE));
+}
+
+const NO_TABLE: TableState = { rows: [], current: -1 };

@@ -42,6 +42,72 @@ export interface MapPoint {
   label: string;
 }
 
+/** Riga del widget Table (Table.Row del server). */
+export interface TableRow {
+  id: number;
+  name: string;
+  value: string;
+  isSelected: boolean;
+}
+
+export interface TableState {
+  rows: TableRow[];
+  /** Riga corrente impostata dal firmware con "pick" (indice, -1 = nessuna). */
+  current: number;
+}
+
+const EMPTY_TABLE: TableState = { rows: [], current: -1 };
+
+/**
+ * Applica un comando della Table come il server (Table.updateIfSame): add, update, pick, select, deselect, clr,
+ * più "order da a" (riordino fatto dall'app). Una sincronizzazione manda tutte le righe come gruppi di 5 valori
+ * "add\0id\0nome\0valore\0selezionata": in quel caso le righe si sostituiscono.
+ */
+function applyTableCommand(state: TableState, values: string[], isSync: boolean): TableState {
+  if (isSync && values[0] === 'add' && values.length % 5 === 0) {
+    const rows: TableRow[] = [];
+    for (let i = 0; i < values.length; i += 5) {
+      rows.push({ id: Number(values[i + 1]), name: values[i + 2] ?? '', value: values[i + 3] ?? '', isSelected: values[i + 4] === 'true' });
+    }
+    return { ...state, rows };
+  }
+  const [cmd, a, b, c] = values;
+  const id = Number(a);
+  switch (cmd) {
+    case 'clr':
+      return { rows: [], current: 0 };
+    case 'add': {
+      if (values.length < 4 || !Number.isFinite(id)) return state;
+      const exists = state.rows.some((r) => r.id === id);
+      return {
+        ...state,
+        rows: exists
+          ? state.rows.map((r) => (r.id === id ? { ...r, name: b ?? '', value: c ?? '' } : r))
+          : [...state.rows, { id, name: b ?? '', value: c ?? '', isSelected: true }].slice(-100),
+      };
+    }
+    case 'update':
+      if (values.length < 4) return state;
+      return { ...state, rows: state.rows.map((r) => (r.id === id ? { ...r, name: b ?? '', value: c ?? '' } : r)) };
+    case 'pick':
+      return Number.isFinite(id) ? { ...state, current: id } : state;
+    case 'select':
+    case 'deselect':
+      return { ...state, rows: state.rows.map((r) => (r.id === id ? { ...r, isSelected: cmd === 'select' } : r)) };
+    case 'order': {
+      const from = id;
+      const to = Number(b);
+      if (!Number.isInteger(from) || !Number.isInteger(to) || from < 0 || from >= state.rows.length) return state;
+      const rows = [...state.rows];
+      const [moved] = rows.splice(from, 1);
+      rows.splice(Math.min(to, rows.length), 0, moved!);
+      return { ...state, rows };
+    }
+    default:
+      return state;
+  }
+}
+
 const NO_POINTS: MapPoint[] = [];
 const NO_COMMANDS: string[][] = [];
 
@@ -70,6 +136,8 @@ export class LiveStore {
    * per ricostruire il display 16×2. Il server li tiene in memoria (LCD.lastCommands) e li rimanda con APP_SYNC.
    */
   private lcdCommands = new Map<string, string[][]>();
+  /** Righe dei widget Table: il server le tiene nel profilo (rows) e le rimanda con APP_SYNC. */
+  private tables = new Map<string, TableState>();
   private listeners = new Map<string, Set<Listener>>();
   private writeListeners = new Set<PinWriteListener>();
 
@@ -84,6 +152,7 @@ export class LiveStore {
     this.mapPoints = new Map();
     const previousLcd = this.lcdCommands;
     this.lcdCommands = new Map();
+    this.tables = new Map();
     for (const [key, value] of Object.entries(profile.pinsStorage ?? {})) {
       this.values.set(key, splitBody(value));
     }
@@ -96,6 +165,13 @@ export class LiveStore {
         if (key && w.type === 'MAP') {
           const last = w.value ? parseMapPoint(splitBody(String(w.value))) : null;
           this.mapPoints.set(key, previousPoints.get(key) ?? (last ? [last] : []));
+        }
+        if (key && w.type === 'TABLE') {
+          const rows = Array.isArray(w.rows) ? (w.rows as Partial<TableRow>[]) : [];
+          this.tables.set(key, {
+            rows: rows.map((r) => ({ id: Number(r.id), name: String(r.name ?? ''), value: String(r.value ?? ''), isSelected: r.isSelected === true })),
+            current: typeof w.currentRowIndex === 'number' ? w.currentRowIndex : -1,
+          });
         }
         if (w.type === 'LCD' && w.advancedMode === true && Array.isArray(w.pins)) {
           const p = (w.pins as { pin?: number; pinType?: PinType; value?: string }[])[0];
@@ -149,6 +225,7 @@ export class LiveStore {
         const isSync = m.command === Command.APP_SYNC && m.msgId === SYNC_MESSAGE_ID;
         this.updateMap(key, values);
         this.updateLcd(key, values);
+        this.updateTable(key, values, isSync);
         if (isSync && this.terminalLogs.has(key)) {
           // Sincronizzazione di un Terminal: i valori sono le ultime righe tenute dal server.
           this.terminalLogs.set(key, values.flatMap((v) => v.split('\n')).slice(-TERMINAL_MAX_LINES));
@@ -187,6 +264,8 @@ export class LiveStore {
   setLocal(key: string, values: string[]): void {
     // Il Terminal mostra anche le righe inviate dall'app.
     this.appendTerminal(key, values);
+    // Selezione o riordino delle righe di una Table fatti dall'app.
+    this.updateTable(key, values, false);
     this.set(this.values, key, values);
   }
 
@@ -194,6 +273,7 @@ export class LiveStore {
   getTerminalLog = (key: string): string[] | undefined => this.terminalLogs.get(key);
   getMapPoints = (key: string): MapPoint[] => this.mapPoints.get(key) ?? NO_POINTS;
   getLcdCommands = (key: string): string[][] => this.lcdCommands.get(key) ?? NO_COMMANDS;
+  getTable = (key: string): TableState => this.tables.get(key) ?? EMPTY_TABLE;
   getProps = (key: string): Record<string, string> | undefined => this.props.get(key);
   getDevice = (key: string): DeviceState => this.devices.get(key) ?? OFFLINE;
   isDeviceOnline = (key: string): boolean => this.getDevice(key).online;
@@ -225,6 +305,12 @@ export class LiveStore {
     }
     const p = parseMapPoint(values);
     if (p) this.mapPoints.set(key, [...points.filter((q) => q.index !== p.index), p]);
+  }
+
+  /** Applica il comando se il pin è di una Table (la notifica arriva con l'aggiornamento del valore). */
+  private updateTable(key: string, values: string[], isSync: boolean): void {
+    const state = this.tables.get(key);
+    if (state) this.tables.set(key, applyTableCommand(state, values, isSync));
   }
 
   /** Registra il comando se il pin è di un LCD avanzato: "clr" svuota, "p" si aggiunge (al massimo 100). */
