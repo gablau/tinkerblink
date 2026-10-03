@@ -1,3 +1,4 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Redirect, Stack, router } from 'expo-router';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { StatusBanner } from '@/components/StatusBanner';
@@ -46,9 +47,14 @@ export default function ProjectsScreen() {
       <Stack.Screen
         options={{
           headerRight: () => (
-            <Pressable onPress={() => void logout()} hitSlop={8}>
-              <Text style={styles.logout}>{t.logOut}</Text>
-            </Pressable>
+            <View style={styles.headerRight}>
+              <Pressable onPress={() => router.push('/credits')} hitSlop={8} accessibilityLabel={t.credits}>
+                <MaterialCommunityIcons name="information-outline" size={24} color="#1D1E22" />
+              </Pressable>
+              <Pressable onPress={() => void logout()} hitSlop={8}>
+                <Text style={styles.logout}>{t.logOut}</Text>
+              </Pressable>
+            </View>
           ),
         }}
       />
@@ -64,6 +70,7 @@ export default function ProjectsScreen() {
 }
 
 const styles = StyleSheet.create({
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 20 },
   list: { padding: 12, gap: 10 },
   row: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, padding: 14, gap: 4 },
   name: { fontSize: 20, fontFamily: FONT.regular },

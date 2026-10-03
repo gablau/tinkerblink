@@ -75,9 +75,10 @@ export function splitIntoBands<T extends GridItem>(items: T[]): Band<T>[] {
  * @param rowOffset righe da togliere in alto (1 quando c'è la barra delle schede al posto della riga 0)
  * @param availableWidth larghezza disponibile in pixel
  */
-export function computeLayout<T extends GridItem>(items: T[], rowOffset: number, availableWidth: number): Layout<T> {
+export function computeLayout<T extends GridItem>(items: T[], rowOffset: number, availableWidth: number, singleColumn = false): Layout<T> {
   const shifted = items.map((it) => ({ it, y: it.y - rowOffset }));
-  const columns = Math.max(1, Math.floor((availableWidth + COLUMN_GAP) / (MIN_COLUMN_WIDTH + COLUMN_GAP)));
+  // singleColumn: griglia a 8 colonne anche sugli schermi larghi (modalità modifica dell'editor).
+  const columns = singleColumn ? 1 : Math.max(1, Math.floor((availableWidth + COLUMN_GAP) / (MIN_COLUMN_WIDTH + COLUMN_GAP)));
 
   // Una colonna: griglia a 8 colonne, comprese le righe vuote lasciate apposta dall'utente.
   if (columns === 1) {

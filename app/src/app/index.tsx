@@ -1,5 +1,5 @@
 // Login. Se ci sono credenziali salvate (solo Android), entra da solo.
-import { Redirect } from 'expo-router';
+import { Link, Redirect } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -106,6 +106,9 @@ export default function LoginScreen() {
           >
             {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{t.logIn}</Text>}
           </Pressable>
+          <Link href="/credits" style={[styles.credits, { color: palette.muted }]}>
+            {t.credits}
+          </Link>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -125,4 +128,5 @@ const styles = StyleSheet.create({
   error: { marginTop: 8, fontFamily: FONT.regular },
   button: { marginTop: 20, borderRadius: 8, paddingVertical: 14, alignItems: 'center' },
   buttonText: { color: '#fff', fontSize: 17, fontFamily: FONT.medium },
+  credits: { marginTop: 16, textAlign: 'center', fontSize: 14, fontFamily: FONT.regular, textDecorationLine: 'underline' },
 });

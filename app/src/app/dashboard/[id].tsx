@@ -2,9 +2,9 @@
 // Colori: tema della dashboard (Blynk / BlynkLight, enum Theme del server) e colori del widget Tabs.
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { DashboardGrid } from '@/components/DashboardGrid';
+import { DashboardGrid, type GridEdit } from '@/components/DashboardGrid';
 import { DevicesButton, DevicesPanel } from '@/components/Devices';
 import { StatusBanner } from '@/components/StatusBanner';
 import { isEditableDash } from '@/editor/policy';
@@ -18,7 +18,7 @@ import { widgetColor } from '@/widgets/color';
 
 export default function DashboardScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { profile } = useSession();
+  const { profile, updateWidget } = useSession();
   const dash = profile?.dashBoards.find((d) => String(d.id) === id);
   const theme = dashboardTheme(dash?.theme);
   const [tab, setTab] = useState(0);
@@ -26,6 +26,17 @@ export default function DashboardScreen() {
   const [editing, setEditing] = useState(false);
   const router = useRouter();
   const editable = dash !== undefined && isEditableDash(dash.id);
+  // Stabile durante i gesti di spostamento: la griglia ricrea i gestori quando cambiano le callback.
+  const gridEdit = useMemo<GridEdit | undefined>(
+    () =>
+      editing
+        ? {
+            onSettings: (w) => router.push(`/edit/${id}/${w.id}`),
+            onLayout: (w, rect) => updateWidget(Number(id), { ...w, ...rect }),
+          }
+        : undefined,
+    [editing, id, router, updateWidget],
+  );
 
   if (!profile) return <Redirect href="/" />;
   if (!dash) return <Text style={{ padding: 16 }}>{t.dashboardNotFound}</Text>;
@@ -73,7 +84,7 @@ export default function DashboardScreen() {
         dash={dash}
         theme={theme}
         tab={tabs.length > 0 ? tab : undefined}
-        onWidgetPress={editing ? (w) => router.push(`/edit/${dash.id}/${w.id}`) : undefined}
+        edit={gridEdit}
       />
     </View>
   );

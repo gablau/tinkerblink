@@ -13,6 +13,7 @@ import { withAlpha } from '@/widgets/color';
 import { BoolField, ChoiceField, ColorField, LabelsField, NumberField, PinField, RangeField, Row, TextField, type ControlTheme } from './controls';
 import { pinsForWidget } from './boards/boards';
 import { editorSections, withCurrent, type Field } from './fields';
+import { findFreeSpot, sameGrid } from './layoutRules';
 import { PeriodsField, TabsField, TimeOfDayField } from './moreFields';
 import { MultiPinField } from './multiPin';
 import { usedPins } from './pinUsage';
@@ -53,6 +54,8 @@ export function WidgetEditor({ dash, widget }: { dash: Dashboard; widget: Widget
   const lockScroll = useCallback((locked: boolean) => setScrollEnabled(!locked), []);
   const [error, setError] = useState<string | null>(null);
   const dirty = JSON.stringify(draft) !== JSON.stringify(widget);
+  const tabsWidget = dash.widgets.find((w) => w.type === 'TABS');
+  const tabs = Array.isArray(tabsWidget?.tabs) ? (tabsWidget.tabs as { label?: string }[]) : [];
   const leaving = useRef(false);
 
   useEffect(
@@ -215,6 +218,28 @@ export function WidgetEditor({ dash, widget }: { dash: Dashboard; widget: Widget
             {s.fields.map((f, fi) => (f.when && !f.when(draft) ? null : render(f, fi)))}
           </View>
         ))}
+        {tabs.length > 1 && widget.type !== 'TABS' && (
+          <View style={styles.section}>
+            <Row label={te.tab} ct={ct}>
+              <ChoiceField
+                title={te.tab}
+                value={draft.tabId ?? 0}
+                options={tabs.map((tab, i) => ({ value: i, label: tab.label ?? String(i + 1) }))}
+                onChange={(v) => {
+                  const tabId = v as number;
+                  if (tabId === (widget.tabId ?? 0)) {
+                    set({ tabId, x: widget.x, y: widget.y });
+                    return;
+                  }
+                  // Nella scheda di arrivo il widget va nel primo posto libero (riga 0 = barra delle schede).
+                  const spot = findFreeSpot(draft.width, draft.height, sameGrid(dash.widgets, widget, true, tabId), 1);
+                  set({ tabId, x: spot.x, y: spot.y });
+                }}
+                ct={ct}
+              />
+            </Row>
+          </View>
+        )}
       </ScrollView>
       </ScrollLockContext.Provider>
     </View>
