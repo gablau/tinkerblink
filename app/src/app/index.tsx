@@ -1,5 +1,6 @@
 // Login. Se ci sono credenziali salvate (solo Android), entra da solo.
 import { Link, Redirect } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -13,11 +14,15 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { SplashView } from '@/components/SplashView';
 import { DEFAULT_HOST, HOST_EXAMPLE, loadCredentials } from '@/session/credentials';
 import { t } from '@/i18n';
 import { FONT } from '@/ui/fonts';
 import { useSession } from '@/session/SessionContext';
 import { usePalette } from '@/ui/theme';
+
+/** Oltre questo tempo, se l'accesso automatico non ha ancora risposto, si mostra il modulo di login. */
+const SPLASH_PATIENCE_MS = 8000;
 
 export default function LoginScreen() {
   const { status, error, profile, login } = useSession();
@@ -27,6 +32,8 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(true);
   const [loaded, setLoaded] = useState(false);
+  /** null finché non si sa se ci sono credenziali salvate; true = accesso automatico in corso. */
+  const [autoLogin, setAutoLogin] = useState<boolean | null>(null);
   const autoTried = useRef(false);
 
   useEffect(() => {
@@ -35,14 +42,29 @@ export default function LoginScreen() {
       if (c?.email) setEmail(c.email);
       if (c?.password) setPassword(c.password);
       setLoaded(true);
-      if (c?.host && c.email && c.password && !autoTried.current) {
+      const auto = Boolean(c?.host && c.email && c.password) && !autoTried.current;
+      setAutoLogin(auto);
+      if (auto && c?.host && c.email && c.password) {
         autoTried.current = true;
         void login({ host: c.host, email: c.email, password: c.password }, true);
       }
     });
   }, [login]);
 
+  // Durante l'accesso automatico si mostra una copia dello splash (SplashView) al posto del modulo: si passa dallo
+  // splash direttamente ai progetti. Lo splash nativo si chiude appena c'è la copia, che ha lo stesso aspetto (nella
+  // dev build quello nativo sparisce già prima, durante il caricamento del JavaScript da Metro). Se il server non
+  // risponde entro SPLASH_PATIENCE_MS si mostra comunque il modulo, con la rotellina.
+  const waiting = autoLogin === null || (autoLogin && (status === 'idle' || status === 'connecting'));
+  const [patient, setPatient] = useState(true);
+  useEffect(() => {
+    void SplashScreen.hideAsync().catch(() => undefined);
+    const timer = setTimeout(() => setPatient(false), SPLASH_PATIENCE_MS);
+    return () => clearTimeout(timer);
+  }, []);
+
   if (profile && status !== 'idle') return <Redirect href="/projects" />;
+  if (waiting && patient) return <SplashView />;
 
   const busy = status === 'connecting';
   const canSubmit = loaded && !busy && host.trim() !== '' && email.trim() !== '' && password !== '';

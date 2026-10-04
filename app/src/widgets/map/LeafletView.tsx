@@ -31,7 +31,7 @@ export const LeafletView = forwardRef<LeafletHandle, LeafletProps>(function Leaf
     <WebView
       ref={web}
       // baseUrl: le tessere di OpenStreetMap vogliono un Referer.
-      source={{ html, baseUrl: 'https://blynklegacy.local/' }}
+      source={{ html, baseUrl: 'https://tinkerblink.local/' }}
       originWhitelist={['*']}
       onMessage={handle}
       style={styles.web}

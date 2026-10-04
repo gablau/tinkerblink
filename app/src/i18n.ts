@@ -11,7 +11,7 @@ const en = {
   sunset: 'Sunset',
   days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
   // Schermate
-  appTitle: 'Blynk Legacy',
+  appTitle: 'TinkerBlink',
   loginSubtitle: 'Log in to your server',
   server: 'Server',
   email: 'Email',
@@ -57,7 +57,7 @@ const en = {
   videoNoRtspWeb: 'RTSP streams cannot be played in the browser',
   near: 'Near',
   far: 'Far',
-  gpsNotificationTitle: 'Blynk Legacy',
+  gpsNotificationTitle: 'TinkerBlink',
   gpsNotificationBody: 'Sending the position (GPS Stream)',
   months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
   /** "20:50 Oct 1, 2026". */
@@ -74,7 +74,7 @@ const it: Strings = {
   sunrise: 'Alba',
   sunset: 'Tramonto',
   days: ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'],
-  appTitle: 'Blynk Legacy',
+  appTitle: 'TinkerBlink',
   loginSubtitle: 'Accedi al tuo server',
   server: 'Server',
   email: 'Email',
@@ -117,7 +117,7 @@ const it: Strings = {
   videoNoRtspWeb: 'Il browser non può riprodurre gli stream RTSP',
   near: 'Vicino',
   far: 'Lontano',
-  gpsNotificationTitle: 'Blynk Legacy',
+  gpsNotificationTitle: 'TinkerBlink',
   gpsNotificationBody: 'Invio della posizione (GPS Stream)',
   months: ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'],
   /** "20:50 1 ott 2026". */

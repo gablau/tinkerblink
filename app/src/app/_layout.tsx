@@ -1,4 +1,6 @@
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NoticeToast } from '@/components/NoticeToast';
@@ -9,6 +11,13 @@ import { SessionProvider } from '@/session/SessionContext';
 import '@/sensors/gps';
 import { FONT, useAppFonts } from '@/ui/fonts';
 import { usePalette } from '@/ui/theme';
+
+// Lo splash nativo resta finché la schermata di login non sa se entrare da sola (app/index.tsx): con le credenziali
+// salvate si passa direttamente dallo splash ai progetti, senza vedere il login per un attimo.
+SplashScreen.preventAutoHideAsync().catch(() => undefined);
+SplashScreen.setOptions({ fade: true, duration: 200 });
+/** Rete di sicurezza: dopo questo tempo lo splash si chiude comunque (server lento, link diretto a un'altra schermata). */
+const SPLASH_MAX_MS = 8000;
 
 /** Barra in alto: verde Blynk con titolo e icone scuri. */
 const HEADER_GREEN = '#23C48E';
@@ -38,6 +47,10 @@ function RootStack() {
 
 export default function RootLayout() {
   const fontsReady = useAppFonts();
+  useEffect(() => {
+    const timer = setTimeout(() => void SplashScreen.hideAsync().catch(() => undefined), SPLASH_MAX_MS);
+    return () => clearTimeout(timer);
+  }, []);
   if (!fontsReady) return null;
   return (
     <SafeAreaProvider>

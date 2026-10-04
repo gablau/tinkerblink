@@ -32,7 +32,7 @@ const input = path.join(root, 'app', 'android', 'app', 'build', 'outputs', 'apk'
 const outDir = path.join(root, 'release');
 fs.mkdirSync(outDir, { recursive: true });
 const aligned = path.join(outDir, 'aligned.tmp.apk');
-const output = path.join(outDir, `blynk-legacy-${appVersion}.apk`);
+const output = path.join(outDir, `tinkerblink-${appVersion}.apk`);
 
 execFileSync(exe('zipalign'), ['-f', '-p', '4', input, aligned], { stdio: 'inherit' });
 execFileSync(
