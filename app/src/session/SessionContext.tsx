@@ -2,12 +2,12 @@
 // pausa/ripresa della connessione in base allo stato dell'app (primo piano / background).
 import { createContext, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { AppState } from 'react-native';
-import type { GraphData, GraphPeriod } from '@tinkerblink/protocol';
-import type { Widget } from '@/model/profile';
+import type { DashSettings, GraphData, GraphPeriod } from '@tinkerblink/protocol';
+import type { Device, Widget } from '@/model/profile';
 import type { Credentials } from './credentials';
 import type { SensorsWorker } from '@/sensors/sensorsWorker';
 import type { LiveStore } from './liveStore';
-import { SessionManager, type SessionState } from './SessionManager';
+import { SessionManager, type NewDevice, type NewProject, type SessionState } from './SessionManager';
 
 export type { SessionStatus } from './SessionManager';
 
@@ -22,6 +22,15 @@ interface SessionValue extends SessionState {
   createWidget(dashId: number, widget: Widget): Promise<void>;
   deleteWidget(dashId: number, widgetId: number): Promise<void>;
   getEnergy(): Promise<number>;
+  createProject(p: NewProject): Promise<number>;
+  updateDashSettings(dashId: number, patch: Partial<DashSettings>): Promise<void>;
+  setDashActive(dashId: number, active: boolean): Promise<boolean>;
+  deleteDash(dashId: number): Promise<void>;
+  createDevice(dashId: number, d: NewDevice): Promise<Device>;
+  updateDevice(dashId: number, device: Device): Promise<void>;
+  deleteDevice(dashId: number, deviceId: number): Promise<void>;
+  /** Avviso temporaneo in basso (NoticeToast). */
+  showNotice(text: string): void;
 }
 
 const SessionContext = createContext<SessionManager | null>(null);
@@ -59,5 +68,13 @@ export function useSession(): SessionValue {
     createWidget: manager.createWidget,
     deleteWidget: manager.deleteWidget,
     getEnergy: manager.getEnergy,
+    createProject: manager.createProject,
+    updateDashSettings: manager.updateDashSettings,
+    setDashActive: manager.setDashActive,
+    deleteDash: manager.deleteDash,
+    createDevice: manager.createDevice,
+    updateDevice: manager.updateDevice,
+    deleteDevice: manager.deleteDevice,
+    showNotice: manager.showNotice,
   };
 }

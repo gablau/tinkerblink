@@ -1,0 +1,137 @@
+// Un device di un progetto modificabile: nome, modello e connessione, token (da vedere e condividere) ed
+// eliminazione. Con deviceId = "new" si aggiunge un device (CREATE_DEVICE).
+import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { Row, type ControlTheme } from '@/editor/controls';
+import { isEditableDash } from '@/editor/policy';
+import { te } from '@/editor/strings';
+import type { Dashboard, Device } from '@/model/profile';
+import { DEFAULT_BOARD, DEFAULT_CONNECTION } from '@/project/boardTypes';
+import { tp } from '@/project/strings';
+import { confirmDestructive, DeviceFields, errorText, projectStyles as styles, SmallButton, TokenField, useUnsavedGuard } from '@/project/ui';
+import { useSession } from '@/session/SessionContext';
+import type { NewDevice } from '@/session/SessionManager';
+import { dashboardTheme } from '@/ui/dashboardTheme';
+import { withAlpha } from '@/widgets/color';
+
+export default function DeviceRoute() {
+  const { dashId, deviceId } = useLocalSearchParams<{ dashId: string; deviceId: string }>();
+  const { profile, editableDashIds } = useSession();
+  if (!profile) return <Redirect href="/" />;
+  const dash = profile.dashBoards.find((d) => String(d.id) === dashId);
+  if (!dash) return <Text style={{ padding: 16 }}>{tp.notFound}</Text>;
+  if (!isEditableDash(dash.id, editableDashIds)) return <Text style={{ padding: 16 }}>{te.notEditable}</Text>;
+  const device = deviceId === 'new' ? undefined : dash.devices?.find((d) => String(d.id) === deviceId);
+  if (deviceId !== 'new' && !device) return <Text style={{ padding: 16 }}>{tp.notFound}</Text>;
+  return <DeviceEditor key={`${dash.id}-${deviceId}`} dash={dash} device={device} />;
+}
+
+/** Widget collegati al device (pin singolo, pin multipli o stream del SuperChart). */
+function widgetsUsing(dash: Dashboard, deviceId: number): number {
+  return dash.widgets.filter((w) => {
+    if (w.pin !== undefined && (w.deviceId ?? 0) === deviceId && w.pin >= 0) return true;
+    if (Array.isArray(w.pins) && (w.deviceId ?? 0) === deviceId) return true;
+    const streams = Array.isArray(w.dataStreams) ? (w.dataStreams as { targetId?: number }[]) : [];
+    return streams.some((s) => (s.targetId ?? 0) === deviceId);
+  }).length;
+}
+
+function DeviceEditor({ dash, device }: { dash: Dashboard; device: Device | undefined }) {
+  const { createDevice, updateDevice, deleteDevice } = useSession();
+  const router = useRouter();
+  const initial: NewDevice = {
+    name: device?.name ?? '',
+    boardType: device?.boardType ?? DEFAULT_BOARD,
+    connectionType: device?.connectionType ?? DEFAULT_CONNECTION,
+  };
+  const [draft, setDraft] = useState(initial);
+  const [created, setCreated] = useState<Device | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const dirty = created === null && JSON.stringify(draft) !== JSON.stringify(initial);
+  const leave = useUnsavedGuard(dirty);
+  const theme = dashboardTheme(dash.theme);
+  const ct: ControlTheme = { theme, accent: theme.accent };
+  const current = device ?? created ?? undefined;
+
+  // Se l'azione chiude la schermata (restituisce true) lo stato non si tocca più: aggiornare l'intestazione di una
+  // schermata già tolta dallo stack fa cadere react-native-screens (errore sullo stack delle schermate).
+  const run = async (action: () => Promise<boolean | void>, errorLabel: string) => {
+    setBusy(true);
+    setError(null);
+    let left = false;
+    try {
+      left = (await action()) === true;
+    } catch (e) {
+      setError(errorText(errorLabel, e));
+    }
+    if (!left) setBusy(false);
+  };
+
+  const save = () =>
+    run(async () => {
+      const name = draft.name.trim() || tp.defaultDeviceName;
+      if (current) {
+        await updateDevice(dash.id, { ...current, ...draft, name });
+        leave();
+        router.back();
+        return true;
+      } else {
+        // Dopo la creazione si resta qui per vedere il token generato dal server.
+        setCreated(await createDevice(dash.id, { ...draft, name }));
+        setDraft((d) => ({ ...d, name }));
+      }
+    }, current ? tp.saveError : tp.createError);
+
+  const askDelete = () => {
+    if (!current) return;
+    const used = widgetsUsing(dash, current.id);
+    const message = used > 0 ? `${tp.deleteDeviceConfirm}\n\n${tp.deleteDeviceUsed(used)}` : tp.deleteDeviceConfirm;
+    confirmDestructive(tp.deleteDevice, message, tp.delete, () =>
+      void run(async () => {
+        await deleteDevice(dash.id, current.id);
+        leave();
+        router.back();
+        return true;
+      }, tp.deleteError),
+    );
+  };
+
+  const canSave = current ? JSON.stringify(draft) !== JSON.stringify({ name: current.name, boardType: current.boardType, connectionType: current.connectionType }) : true;
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <Stack.Screen
+        options={{
+          title: current ? current.name : tp.newDevice,
+          headerRight: () =>
+            busy ? (
+              <ActivityIndicator color="#1D1E22" />
+            ) : (
+              <Pressable onPress={() => void save()} disabled={!canSave} hitSlop={10}>
+                <Text style={[styles.headerText, { opacity: canSave ? 1 : 0.4 }]}>{(current ? tp.save : tp.create).toUpperCase()}</Text>
+              </Pressable>
+            ),
+        }}
+      />
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        {error && <Text style={styles.error}>{error}</Text>}
+        <View style={[styles.section, { borderBottomColor: withAlpha(theme.text, 0.1) }]}>
+          <DeviceFields value={draft} onChange={setDraft} ct={ct} />
+        </View>
+        <View style={[styles.section, { borderBottomColor: withAlpha(theme.text, 0.1) }]}>
+          <Row label={tp.authToken} ct={ct} column>
+            <TokenField token={current?.token} ct={ct} />
+          </Row>
+        </View>
+        {current && (
+          <View style={styles.section}>
+            <View style={styles.buttons}>
+              <SmallButton icon="delete-outline" label={tp.deleteDevice} color="#D3435C" onPress={askDelete} ct={ct} disabled={busy} />
+            </View>
+          </View>
+        )}
+      </ScrollView>
+    </View>
+  );
+}

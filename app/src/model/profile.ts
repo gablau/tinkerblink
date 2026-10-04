@@ -32,15 +32,25 @@ export interface Device {
   /** Ultima connessione / disconnessione (ms); assenti se il device non è mai stato online. */
   connectTime?: number;
   disconnectTime?: number;
-  /** Token del device per l'API HTTP (usato solo dal GPS in background; non va mai mostrato). */
+  /** Token del device per l'API HTTP: lo usa il GPS in background e si mostra solo nelle impostazioni del progetto (mai nei log). */
   token?: string;
+  [key: string]: unknown;
 }
 
 export interface Dashboard {
   id: number;
   name: string;
   isActive?: boolean;
+  createdAt?: number;
+  updatedAt?: number;
   theme?: string;
+  keepScreenOn?: boolean;
+  isAppConnectedOn?: boolean;
+  isNotificationsOff?: boolean;
+  isShared?: boolean;
+  widgetBackgroundOn?: boolean;
+  color?: number;
+  isDefaultColor?: boolean;
   widgets: Widget[];
   devices?: Device[];
 }

@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NoticeToast } from '@/components/NoticeToast';
 import { t } from '@/i18n';
+import { tp } from '@/project/strings';
 import { SessionProvider } from '@/session/SessionContext';
 // I task del GPS in background vanno definiti all'avvio, prima che Android li richiami.
 import '@/sensors/gps';
@@ -28,6 +29,9 @@ function RootStack() {
       <Stack.Screen name="index" options={{ title: t.appTitle, headerShown: false }} />
       <Stack.Screen name="projects" options={{ title: t.projects }} />
       <Stack.Screen name="dashboard/[id]" options={{ title: '' }} />
+      <Stack.Screen name="project/new" options={{ title: tp.newProject, presentation: 'modal' }} />
+      <Stack.Screen name="project/[dashId]/index" options={{ title: tp.projectSettings }} />
+      <Stack.Screen name="project/[dashId]/device/[deviceId]" options={{ title: tp.device }} />
     </Stack>
   );
 }

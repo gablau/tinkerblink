@@ -2,7 +2,7 @@
 // Colori: tema della dashboard (Blynk / BlynkLight, enum Theme del server) e colori del widget Tabs.
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { DashboardGrid, type GridEdit } from '@/components/DashboardGrid';
 import { DevicesButton, DevicesPanel } from '@/components/Devices';
@@ -10,6 +10,7 @@ import { StatusBanner } from '@/components/StatusBanner';
 import { isEditableDash } from '@/editor/policy';
 import { te } from '@/editor/strings';
 import { WidgetBox } from '@/editor/WidgetBox';
+import { tp } from '@/project/strings';
 import type { TabsWidget } from '@/model/profile';
 import { useSession } from '@/session/SessionContext';
 import { dashboardTheme } from '@/ui/dashboardTheme';
@@ -19,26 +20,26 @@ import { widgetColor } from '@/widgets/color';
 
 export default function DashboardScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { profile, updateWidget } = useSession();
+  const { profile, updateWidget, editableDashIds, setDashActive, showNotice } = useSession();
   const dash = profile?.dashBoards.find((d) => String(d.id) === id);
   const theme = dashboardTheme(dash?.theme);
   const [tab, setTab] = useState(0);
   const [devicesOpen, setDevicesOpen] = useState(false);
-  const [editing, setEditing] = useState(false);
+  const [editRequested, setEditing] = useState(false);
   const [boxOpen, setBoxOpen] = useState(false);
   const router = useRouter();
-  const editable = dash !== undefined && isEditableDash(dash.id);
+  const editable = dash !== undefined && isEditableDash(dash.id, editableDashIds);
+  // Si modifica solo a progetto fermo. Avviarlo (anche dalle impostazioni) chiude la modifica.
+  const stopped = dash?.isActive === false;
+  const editing = editRequested && editable && stopped;
   // Stabile durante i gesti di spostamento: la griglia ricrea i gestori quando cambiano le callback.
-  const gridEdit = useMemo<GridEdit | undefined>(
-    () =>
-      editing
-        ? {
-            onSettings: (w) => router.push(`/edit/${id}/${w.id}`),
-            onLayout: (w, rect) => updateWidget(Number(id), { ...w, ...rect }),
-          }
-        : undefined,
-    [editing, id, router, updateWidget],
-  );
+  // React Compiler lo memoizza da solo (dipende da editing, id, router, updateWidget).
+  const gridEdit: GridEdit | undefined = editing
+    ? {
+        onSettings: (w) => router.push(`/edit/${id}/${w.id}`),
+        onLayout: (w, rect) => updateWidget(Number(id), { ...w, ...rect }),
+      }
+    : undefined;
 
   if (!profile) return <Redirect href="/" />;
   if (!dash) return <Text style={{ padding: 16 }}>{t.dashboardNotFound}</Text>;
@@ -58,13 +59,35 @@ export default function DashboardScreen() {
           headerRight: () => (
             <View style={styles.headerRight}>
               {editing && (
+                <Pressable onPress={() => router.push(`/project/${id}`)} hitSlop={10} accessibilityLabel={tp.projectSettings}>
+                  <MaterialCommunityIcons name="cog-outline" size={24} color="#1D1E22" />
+                </Pressable>
+              )}
+              {editing && (
                 <Pressable onPress={() => setBoxOpen(true)} hitSlop={10} accessibilityLabel={te.addWidget}>
                   <MaterialCommunityIcons name="plus" size={26} color="#1D1E22" />
                 </Pressable>
               )}
-              {editable && (
-                <Pressable onPress={() => setEditing((e) => !e)} hitSlop={10} accessibilityLabel={editing ? te.done : te.edit}>
+              {/* Matita (o "fine") solo a progetto fermo; in esecuzione restano solo avvia/ferma e device.
+                  In modifica avvia/ferma sparisce: si torna alla vista normale con "fine". */}
+              {editable && stopped && (
+                <Pressable onPress={() => setEditing(!editing)} hitSlop={10} accessibilityLabel={editing ? te.done : te.edit}>
                   <MaterialCommunityIcons name={editing ? 'check' : 'pencil'} size={24} color="#1D1E22" />
+                </Pressable>
+              )}
+              {editable && !editing && (
+                <Pressable
+                  onPress={() => {
+                    setDashActive(dash.id, stopped)
+                      .then((devicesOnline) => {
+                        if (!devicesOnline) showNotice(tp.noDeviceOnline);
+                      })
+                      .catch((e: unknown) => showNotice(e instanceof Error ? e.message : String(e)));
+                  }}
+                  hitSlop={10}
+                  accessibilityLabel={stopped ? tp.play : tp.stop}
+                >
+                  <MaterialCommunityIcons name={stopped ? 'play' : 'stop'} size={26} color="#1D1E22" />
                 </Pressable>
               )}
               <DevicesButton dash={dash} open={devicesOpen} onPress={() => setDevicesOpen((o) => !o)} />

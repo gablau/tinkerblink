@@ -3,6 +3,7 @@ import { Redirect, Stack, router } from 'expo-router';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { StatusBanner } from '@/components/StatusBanner';
 import { t } from '@/i18n';
+import { tp } from '@/project/strings';
 import type { Dashboard } from '@/model/profile';
 import { useDeviceOnline } from '@/session/hooks';
 import { useSession } from '@/session/SessionContext';
@@ -48,6 +49,9 @@ export default function ProjectsScreen() {
         options={{
           headerRight: () => (
             <View style={styles.headerRight}>
+              <Pressable onPress={() => router.push('/project/new')} hitSlop={8} accessibilityLabel={tp.newProject}>
+                <MaterialCommunityIcons name="plus" size={26} color="#1D1E22" />
+              </Pressable>
               <Pressable onPress={() => router.push('/credits')} hitSlop={8} accessibilityLabel={t.credits}>
                 <MaterialCommunityIcons name="information-outline" size={24} color="#1D1E22" />
               </Pressable>

@@ -27,8 +27,36 @@ const READ_ONLY_COMMANDS: ReadonlySet<number> = new Set([
   Command.LOGOUT,
 ]);
 
-/** Comandi dell'editor: in sola lettura sono ammessi solo sulle dashboard di `editableDashIds`. */
-const EDIT_COMMANDS: ReadonlySet<number> = new Set([Command.CREATE_WIDGET, Command.UPDATE_WIDGET, Command.DELETE_WIDGET]);
+/**
+ * Comandi dell'editor: in sola lettura sono ammessi solo sulle dashboard di `editableDashIds` (il dashId è
+ * il primo campo del body). DEACTIVATE_DASHBOARD con body vuoto fermerebbe tutte le dashboard: dashId 0,
+ * quindi bloccato.
+ */
+const EDIT_COMMANDS: ReadonlySet<number> = new Set([
+  Command.CREATE_WIDGET,
+  Command.UPDATE_WIDGET,
+  Command.DELETE_WIDGET,
+  Command.UPDATE_PROJECT_SETTINGS,
+  Command.DELETE_DASH,
+  Command.ACTIVATE_DASHBOARD,
+  Command.DEACTIVATE_DASHBOARD,
+  Command.CREATE_DEVICE,
+  Command.UPDATE_DEVICE,
+  Command.DELETE_DEVICE,
+]);
+
+/** Impostazioni di un progetto (DashboardSettings del server): quelle che UPDATE_PROJECT_SETTINGS sostituisce. */
+export interface DashSettings {
+  name: string;
+  isShared: boolean;
+  theme: string;
+  keepScreenOn: boolean;
+  isAppConnectedOn: boolean;
+  isNotificationsOff: boolean;
+  widgetBackgroundOn: boolean;
+  color: number;
+  isDefaultColor: boolean;
+}
 
 export class ProtocolError extends Error {
   constructor(
@@ -48,10 +76,13 @@ export interface ClientOptions {
    */
   allowHardwareWrites?: boolean;
   /**
-   * In sola lettura permette comunque i comandi dell'editor (CREATE_WIDGET, UPDATE_WIDGET, DELETE_WIDGET),
-   * ma solo su queste dashboard: il dashId è il primo campo del body. Vuoto = nessuna modifica.
+   * In sola lettura permette comunque i comandi dell'editor (widget, impostazioni, device, play/stop,
+   * eliminazione del progetto), ma solo su queste dashboard: il dashId è il primo campo del body.
+   * Vuoto = nessuna modifica. Si allarga con allowEditing().
    */
   editableDashIds?: readonly number[];
+  /** In sola lettura permette CREATE_DASH; la dashboard creata diventa modificabile. */
+  allowCreateDash?: boolean;
   requestTimeoutMs?: number;
   pingIntervalMs?: number;
 }
@@ -72,6 +103,7 @@ export class LegacyClient {
   private pingTimer?: ReturnType<typeof setInterval>;
   private closed = false;
   private readonly opts: Required<ClientOptions>;
+  private readonly editable: Set<number>;
 
   constructor(
     private readonly transport: Transport,
@@ -81,10 +113,12 @@ export class LegacyClient {
       readOnly: true,
       allowHardwareWrites: false,
       editableDashIds: [],
+      allowCreateDash: false,
       requestTimeoutMs: 15000,
       pingIntervalMs: 10000,
       ...opts,
     };
+    this.editable = new Set(this.opts.editableDashIds);
     this.codec = createCodec(transport.framing);
     transport.onData((chunk) => {
       for (const m of this.codec.push(chunk)) this.dispatch(m);
@@ -242,13 +276,87 @@ export class LegacyClient {
     return Number(reply.kind === 'text' ? reply.body : '');
   }
 
+  /**
+   * Crea un progetto (CREATE_DASH, MobileCreateDashLogic): body = JSON della dashboard. Il server rifiuta id
+   * già usati (NOT_ALLOWED) e il superamento del limite di progetti (QUOTA_LIMIT), e genera il token dei
+   * device presenti nel JSON: per leggerli si ricarica il profilo. Il progetto creato diventa modificabile.
+   */
+  async createDash(dash: { id: number; name: string }): Promise<void> {
+    await this.expectOk(Command.CREATE_DASH, JSON.stringify(dash));
+    this.editable.add(dash.id);
+  }
+
+  /** Sostituisce le impostazioni di un progetto (UPDATE_PROJECT_SETTINGS): body "<dashId>\0<json>". */
+  async updateDashSettings(dashId: number, settings: DashSettings): Promise<void> {
+    await this.expectOk(Command.UPDATE_PROJECT_SETTINGS, joinBody(dashId, JSON.stringify(settings)));
+  }
+
+  /**
+   * Elimina un progetto (DELETE_DASH): body = dashId. Il server cancella anche timer, token, connessioni
+   * dei device e tutto lo storico dei loro pin.
+   */
+  async deleteDash(dashId: number): Promise<void> {
+    await this.expectOk(Command.DELETE_DASH, String(dashId));
+    this.editable.delete(dashId);
+  }
+
+  /**
+   * Play (ACTIVATE_DASHBOARD): body = dashId. La dashboard si attiva comunque; se nessun device è connesso
+   * il server risponde DEVICE_NOT_IN_NETWORK (o OK con le notifiche spente): restituisce false in quel caso.
+   */
+  async activateDash(dashId: number): Promise<boolean> {
+    const reply = await this.request(Command.ACTIVATE_DASHBOARD, String(dashId));
+    if (reply.kind !== 'response' || reply.code === ResponseCode.OK) return true;
+    if (reply.code === ResponseCode.DEVICE_NOT_IN_NETWORK) return false;
+    throw new ProtocolError(Command.ACTIVATE_DASHBOARD, reply.code);
+  }
+
+  /** Stop (DEACTIVATE_DASHBOARD): body = dashId (mai vuoto, che fermerebbe tutte le dashboard). */
+  async deactivateDash(dashId: number): Promise<void> {
+    await this.expectOk(Command.DEACTIVATE_DASHBOARD, String(dashId));
+  }
+
+  /**
+   * Aggiunge un device (CREATE_DEVICE): body "<dashId>\0<json>"; servono id nuovo, nome (max 50) e boardType.
+   * Il server risponde con un CREATE_DEVICE che contiene il device con il token generato.
+   */
+  async createDevice<T extends { id: number; name: string; boardType: string }>(dashId: number, device: T): Promise<T & { token?: string }> {
+    const reply = await this.request(Command.CREATE_DEVICE, joinBody(dashId, JSON.stringify(device)));
+    if (reply.kind === 'response') throw new ProtocolError(Command.CREATE_DEVICE, reply.code);
+    const text = reply.kind === 'binary' ? strFromU8(reply.body) : reply.body;
+    return JSON.parse(text) as T & { token?: string };
+  }
+
+  /** Modifica un device esistente (UPDATE_DEVICE): nome, board, connessione, icona; il token non cambia. */
+  async updateDevice(dashId: number, device: { id: number; name: string; boardType: string }): Promise<void> {
+    await this.expectOk(Command.UPDATE_DEVICE, joinBody(dashId, JSON.stringify(device)));
+  }
+
+  /** Elimina un device (DELETE_DEVICE): body "<dashId>\0<deviceId>". Cancella anche lo storico dei suoi pin. */
+  async deleteDevice(dashId: number, deviceId: number): Promise<void> {
+    await this.expectOk(Command.DELETE_DEVICE, joinBody(dashId, deviceId));
+  }
+
+  /** Device di un progetto con stato e token (GET_DEVICES, sola lettura). */
+  async getDevices(dashId: number): Promise<unknown[]> {
+    const reply = await this.request(Command.GET_DEVICES, String(dashId));
+    if (reply.kind === 'response') throw new ProtocolError(Command.GET_DEVICES, reply.code);
+    return JSON.parse(reply.kind === 'binary' ? strFromU8(reply.body) : reply.body) as unknown[];
+  }
+
+  /** Rende modificabile un'altra dashboard (per esempio un progetto creato da questa app in una sessione precedente). */
+  allowEditing(dashId: number): void {
+    this.editable.add(dashId);
+  }
+
   private isAllowed(command: number, body: string): boolean {
     if (!this.opts.readOnly) return true;
     if (READ_ONLY_COMMANDS.has(command)) return true;
     if (command === Command.HARDWARE) return this.opts.allowHardwareWrites;
+    if (command === Command.CREATE_DASH) return this.opts.allowCreateDash;
     if (EDIT_COMMANDS.has(command)) {
-      const dashId = Number(body.split('\0', 1)[0]);
-      return this.opts.editableDashIds.includes(dashId);
+      const first = body.split('\0', 1)[0]!;
+      return /^\d+$/.test(first) && this.editable.has(Number(first));
     }
     return false;
   }

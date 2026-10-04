@@ -94,6 +94,18 @@ import { LegacyClient, Command, encodeMessage, FrameDecoder, parseGraphData, pas
   assert.throws(() => ed.send(Command.UPDATE_WIDGET, '1234567890\0{}'), /bloccato/);
   assert.throws(() => ed.send(Command.UPDATE_DASH, '123456789\0{}'), /bloccato/);
   assert.throws(() => ed.writePin(123456789, 0, 20, ['x']), /bloccato/);
+  // Progetti e device: stessi limiti; stop senza dashId (= tutte) e CREATE_DASH senza opzione bloccati.
+  assert.doesNotThrow(() => ed.send(Command.DELETE_DEVICE, '123456789\x001'));
+  assert.doesNotThrow(() => ed.send(Command.ACTIVATE_DASHBOARD, '123456789'));
+  assert.throws(() => ed.send(Command.DELETE_DASH, '999'), /bloccato/);
+  assert.throws(() => ed.send(Command.DEACTIVATE_DASHBOARD, ''), /bloccato/);
+  assert.throws(() => ed.send(Command.CREATE_DEVICE, ' 123456789\0{}'), /bloccato/);
+  assert.throws(() => ed.send(Command.CREATE_DASH, '{"id":5}'), /bloccato/);
+  ed.allowEditing(999);
+  assert.doesNotThrow(() => ed.send(Command.DELETE_DASH, '999'));
+  const cr = new LegacyClient(fake, { readOnly: true, allowCreateDash: true });
+  assert.doesNotThrow(() => cr.send(Command.CREATE_DASH, '{"id":5}'));
+  assert.throws(() => cr.send(Command.DELETE_DASH, '5'), /bloccato/);
 }
 
 console.log('✅ selftest ok');
