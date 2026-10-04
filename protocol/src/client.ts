@@ -219,6 +219,29 @@ export class LegacyClient {
     await this.expectOk(Command.UPDATE_WIDGET, joinBody(dashId, JSON.stringify(widget)));
   }
 
+  /**
+   * Crea un widget (CREATE_WIDGET, MobileCreateWidgetLogic): body "<dashId>\0<json>". Il server rifiuta id già
+   * usati e scala l'Energy del widget (ENERGY_LIMIT se non basta).
+   */
+  async createWidget(dashId: number, widget: { id: number; type: string }): Promise<void> {
+    await this.expectOk(Command.CREATE_WIDGET, joinBody(dashId, JSON.stringify(widget)));
+  }
+
+  /**
+   * Elimina un widget (DELETE_WIDGET): body "<dashId>\0<widgetId>". L'Energy torna all'utente.
+   * Attenzione: eliminando il widget Tabs il server elimina anche i widget delle schede oltre la prima.
+   */
+  async deleteWidget(dashId: number, widgetId: number): Promise<void> {
+    await this.expectOk(Command.DELETE_WIDGET, joinBody(dashId, widgetId));
+  }
+
+  /** Energy disponibile (GET_ENERGY, sola lettura). */
+  async getEnergy(): Promise<number> {
+    const reply = await this.request(Command.GET_ENERGY, '');
+    if (reply.kind === 'response') throw new ProtocolError(Command.GET_ENERGY, reply.code);
+    return Number(reply.kind === 'text' ? reply.body : '');
+  }
+
   private isAllowed(command: number, body: string): boolean {
     if (!this.opts.readOnly) return true;
     if (READ_ONLY_COMMANDS.has(command)) return true;

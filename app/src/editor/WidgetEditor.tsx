@@ -1,6 +1,7 @@
 // Impostazioni di un widget (fase 1 dell'editor). Si lavora su una bozza, copia del JSON del profilo: "Salva"
 // invia il widget completo con UPDATE_WIDGET (round-trip, i campi non toccati restano com'erano). Uscire
 // non salva: si salva solo con il pulsante; uscendo con modifiche si chiede conferma.
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Stack, useNavigation, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -12,6 +13,7 @@ import { FONT } from '@/ui/fonts';
 import { withAlpha } from '@/widgets/color';
 import { BoolField, ChoiceField, ColorField, LabelsField, NumberField, PinField, RangeField, Row, TextField, type ControlTheme } from './controls';
 import { pinsForWidget } from './boards/boards';
+import { duplicateOf, isSingle } from './catalog';
 import { editorSections, withCurrent, type Field } from './fields';
 import { findFreeSpot, sameGrid } from './layoutRules';
 import { PeriodsField, TabsField, TimeOfDayField } from './moreFields';
@@ -42,7 +44,7 @@ function confirmDiscard(onDiscard: () => void): void {
 }
 
 export function WidgetEditor({ dash, widget }: { dash: Dashboard; widget: Widget }) {
-  const { updateWidget } = useSession();
+  const { updateWidget, createWidget, deleteWidget } = useSession();
   const router = useRouter();
   const navigation = useNavigation();
   const theme = dashboardTheme(dash.theme);
@@ -85,6 +87,37 @@ export function WidgetEditor({ dash, widget }: { dash: Dashboard; widget: Widget
     } finally {
       setSaving(false);
     }
+  };
+
+  const runAction = async (action: () => Promise<void>, errorLabel: string) => {
+    setSaving(true);
+    setError(null);
+    try {
+      await action();
+      leaving.current = true;
+      router.back();
+    } catch (e) {
+      setError(`${errorLabel}: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const duplicate = () => runAction(() => createWidget(dash.id, duplicateOf(draft, dash)), te.addError);
+
+  const askDelete = () => {
+    // Eliminando il Tabs il server elimina anche i widget delle schede dopo la prima.
+    const lost = widget.type === 'TABS' ? dash.widgets.filter((w) => w.type !== 'TABS' && (w.tabId ?? 0) > 0).length : 0;
+    const message = lost > 0 ? te.deleteTabsConfirm(lost) : te.deleteConfirm;
+    const run = () => void runAction(() => deleteWidget(dash.id, widget.id), te.deleteError);
+    if (Platform.OS === 'web') {
+      if (globalThis.confirm?.(message)) run();
+      return;
+    }
+    Alert.alert(te.deleteWidget, message, [
+      { text: te.cancel, style: 'cancel' },
+      { text: te.delete, style: 'destructive', onPress: run },
+    ]);
   };
 
   const render = (f: Field, i: number) => {
@@ -203,9 +236,19 @@ export function WidgetEditor({ dash, widget }: { dash: Dashboard; widget: Widget
             saving ? (
               <ActivityIndicator color="#1D1E22" />
             ) : (
-              <Pressable onPress={save} disabled={!dirty} hitSlop={10}>
-                <Text style={[styles.save, { opacity: dirty ? 1 : 0.4 }]}>{te.save.toUpperCase()}</Text>
-              </Pressable>
+              <View style={styles.headerActions}>
+                {!isSingle(widget.type) && (
+                  <Pressable onPress={() => void duplicate()} hitSlop={10} accessibilityLabel={te.duplicateWidget}>
+                    <MaterialCommunityIcons name="content-copy" size={22} color="#1D1E22" />
+                  </Pressable>
+                )}
+                <Pressable onPress={askDelete} hitSlop={10} accessibilityLabel={te.deleteWidget}>
+                  <MaterialCommunityIcons name="delete-outline" size={24} color="#1D1E22" />
+                </Pressable>
+                <Pressable onPress={save} disabled={!dirty} hitSlop={10}>
+                  <Text style={[styles.save, { opacity: dirty ? 1 : 0.4 }]}>{te.save.toUpperCase()}</Text>
+                </Pressable>
+              </View>
             ),
         }}
       />
@@ -252,4 +295,5 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 13, fontFamily: FONT.medium, letterSpacing: 1, marginTop: 8 },
   save: { fontSize: 16, fontFamily: FONT.medium, color: '#1D1E22', paddingHorizontal: 4 },
   error: { color: '#D3435C', fontFamily: FONT.regular, marginBottom: 8 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 22 },
 });

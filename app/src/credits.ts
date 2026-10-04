@@ -30,6 +30,13 @@ export const CREDIT_GROUPS: CreditGroup[] = [
         url: 'https://github.com/blynkkk',
         use: say('Pin delle schede nel selettore dell\'editor (66 schede)', 'Board pins in the editor pin picker (66 boards)'),
       },
+      {
+        name: say('Documentazione utente di Blynk Legacy', 'Blynk Legacy user documentation'),
+        author: 'Blynk Inc. · fork gablau',
+        license: 'MIT',
+        url: 'https://gablau.dev/blynk-legacy-docs/',
+        use: say('Informazioni sui widget nel Widget Box dell\'editor', 'Widget information in the editor Widget Box'),
+      },
     ],
   },
   {

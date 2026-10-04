@@ -1,6 +1,9 @@
 // Temi delle dashboard: colori, dimensioni e opacità per i due valori del campo `theme` della dashboard
 // (enum Theme del server: Blynk scuro, BlynkLight chiaro).
 
+/** Gruppi di widget (Widget Box dell'editor), ognuno con il suo colore. */
+export type WidgetGroup = 'controllers' | 'displays' | 'interface' | 'notifications' | 'other' | 'sensors';
+
 export interface DashboardTheme {
   name: 'Blynk' | 'BlynkLight';
   light: boolean;
@@ -39,6 +42,8 @@ export interface DashboardTheme {
   /** Base del Joystick e colore del valore y. */
   joystickBase: string;
   joystickY: string;
+  /** Colore di ogni gruppo di widget: icone del Widget Box e colore dei widget nuovi. */
+  groupColors: Record<WidgetGroup, string>;
 }
 
 const DARK_COLORS = ['#FFFFFF', '#23C48E', '#5F7CD8', '#04C0F8', '#ED9D00', '#D3435C', '#1D1E22', '#212227', '#B3B3B3', '#000000', '#131319', '#0a0a0d', '#535353', '#757575', '#898989', '#D8D8D8', '#191A1F', '#F5F5F5', '#3C464D', '#7D918B', '#2C2D32'];
@@ -69,6 +74,7 @@ export const DARK_THEME: DashboardTheme = {
   lcdDark: DARK_COLORS[9]!,
   joystickBase: DARK_COLORS[9]!,
   joystickY: DARK_COLORS[2]!,
+  groupColors: { controllers: DARK_COLORS[1]!, displays: DARK_COLORS[3]!, interface: DARK_COLORS[0]!, notifications: DARK_COLORS[4]!, other: DARK_COLORS[2]!, sensors: DARK_COLORS[5]! },
 };
 
 export const LIGHT_THEME: DashboardTheme = {
@@ -94,6 +100,7 @@ export const LIGHT_THEME: DashboardTheme = {
   lcdDark: LIGHT_COLORS[2]!,
   joystickBase: LIGHT_COLORS[9]!,
   joystickY: LIGHT_COLORS[2]!,
+  groupColors: { controllers: LIGHT_COLORS[1]!, displays: LIGHT_COLORS[3]!, interface: LIGHT_COLORS[14]!, notifications: LIGHT_COLORS[2]!, other: LIGHT_COLORS[4]!, sensors: LIGHT_COLORS[5]! },
 };
 
 export function dashboardTheme(theme: string | undefined): DashboardTheme {

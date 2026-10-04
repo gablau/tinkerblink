@@ -136,6 +136,43 @@ export class SessionManager {
     await client.syncDashboard(dashId).catch(() => undefined);
   };
 
+  /** Editor: aggiunge un widget (CREATE_WIDGET) e lo inserisce nel profilo locale. */
+  createWidget = async (dashId: number, widget: Widget): Promise<void> => {
+    const client = this.requireOnline();
+    await client.createWidget(dashId, widget);
+    this.patchDash(dashId, (widgets) => [...widgets, widget]);
+    await client.syncDashboard(dashId).catch(() => undefined);
+  };
+
+  /**
+   * Editor: elimina un widget (DELETE_WIDGET). Come il server, eliminando il widget Tabs si tolgono anche i
+   * widget delle schede oltre la prima (MobileDeleteWidgetLogic.deleteTabs).
+   */
+  deleteWidget = async (dashId: number, widgetId: number): Promise<void> => {
+    const client = this.requireOnline();
+    const dash = this.state.profile?.dashBoards.find((d) => d.id === dashId);
+    const isTabs = dash?.widgets.find((w) => w.id === widgetId)?.type === 'TABS';
+    await client.deleteWidget(dashId, widgetId);
+    this.patchDash(dashId, (widgets) => widgets.filter((w) => w.id !== widgetId && !(isTabs && (w.tabId ?? 0) > 0)));
+  };
+
+  /** Energy disponibile per i widget (GET_ENERGY). */
+  getEnergy = (): Promise<number> => this.requireOnline().getEnergy();
+
+  private requireOnline(): LegacyClient {
+    const client = this.client;
+    if (!client || !this.state.profile || this.state.status !== 'online') throw new Error(t.notConnected);
+    return client;
+  }
+
+  private patchDash(dashId: number, update: (widgets: Widget[]) => Widget[]): void {
+    const profile = this.state.profile;
+    if (!profile) return;
+    this.setState({
+      profile: { ...profile, dashBoards: profile.dashBoards.map((d) => (d.id === dashId ? { ...d, widgets: update(d.widgets) } : d)) },
+    });
+  }
+
   getGraphData = (req: { dashId: number; widgetId: number; period: GraphPeriod; page?: number }): Promise<GraphData | null> => {
     const client = this.client;
     if (!client || this.state.status !== 'online') return Promise.reject(new Error(t.notConnected));

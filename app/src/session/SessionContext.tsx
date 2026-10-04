@@ -19,6 +19,9 @@ interface SessionValue extends SessionState {
   writePin(dashId: number, deviceId: number, pin: number, values: string[]): boolean;
   getGraphData(req: { dashId: number; widgetId: number; period: GraphPeriod; page?: number }): Promise<GraphData | null>;
   updateWidget(dashId: number, widget: Widget): Promise<void>;
+  createWidget(dashId: number, widget: Widget): Promise<void>;
+  deleteWidget(dashId: number, widgetId: number): Promise<void>;
+  getEnergy(): Promise<number>;
 }
 
 const SessionContext = createContext<SessionManager | null>(null);
@@ -53,5 +56,8 @@ export function useSession(): SessionValue {
     writePin: manager.writePin,
     getGraphData: manager.getGraphData,
     updateWidget: manager.updateWidget,
+    createWidget: manager.createWidget,
+    deleteWidget: manager.deleteWidget,
+    getEnergy: manager.getEnergy,
   };
 }

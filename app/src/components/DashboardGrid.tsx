@@ -152,7 +152,10 @@ export function DashboardGrid({ dash, theme, tab, edit }: Props) {
                 theme={theme}
                 selectedId={selectedId}
                 onSelect={setSelectedId}
-                onSettings={(w) => edit.onSettings(dash.widgets.find((x) => x.id === w.id) ?? w)}
+                onSettings={(w) => {
+                  setSelectedId(null);
+                  edit.onSettings(dash.widgets.find((x) => x.id === w.id) ?? w);
+                }}
                 onLayout={saveLayout}
                 onPreview={setPreview}
                 lockScroll={lockScroll}

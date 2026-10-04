@@ -9,6 +9,7 @@ import { DevicesButton, DevicesPanel } from '@/components/Devices';
 import { StatusBanner } from '@/components/StatusBanner';
 import { isEditableDash } from '@/editor/policy';
 import { te } from '@/editor/strings';
+import { WidgetBox } from '@/editor/WidgetBox';
 import type { TabsWidget } from '@/model/profile';
 import { useSession } from '@/session/SessionContext';
 import { dashboardTheme } from '@/ui/dashboardTheme';
@@ -24,6 +25,7 @@ export default function DashboardScreen() {
   const [tab, setTab] = useState(0);
   const [devicesOpen, setDevicesOpen] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [boxOpen, setBoxOpen] = useState(false);
   const router = useRouter();
   const editable = dash !== undefined && isEditableDash(dash.id);
   // Stabile durante i gesti di spostamento: la griglia ricrea i gestori quando cambiano le callback.
@@ -55,6 +57,11 @@ export default function DashboardScreen() {
           title: dash.name,
           headerRight: () => (
             <View style={styles.headerRight}>
+              {editing && (
+                <Pressable onPress={() => setBoxOpen(true)} hitSlop={10} accessibilityLabel={te.addWidget}>
+                  <MaterialCommunityIcons name="plus" size={26} color="#1D1E22" />
+                </Pressable>
+              )}
               {editable && (
                 <Pressable onPress={() => setEditing((e) => !e)} hitSlop={10} accessibilityLabel={editing ? te.done : te.edit}>
                   <MaterialCommunityIcons name={editing ? 'check' : 'pencil'} size={24} color="#1D1E22" />
@@ -70,6 +77,7 @@ export default function DashboardScreen() {
         <Text style={[styles.editHint, { color: theme.background, backgroundColor: theme.accent }]}>{te.editHint}</Text>
       )}
       {devicesOpen && <DevicesPanel dash={dash} theme={theme} />}
+      {boxOpen && <WidgetBox dash={dash} tab={tabs.length > 0 ? tab : undefined} theme={theme} onClose={() => setBoxOpen(false)} />}
       {tabs.length > 0 && (
         <ScrollView horizontal style={{ flexGrow: 0, backgroundColor: tabBg }} contentContainerStyle={styles.tabs}>
           {/* Nel JSON gli id delle schede valgono tutti 0: il tabId dei widget è la posizione della scheda. */}
