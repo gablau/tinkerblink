@@ -42,7 +42,8 @@
           "isAndroidForegroundServiceEnabled": true
         }
       ],
-      "./plugins/withShortCxxPath"
+      "./plugins/withShortCxxPath",
+      "./plugins/withNetworkSecurityConfig"
     ],
     "experiments": {
       "typedRoutes": true
