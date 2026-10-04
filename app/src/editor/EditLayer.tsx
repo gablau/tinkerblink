@@ -5,6 +5,7 @@
 //   durante il trascinamento la griglia mostra già il risultato (onPreview); un riquadro evidenziato indica dove
 //   finirà il widget. Rosso solo se si esce dalle 8 colonne.
 // - Al rilascio si chiama onLayout con la nuova posizione e i widget spinti (salvataggio con UPDATE_WIDGET).
+// - Con il dito vicino al bordo alto o basso la dashboard scorre da sola (autoScroll.ts) e il widget la segue.
 // Le posizioni occupate non vengono rifiutate: per fare spazio non serve spostare un widget
 // alla volta.
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -14,6 +15,7 @@ import type { Widget } from '@/model/profile';
 import type { DashboardTheme } from '@/ui/dashboardTheme';
 import { withAlpha } from '@/widgets/color';
 import { inBounds, reflow, sameGrid, sizeLimits, type Rect } from './layoutRules';
+import type { AutoScroller } from './autoScroll';
 import { te } from './strings';
 
 const INSET = 2;
@@ -40,6 +42,8 @@ interface Props {
   /** Anteprima durante il gesto: nuove posizioni dei widget spinti (null = nessuna). */
   onPreview: (moves: Moves | null) => void;
   lockScroll: (locked: boolean) => void;
+  /** Scorrimento automatico vicino ai bordi durante il gesto. */
+  scroller: AutoScroller;
 }
 
 export function EditLayer(props: Props) {
@@ -106,6 +110,7 @@ function SelectedBox({
   onLayout,
   onPreview,
   lockScroll,
+  scroller,
 }: Props & { widget: Widget; box: (r: Rect) => { left: number; top: number; width: number; height: number } }) {
   const [gesture, setGesture] = useState<Gesture>(null);
   const [move] = useState(() => new Animated.ValueXY({ x: 0, y: 0 }));
@@ -115,39 +120,59 @@ function SelectedBox({
   // PanResponder (con il suo dx/dy interno) ricreato solo quando cambiano widget, griglia o callback: durante
   // il gesto cambiano soltanto lo stato `gesture` e l'anteprima, che non toccano queste dipendenze.
   const responders = useMemo(() => {
-    const finish = () => {
-      lockScroll(false);
-      move.setValue({ x: 0, y: 0 });
-      setGesture(null);
-      onPreview(null);
-    };
     const target = (mode: 'move' | 'resize', dx: number, dy: number) =>
       targetOf({ widget, limits: sizeLimits(widget), cellW, cellH }, { mode, dx, dy });
-    const make = (mode: 'move' | 'resize') =>
-      PanResponder.create({
+    const make = (mode: 'move' | 'resize') => {
+      // Ultimo spostamento del dito sullo schermo; lo scorrimento automatico si somma in verticale.
+      let fingerDx = 0;
+      let fingerDy = 0;
+      let stopTicks: (() => void) | null = null;
+      const update = () => {
+        const dy = fingerDy + scroller.offset();
+        if (mode === 'move') move.setValue({ x: fingerDx, y: dy });
+        setGesture({ mode, dx: fingerDx, dy });
+        // Anteprima della spinta (la griglia la applica solo se le posizioni cambiano davvero).
+        const t = target(mode, fingerDx, dy);
+        onPreview(inBounds(t, rowOffset) && !sameRect(t, widget) ? reflow(others, t) : null);
+      };
+      const finish = () => {
+        stopTicks?.();
+        stopTicks = null;
+        scroller.end();
+        lockScroll(false);
+        move.setValue({ x: 0, y: 0 });
+        setGesture(null);
+        onPreview(null);
+      };
+      return PanResponder.create({
         onStartShouldSetPanResponder: () => true,
         onMoveShouldSetPanResponder: () => true,
         onPanResponderTerminationRequest: () => false,
         onPanResponderGrant: () => {
+          fingerDx = 0;
+          fingerDy = 0;
           lockScroll(true);
+          scroller.begin();
+          stopTicks = scroller.onTick(update);
           setGesture({ mode, dx: 0, dy: 0 });
         },
         onPanResponderMove: (_, g) => {
-          if (mode === 'move') move.setValue({ x: g.dx, y: g.dy });
-          setGesture({ mode, dx: g.dx, dy: g.dy });
-          // Anteprima della spinta (la griglia la applica solo se le posizioni cambiano davvero).
-          const t = target(mode, g.dx, g.dy);
-          onPreview(inBounds(t, rowOffset) && !sameRect(t, widget) ? reflow(others, t) : null);
+          fingerDx = g.dx;
+          fingerDy = g.dy;
+          scroller.drag(g.moveY);
+          update();
         },
         onPanResponderRelease: (_, g) => {
+          const dy = g.dy + scroller.offset();
           finish();
-          const t = target(mode, g.dx, g.dy);
+          const t = target(mode, g.dx, dy);
           if (!sameRect(t, widget) && inBounds(t, rowOffset)) onLayout(widget, t, reflow(others, t));
         },
         onPanResponderTerminate: finish,
       });
+    };
     return { move: make('move'), resize: make('resize') };
-  }, [widget, others, cellW, cellH, rowOffset, onLayout, onPreview, lockScroll, move]);
+  }, [widget, others, cellW, cellH, rowOffset, onLayout, onPreview, lockScroll, move, scroller]);
 
   const target = gesture ? targetOf({ widget, limits, cellW, cellH }, gesture) : null;
   const valid = target ? inBounds(target, rowOffset) : true;

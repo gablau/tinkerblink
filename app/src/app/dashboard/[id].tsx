@@ -2,7 +2,7 @@
 // Colori: tema della dashboard (Blynk / BlynkLight, enum Theme del server) e colori del widget Tabs.
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { DashboardGrid, type GridEdit } from '@/components/DashboardGrid';
 import { DevicesButton, DevicesPanel } from '@/components/Devices';
@@ -33,13 +33,16 @@ export default function DashboardScreen() {
   const stopped = dash?.isActive === false;
   const editing = editRequested && editable && stopped;
   // Stabile durante i gesti di spostamento: la griglia ricrea i gestori quando cambiano le callback.
-  // React Compiler lo memoizza da solo (dipende da editing, id, router, updateWidget).
-  const gridEdit: GridEdit | undefined = editing
-    ? {
-        onSettings: (w) => router.push(`/edit/${id}/${w.id}`),
-        onLayout: (w, rect) => updateWidget(Number(id), { ...w, ...rect }),
-      }
-    : undefined;
+  // Callback stabili durante i gesti: se l'oggetto cambiasse a ogni render, la griglia ricreerebbe i PanResponder
+  // a metà trascinamento e il gesto si interromperebbe. `editing` resta fuori dalle dipendenze.
+  const editActions = useMemo<GridEdit>(
+    () => ({
+      onSettings: (w) => router.push(`/edit/${id}/${w.id}`),
+      onLayout: (w, rect) => updateWidget(Number(id), { ...w, ...rect }),
+    }),
+    [id, router, updateWidget],
+  );
+  const gridEdit = editing ? editActions : undefined;
 
   if (!profile) return <Redirect href="/" />;
   if (!dash) return <Text style={{ padding: 16 }}>{t.dashboardNotFound}</Text>;

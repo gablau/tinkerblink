@@ -6,8 +6,9 @@
 // Modalità modifica (editor, fase 2): sempre griglia a 8 colonne su una colonna, qualche riga vuota in fondo per
 // poter spostare i widget più in basso, e sopra i widget il livello di modifica (EditLayer). Dopo uno
 // spostamento la nuova posizione si mostra subito (override) finché il server non conferma.
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { AutoScroller } from '@/editor/autoScroll';
 import { EditLayer, type Moves } from '@/editor/EditLayer';
 import type { Rect } from '@/editor/layoutRules';
 import { te } from '@/editor/strings';
@@ -58,7 +59,20 @@ export function DashboardGrid({ dash, theme, tab, edit }: Props) {
   // Durante il trascinamento arriva un'anteprima per ogni movimento del dito: si aggiorna solo se cambia.
   const setPreview = useCallback((next: Moves | null) => setPreviewState((prev) => (sameMoves(prev, next) ? prev : next)), []);
   const lockScroll = useCallback((locked: boolean) => setScrollEnabled(!locked), []);
-  const onLayout = (e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width);
+  // Scorrimento automatico durante i trascinamenti dell'editor (riceve posizione e misure dello ScrollView).
+  const scrollRef = useRef<ScrollView>(null);
+  const [scroller] = useState(() => new AutoScroller());
+  useEffect(() => {
+    scroller.attach(scrollRef.current);
+    return () => {
+      scroller.end();
+      scroller.attach(null);
+    };
+  }, [scroller]);
+  const onLayout = (e: LayoutChangeEvent) => {
+    setWidth(e.nativeEvent.layout.width);
+    scroller.setViewHeight(e.nativeEvent.layout.height);
+  };
 
   const hasTabs = tab !== undefined;
   const rowOffset = hasTabs ? 1 : 0;
@@ -118,6 +132,10 @@ export function DashboardGrid({ dash, theme, tab, edit }: Props) {
       contentContainerStyle={styles.content}
       onLayout={onLayout}
       scrollEnabled={scrollEnabled}
+      ref={scrollRef}
+      onScroll={(e) => scroller.setScrollY(e.nativeEvent.contentOffset.y)}
+      scrollEventThrottle={16}
+      onContentSizeChange={(_w, h) => scroller.setContentHeight(h)}
     >
       <ScrollLockContext.Provider value={lockScroll}>
         {layout && (
@@ -159,6 +177,7 @@ export function DashboardGrid({ dash, theme, tab, edit }: Props) {
                 onLayout={saveLayout}
                 onPreview={setPreview}
                 lockScroll={lockScroll}
+                scroller={scroller}
               />
             )}
           </View>
