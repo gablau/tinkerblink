@@ -16,7 +16,7 @@ import * as SecureStore from 'expo-secure-store';
 import * as TaskManager from 'expo-task-manager';
 import { Platform } from 'react-native';
 import { t } from '@/i18n';
-import type { Profile, Widget } from '@/model/profile';
+import { canControl, type Profile, type Widget } from '@/model/profile';
 
 const STREAM_TASK = 'blynk-gps-stream';
 const TRIGGER_TASK = 'blynk-gps-trigger';
@@ -150,7 +150,7 @@ async function doSync(profile: Profile | null, host: string): Promise<void> {
   let interval = 0;
 
   for (const dash of profile?.dashBoards ?? []) {
-    if (dash.isActive === false) continue;
+    if (dash.isActive === false || !canControl(dash)) continue;
     const tokens = new Map<number, string>();
     for (const d of dash.devices ?? []) if (typeof d.token === 'string') tokens.set(d.id, d.token);
     for (const w of dash.widgets) {

@@ -10,7 +10,7 @@
 //
 // I valori correnti, anche dei widget senza pin, si leggono con getValue / subscribe (useSensorValue).
 import { Platform } from 'react-native';
-import type { Dashboard, Profile, Widget } from '@/model/profile';
+import { canControl, type Dashboard, type Profile, type Widget } from '@/model/profile';
 import TinkerBlinkSensors, { type SensorEvent } from '../../modules/tinkerblink-sensors';
 
 /** Tipo del widget → costante di android.hardware.Sensor. */
@@ -86,7 +86,7 @@ export class SensorsWorker {
     const wanted = new Map<number, Target[]>();
     if (profile && Platform.OS === 'android') {
       for (const dash of profile.dashBoards) {
-        if (dash.isActive === false) continue;
+        if (dash.isActive === false || !canControl(dash)) continue;
         for (const widget of sensorWidgets(dash)) {
           const type = SENSOR_TYPES[widget.type]!;
           const list = wanted.get(type) ?? [];

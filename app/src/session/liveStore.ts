@@ -269,6 +269,11 @@ export class LiveStore {
     this.set(this.values, key, values);
   }
 
+  /** Rimette il valore di prima di una scrittura rifiutata dal server (senza toccare Terminal e Table). */
+  restoreValue(key: string, values: string[] | undefined): void {
+    this.set(this.values, key, values ?? []);
+  }
+
   getValue = (key: string): string[] | undefined => this.values.get(key);
   getTerminalLog = (key: string): string[] | undefined => this.terminalLogs.get(key);
   getMapPoints = (key: string): MapPoint[] => this.mapPoints.get(key) ?? NO_POINTS;

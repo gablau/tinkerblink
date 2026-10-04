@@ -25,6 +25,8 @@ function ProjectRow({ dash, palette }: { dash: Dashboard; palette: Palette }) {
       <Text style={[styles.meta, { color: palette.muted }]}>
         {t.widgetCount(dash.widgets.length)}
         {dash.isActive === false ? ` · ${t.notActive}` : ''}
+        {dash.assigned ? ` · ${t.sharedBy(dash.assigned.owner)}` : ''}
+        {dash.assigned && !dash.assigned.control ? ` · ${t.readOnly}` : ''}
       </Text>
       <View style={styles.devices}>
         {(dash.devices ?? []).map((d) => (

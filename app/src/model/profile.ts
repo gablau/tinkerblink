@@ -53,6 +53,16 @@ export interface Dashboard {
   isDefaultColor?: boolean;
   widgets: Widget[];
   devices?: Device[];
+  /**
+   * Progetto di un altro utente assegnato dall'amministratore (server nuovo, docs/APP-CLIENT.md del fork):
+   * mai modificabile; con control false anche i comandi ai device sono vietati (il server risponde NOT_ALLOWED).
+   */
+  assigned?: { owner: string; control: boolean };
+}
+
+/** Si possono mandare comandi ai device? Falso solo per i progetti assegnati in sola lettura. */
+export function canControl(dash: Dashboard): boolean {
+  return dash.assigned ? dash.assigned.control === true : true;
 }
 
 export interface Profile {

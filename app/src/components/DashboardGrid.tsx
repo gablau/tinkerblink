@@ -13,7 +13,7 @@ import { EditLayer, type Moves } from '@/editor/EditLayer';
 import type { Rect } from '@/editor/layoutRules';
 import { te } from '@/editor/strings';
 import { CELL_ASPECT, GRID_COLUMNS, MAX_COLUMN_WIDTH, computeLayout } from '@/layout/bandLayout';
-import type { Dashboard, Widget } from '@/model/profile';
+import { canControl, type Dashboard, type Widget } from '@/model/profile';
 import type { DashboardTheme } from '@/ui/dashboardTheme';
 import { WidgetView } from '@/widgets/WidgetView';
 import { ScrollLockContext } from './scrollLock';
@@ -21,6 +21,28 @@ import { ScrollLockContext } from './scrollLock';
 const GRID_PADDING = 4;
 /** Spazio tra un widget e l'altro (metà per lato). */
 const GAP = 4;
+/**
+ * Widget che mandano comandi ai device: nei progetti assegnati in sola lettura si mostrano attenuati e non
+ * rispondono al tocco (il server rifiuterebbe i comandi). Terminal e Table restano attivi per scorrere: le loro
+ * scritture le blocca SessionManager.writePin.
+ */
+const CONTROL_TYPES = new Set([
+  'BUTTON',
+  'STYLED_BUTTON',
+  'SLIDER',
+  'VERTICAL_SLIDER',
+  'STEP',
+  'VERTICAL_STEP',
+  'TIMER',
+  'TWO_AXIS_JOYSTICK',
+  'RGB',
+  'MENU',
+  'SEGMENTED_CONTROL',
+  'TEXT_INPUT',
+  'NUMBER_INPUT',
+  'TIME_INPUT',
+  'PLAYER',
+]);
 /** Righe vuote aggiunte in fondo in modalità modifica. */
 const EDIT_EXTRA_ROWS = 4;
 
@@ -94,6 +116,7 @@ export function DashboardGrid({ dash, theme, tab, edit }: Props) {
     [shown, hasTabs, tab],
   );
   const editing = edit !== undefined;
+  const readOnly = !canControl(dash);
   const layout = useMemo(
     () => (width > 0 ? computeLayout(widgets, rowOffset, width - GRID_PADDING * 2, editing) : null),
     [widgets, rowOffset, width, editing],
@@ -147,8 +170,9 @@ export function DashboardGrid({ dash, theme, tab, edit }: Props) {
             {layout.placed.map((p) => (
               <View
                 key={p.item.id}
-                pointerEvents={editing ? 'none' : 'auto'}
+                pointerEvents={editing || (readOnly && CONTROL_TYPES.has(p.item.type)) ? 'none' : 'auto'}
                 style={{
+                  opacity: readOnly && CONTROL_TYPES.has(p.item.type) ? 0.45 : 1,
                   position: 'absolute',
                   left: p.left + GAP / 2,
                   top: p.top + GAP / 2,

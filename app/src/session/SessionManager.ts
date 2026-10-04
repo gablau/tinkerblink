@@ -7,9 +7,9 @@
 // - Se la connessione cade mentre l'app è attiva, si riprova con attese crescenti.
 // - Il client è in sola lettura tranne le scritture sui pin (HARDWARE): l'app comanda i device ma non
 //   può modificare i progetti.
-import { LegacyClient, ProtocolError, ResponseCode, WebSocketTransport, type DashSettings, type GraphData, type GraphPeriod } from '@tinkerblink/protocol';
+import { LegacyClient, ProtocolError, Command, ResponseCode, WebSocketTransport, type DashSettings, type GraphData, type GraphPeriod } from '@tinkerblink/protocol';
 import { t } from '@/i18n';
-import { pinKey, type Dashboard, type Device, type Profile, type Widget } from '@/model/profile';
+import { canControl, pinKey, type Dashboard, type Device, type Profile, type Widget } from '@/model/profile';
 import { EDITABLE_DASH_IDS, loadCreatedDashIds, saveCreatedDashIds } from '@/editor/policy';
 import { syncGps } from '@/sensors/gps';
 import { SensorsWorker } from '@/sensors/sensorsWorker';
@@ -89,11 +89,24 @@ const NOTICE_MS = 3000;
 /** Il server segnala gli errori di scrittura subito: oltre questo tempo il msgId non serve più. */
 const WRITE_ERROR_WINDOW_MS = 5000;
 
+/**
+ * Login rifiutato dal server: password sbagliata (5), utente cancellato (3), accesso non consentito (6: IP bloccato
+ * dopo troppi tentativi sul server nuovo, oppure login vietato). Non si riprova in automatico: con il blocco per IP
+ * l'app si bloccherebbe da sola (docs/APP-CLIENT.md del fork del server).
+ */
+function isLoginRejected(e: unknown): boolean {
+  return (
+    e instanceof ProtocolError &&
+    e.command === Command.LOGIN &&
+    (e.code === ResponseCode.USER_NOT_AUTHENTICATED || e.code === ResponseCode.USER_NOT_REGISTERED || e.code === ResponseCode.NOT_ALLOWED)
+  );
+}
+
 function describeError(e: unknown): string {
   if (e instanceof ProtocolError) {
-    if (e.code === ResponseCode.USER_NOT_AUTHENTICATED || e.code === ResponseCode.USER_NOT_REGISTERED) {
-      return t.wrongCredentials;
-    }
+    if (e.code === ResponseCode.USER_NOT_AUTHENTICATED) return t.wrongCredentials;
+    if (e.code === ResponseCode.USER_NOT_REGISTERED) return t.userNotRegistered;
+    if (e.code === ResponseCode.NOT_ALLOWED && e.command === Command.LOGIN) return t.loginNotAllowed;
     return e.message;
   }
   if (e instanceof Error) return e.message;
@@ -114,8 +127,8 @@ export class SessionManager {
   private retryAttempt = 0;
   private retryTimer?: ReturnType<typeof setTimeout>;
   private noticeTimer?: ReturnType<typeof setTimeout>;
-  /** msgId delle scritture inviate di recente, per riconoscere gli errori che le riguardano. */
-  private pendingWrites = new Set<number>();
+  /** Scritture inviate di recente (msgId → pin e valore di prima), per riconoscere gli errori e annullarle. */
+  private pendingWrites = new Map<number, { key: string; previous: string[] | undefined }>();
 
   getState = (): SessionState => this.state;
 
@@ -159,10 +172,16 @@ export class SessionManager {
       this.showNotice(t.notConnected);
       return false;
     }
+    const dash = this.state.profile?.dashBoards.find((d) => d.id === dashId);
+    if (dash && !canControl(dash)) {
+      this.showNotice(t.readOnlyProject);
+      return false;
+    }
+    const key = pinKey(dashId, deviceId, 'VIRTUAL', pin);
     const msgId = client.writePin(dashId, deviceId, pin, values);
-    this.pendingWrites.add(msgId);
+    this.pendingWrites.set(msgId, { key, previous: this.store.getValue(key) });
     setTimeout(() => this.pendingWrites.delete(msgId), WRITE_ERROR_WINDOW_MS);
-    this.store.setLocal(pinKey(dashId, deviceId, 'VIRTUAL', pin), values);
+    this.store.setLocal(key, values);
     return true;
   };
 
@@ -170,6 +189,8 @@ export class SessionManager {
   private writeSensor(dashId: number, deviceId: number, pin: number, values: string[]): void {
     const client = this.client;
     if (!client || this.state.status !== 'online') return;
+    const dash = this.state.profile?.dashBoards.find((d) => d.id === dashId);
+    if (dash && !canControl(dash)) return;
     client.writePin(dashId, deviceId, pin, values);
     this.store.setLocal(pinKey(dashId, deviceId, 'VIRTUAL', pin), values);
   }
@@ -320,11 +341,17 @@ export class SessionManager {
     this.setState({ profile: { ...profile, dashBoards: profile.dashBoards.map((d) => (d.id === dashId ? update(d) : d)) } });
   }
 
+  /** Progetti modificabili: quelli dell'utente e quelli creati dall'app, mai quelli assegnati da altri utenti. */
+  private editableFor(profile: Profile | undefined): number[] {
+    const assigned = new Set((profile?.dashBoards ?? []).filter((d) => d.assigned).map((d) => d.id));
+    return [...EDITABLE_DASH_IDS, ...this.createdDashIds].filter((id) => !assigned.has(id));
+  }
+
   /** Aggiorna l'elenco dei progetti creati dall'app (e quindi modificabili) e lo salva. */
   private async rememberCreated(dashId: number, add: boolean): Promise<void> {
     const others = this.createdDashIds.filter((x) => x !== dashId);
     this.createdDashIds = add ? [...others, dashId] : others;
-    this.setState({ editableDashIds: [...EDITABLE_DASH_IDS, ...this.createdDashIds] });
+    this.setState({ editableDashIds: this.editableFor(this.state.profile) });
     const c = this.credentials;
     if (c) await saveCreatedDashIds(c.host, c.email, this.createdDashIds);
   }
@@ -380,8 +407,14 @@ export class SessionManager {
     this.client = client;
     client.onMessage((m) => {
       if (m.kind === 'response') {
-        if (this.pendingWrites.delete(m.msgId) && m.code === ResponseCode.DEVICE_NOT_IN_NETWORK) {
-          this.showNotice(t.deviceOffline);
+        const write = this.pendingWrites.get(m.msgId);
+        if (!write) return;
+        this.pendingWrites.delete(m.msgId);
+        if (m.code === ResponseCode.DEVICE_NOT_IN_NETWORK) this.showNotice(t.deviceOffline);
+        else if (m.code === ResponseCode.NOT_ALLOWED) {
+          // Comando rifiutato (progetto assegnato in sola lettura): il widget torna com'era.
+          this.store.restoreValue(write.key, write.previous);
+          this.showNotice(t.writeRejected);
         }
         return;
       }
@@ -403,7 +436,7 @@ export class SessionManager {
     for (const id of created) client.allowEditing(id);
     this.store.load(profile);
     this.retryAttempt = 0;
-    this.setState({ status: 'online', error: undefined, profile, editableDashIds: [...EDITABLE_DASH_IDS, ...created] });
+    this.setState({ status: 'online', error: undefined, profile, editableDashIds: this.editableFor(profile) });
     void syncGps(profile, c.host);
     // Sincronizzazione delle dashboard attive (APP_SYNC). Il server rimanda lo stato di ogni widget,
     // compresa la cronologia dei Terminal, che non è nel profilo.
@@ -419,9 +452,26 @@ export class SessionManager {
     this.setState({ status: 'reconnecting' });
     this.open(c).catch((e) => {
       this.closeClient();
+      if (isLoginRejected(e)) {
+        this.loginRejected(e);
+        return;
+      }
       this.setState({ error: describeError(e) });
       this.scheduleReconnect();
     });
+  }
+
+  /**
+   * Riconnessione rifiutata (password cambiata dal pannello admin, utente cancellato, IP bloccato): si torna al
+   * login con il motivo e si dimentica la password salvata, così nemmeno l'accesso automatico ritenta.
+   */
+  private loginRejected(e: unknown): void {
+    this.clearRetry();
+    this.credentials = null;
+    this.createdDashIds = [];
+    this.setState({ status: 'error', error: `${t.sessionEnded}. ${describeError(e)}`, profile: undefined, editableDashIds: [] });
+    void syncGps(null, '');
+    void forgetPassword();
   }
 
   private scheduleReconnect(): void {
