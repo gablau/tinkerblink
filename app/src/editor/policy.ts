@@ -1,10 +1,8 @@
-// Dashboard modificabili con l'editor: quelle ammesse in EDITABLE_DASH_IDS più i progetti creati da questa app,
-// che si ricordano per account in AsyncStorage.
-// Lo stesso elenco arriva al LegacyClient (editableDashIds / allowEditing), che rifiuta i comandi di modifica
-// sulle altre: anche un errore dell'interfaccia non può toccare gli altri progetti.
+// Dashboard modificabili con l'editor: tutti i progetti dell'utente, mai quelli assegnati da altri utenti
+// (server con i progetti condivisi), che il server rifiuterebbe. I progetti creati da questa app si ricordano
+// anche per account in AsyncStorage, così restano modificabili prima che il profilo li contenga.
+// L'elenco arriva al LegacyClient (editableDashIds / allowEditing), che rifiuta i comandi di modifica sulle altre.
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-export const EDITABLE_DASH_IDS: readonly number[] = [];
 
 export function isEditableDash(dashId: number, editable: readonly number[]): boolean {
   return editable.includes(dashId);

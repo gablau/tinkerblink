@@ -10,7 +10,7 @@
 import { LegacyClient, ProtocolError, Command, ResponseCode, WebSocketTransport, type DashSettings, type GraphData, type GraphPeriod } from '@tinkerblink/protocol';
 import { t } from '@/i18n';
 import { canControl, pinKey, type Dashboard, type Device, type Profile, type Widget } from '@/model/profile';
-import { EDITABLE_DASH_IDS, loadCreatedDashIds, saveCreatedDashIds } from '@/editor/policy';
+import { loadCreatedDashIds, saveCreatedDashIds } from '@/editor/policy';
 import { syncGps } from '@/sensors/gps';
 import { SensorsWorker } from '@/sensors/sensorsWorker';
 import { forgetPassword, saveCredentials, serverUrl, type Credentials } from './credentials';
@@ -344,7 +344,8 @@ export class SessionManager {
   /** Progetti modificabili: quelli dell'utente e quelli creati dall'app, mai quelli assegnati da altri utenti. */
   private editableFor(profile: Profile | undefined): number[] {
     const assigned = new Set((profile?.dashBoards ?? []).filter((d) => d.assigned).map((d) => d.id));
-    return [...EDITABLE_DASH_IDS, ...this.createdDashIds].filter((id) => !assigned.has(id));
+    const own = (profile?.dashBoards ?? []).map((d) => d.id);
+    return [...new Set([...this.createdDashIds, ...own])].filter((id) => !assigned.has(id));
   }
 
   /** Aggiorna l'elenco dei progetti creati dall'app (e quindi modificabili) e lo salva. */
@@ -434,6 +435,7 @@ export class SessionManager {
     if (this.client !== client) return;
     this.createdDashIds = created;
     for (const id of created) client.allowEditing(id);
+    for (const id of this.editableFor(profile)) client.allowEditing(id);
     this.store.load(profile);
     this.retryAttempt = 0;
     this.setState({ status: 'online', error: undefined, profile, editableDashIds: this.editableFor(profile) });
