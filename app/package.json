@@ -1,6 +1,7 @@
 {
   "name": "tinkerblink",
   "version": "1.0.0",
+  "license": "SEE LICENSE IN ../LICENSE",
   "main": "expo-router/entry",
   "dependencies": {
     "@expo-google-fonts/barlow": "^0.4.1",

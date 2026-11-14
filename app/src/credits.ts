@@ -19,16 +19,51 @@ export interface CreditGroup {
 const it = language === 'it';
 const say = (itText: string, enText: string) => (it ? itText : enText);
 
+/** Sorgente di TinkerBlink (la GPL chiede che chi riceve l'app possa ottenerlo). */
+export const SOURCE_URL = 'https://github.com/gablau/tinkerblink';
+
 export const CREDIT_GROUPS: CreditGroup[] = [
+  {
+    title: 'TinkerBlink',
+    items: [
+      {
+        name: 'TinkerBlink',
+        author: 'Gabriele Lauricella',
+        license: 'GPL-3.0+',
+        url: SOURCE_URL,
+        use: say(
+          'Software libero: GPL-3.0 o successiva, con un permesso aggiuntivo per la distribuzione negli app store (LICENSE-EXCEPTION.md). Tocca per il codice sorgente.',
+          'Free software: GPL-3.0 or later, with an additional permission for distribution through app stores (LICENSE-EXCEPTION.md). Tap for the source code.',
+        ),
+      },
+      {
+        name: '@tinkerblink/protocol',
+        author: 'Gabriele Lauricella',
+        license: 'MIT',
+        url: `${SOURCE_URL}/tree/main/protocol`,
+        use: say('Client del protocollo Blynk Legacy, riusabile anche fuori dall\'app', 'Blynk Legacy protocol client, reusable outside the app'),
+      },
+      {
+        name: say('Sviluppo con l\'AI', 'Built with AI'),
+        author: 'Claude (Anthropic) · Claude Code',
+        license: 'AI',
+        url: `${SOURCE_URL}#use-of-ai`,
+        use: say(
+          'Gran parte del codice, della documentazione e delle icone è stata scritta da Claude, sotto la guida dell\'autore, che ha deciso funzioni e comportamento e ha provato l\'app con dispositivi reali.',
+          'Most of the code, documentation and icons were written by Claude, directed by the author, who decided features and behaviour and tested the app with real devices.',
+        ),
+      },
+    ],
+  },
   {
     title: say('Dati inclusi', 'Included data'),
     items: [
       {
         name: say('Definizioni delle schede', 'Board definitions'),
-        author: 'Blynk Inc. (2016)',
+        author: 'Blynk Inc. (2016) · fork gablau',
         license: 'MIT',
-        url: 'https://github.com/blynkkk',
-        use: say('Pin delle schede nel selettore dell\'editor (66 schede)', 'Board pins in the editor pin picker (66 boards)'),
+        url: 'https://github.com/gablau/tinkerblink-boards',
+        use: say('Pin delle schede nel selettore dell\'editor (96 schede)', 'Board pins in the editor pin picker (96 boards)'),
       },
       {
         name: say('Documentazione utente di Blynk Legacy', 'Blynk Legacy user documentation'),

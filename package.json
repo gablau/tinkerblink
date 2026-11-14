@@ -1,6 +1,7 @@
 {
   "name": "tinkerblink-monorepo",
   "private": true,
+  "license": "SEE LICENSE IN LICENSE",
   "workspaces": [
     "app",
     "protocol"
