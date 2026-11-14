@@ -1,8 +1,11 @@
 // Modelli hardware e tipi di connessione dei device.
-// Il server accetta solo i nomi del suo enum BoardType (un nome diverso fa fallire CREATE_DEVICE/UPDATE_DEVICE),
-// quindi l'elenco viene da lì (reference/blynk-server, BoardType.java). I pin dell'editor vengono dalle
-// definizioni in editor/boards; per i modelli senza definizione si usa la scheda generica.
+// Il server conosce solo i nomi del suo enum BoardType (BoardType.fromLabel trasforma ogni altro nome in
+// "Generic Board"), quindi l'elenco viene da lì: lo rigenera app/scripts/import-boards.js dal sorgente del
+// server (fork gablau/blynk-server). I pin dell'editor vengono dalle definizioni in editor/boards; per i modelli
+// senza definizione si usa la scheda generica. Su un server senza i modelli nuovi il device resta Generic Board.
 
+// <boards>
+// Generato da app/scripts/import-boards.js dall'enum BoardType del server (99 modelli): non modificare.
 const SERVER_BOARD_TYPES = [
   'ESP8266', 'Arduino UNO', 'NodeMCU', 'Raspberry Pi 3 B', 'WeMos D1 mini', 'Arduino Nano', 'Arduino Mega',
   'ESP32 Dev Board', 'WeMos D1', 'Generic Board', 'Raspberry Pi 2/A+/B+', 'Particle Photon', 'Arduino MKR1000',
@@ -16,7 +19,15 @@ const SERVER_BOARD_TYPES = [
   'LeMaker Banana Pro', 'Wildfire v2', 'LightBlue Bean+', 'SparkFun Photon RedBoard', 'Microduino CoreRF',
   'RedBearLab CC3200/Mini', 'Bluz', 'LeMaker Guitar', 'panStamp esp-output', 'Digistump Digispark',
   'RedBearLab Blend Micro', 'TI LM4F120 LaunchPad', 'Wildfire v3', 'Wildfire v4', 'Konekt Dash Pro',
+  'Arduino GIGA R1 WiFi', 'Arduino MKR WiFi 1010', 'Arduino Nano 33 IoT', 'Arduino Nano ESP32',
+  'Arduino Nano Every', 'Arduino Nano RP2040 Connect', 'Arduino UNO R4 Minima', 'Arduino UNO R4 WiFi',
+  'Arduino UNO WiFi Rev2', 'ESP32-C3 SuperMini', 'ESP32-C6 SuperMini', 'ESP32-S3 SuperMini', 'LOLIN C3 Mini',
+  'LOLIN C3 Pico', 'LOLIN D1 mini Lite', 'LOLIN D1 mini Pro', 'LOLIN D32', 'LOLIN D32 Pro', 'LOLIN S2 Mini',
+  'LOLIN S2 Pico', 'LOLIN S3', 'LOLIN S3 Mini', 'LOLIN S3 Mini Pro', 'LOLIN S3 Pro', 'Raspberry Pi 3 A+/B+',
+  'Raspberry Pi 4 B/400', 'Raspberry Pi 5/500', 'Raspberry Pi Pico W', 'Raspberry Pi Pico 2 W',
+  'Raspberry Pi Zero/Zero W/Zero 2 W',
 ];
+// </boards>
 
 /** Modelli in ordine alfabetico, per il menu. */
 export const BOARD_TYPES: readonly string[] = [...SERVER_BOARD_TYPES].sort((a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' }));
@@ -36,7 +47,14 @@ export const CONNECTION_TYPES = [
 ];
 
 /** Schede che passano subito in Wi-Fi quando vengono scelte. */
-const WI_FI_BOARDS = ['ESP8266', 'ESP32 Dev Board', 'NodeMCU', 'SparkFun Blynk Board', 'SparkFun ESP8266 Thing', 'Particle Photon'];
+const WI_FI_BOARDS = [
+  'ESP8266', 'ESP32 Dev Board', 'NodeMCU', 'SparkFun Blynk Board', 'SparkFun ESP8266 Thing', 'Particle Photon',
+  'Arduino GIGA R1 WiFi', 'Arduino MKR WiFi 1010', 'Arduino Nano 33 IoT', 'Arduino Nano ESP32',
+  'Arduino Nano RP2040 Connect', 'Arduino UNO R4 WiFi', 'Arduino UNO WiFi Rev2', 'ESP32-C3 SuperMini',
+  'ESP32-C6 SuperMini', 'ESP32-S3 SuperMini', 'LOLIN C3 Mini', 'LOLIN C3 Pico', 'LOLIN D1 mini Lite',
+  'LOLIN D1 mini Pro', 'LOLIN D32', 'LOLIN D32 Pro', 'LOLIN S2 Mini', 'LOLIN S2 Pico', 'LOLIN S3', 'LOLIN S3 Mini',
+  'LOLIN S3 Mini Pro', 'LOLIN S3 Pro', 'Raspberry Pi Pico W', 'Raspberry Pi Pico 2 W',
+];
 
 export function isWifiBoard(board: string): boolean {
   return WI_FI_BOARDS.includes(board);
