@@ -1,0 +1,137 @@
+# TinkerBlink
+
+TinkerBlink is a mobile app for self-hosted **Blynk Legacy** servers (blynk-server 0.41.x). It shows your
+projects and dashboards, controls your devices and lets you edit dashboards, widgets, projects and devices
+directly on the phone.
+
+It is meant for people who still run their own legacy server for home automation and hobby projects and need
+a maintained app to talk to it.
+
+> TinkerBlink is an independent project, not affiliated with or endorsed by Blynk Inc. "Blynk" is a trademark of
+> its respective owners and is used here only to describe compatibility.
+
+## Features
+
+- Login to your own server (address, email, password); the password is kept in the Android keystore.
+- Live dashboards over a single WebSocket connection, with tabs, themes, device status and automatic
+  reconnection.
+- Widgets:
+  - controls: Button, Styled Button, Slider and Vertical Slider, Step, RGB, Joystick, Menu, Segmented Switch,
+    Text Input, Numeric Input, Time Input, Timer;
+  - displays: Value Display, Labeled Value, LED, Gauge, Level H/V, LCD, Terminal, Table, Image Gallery;
+  - SuperChart with history paging, live data and a saved period;
+  - Map (Leaflet and OpenStreetMap), Video (RTSP), Music Player, WebPage Button;
+  - phone sensors (accelerometer, gravity, light, proximity, barometer, humidity, temperature) and GPS Stream /
+    GPS Trigger, also in background.
+- Dashboard editor: Widget Box, widget settings, pin picker with the pins of 96 boards, move and resize on the
+  grid, duplicate and delete.
+- Projects and devices: create, rename, change theme, start/stop, delete; device tokens (hidden by default).
+- Projects shared with you by the administrator (on servers that support it) are shown read-only.
+- Italian and English, following the phone language. Wide screens show the dashboard in side-by-side columns.
+
+## Compatible servers
+
+- [blynk-server](https://github.com/gablau/blynk-server) 0.41.x, the open-source legacy server (GPL-3.0); the
+  linked fork is maintained.
+- The app connects to `wss://<host>/dashws`, on the server's HTTPS port (9443 by default) or through a reverse proxy
+  on 443. The certificate must be trusted by the phone: a public certificate (for example Let's Encrypt) is the
+  simplest choice.
+
+The protocol is described in [docs/protocol.md](docs/protocol.md), widget values and layout in
+[docs/widgets.md](docs/widgets.md).
+
+## Repository layout
+
+```
+app/        the Expo / React Native app (Android and web)
+protocol/   @tinkerblink/protocol: TypeScript client for the Blynk Legacy app protocol (Node and React Native)
+patches/    patches applied by patch-package after npm install (expo-video: RTSP with RTP over TCP)
+docs/       protocol and widget notes
+```
+
+## Build
+
+Requirements: a current LTS release of Node.js, JDK 17, the Android SDK (Android Studio), an emulator or a phone with USB
+debugging.
+
+```sh
+npm install                       # installs both workspaces and applies the patches
+npm run typecheck -w app
+npm run selftest -w @tinkerblink/protocol
+
+cd app
+npx expo prebuild --platform android --no-install   # generates app/android (not versioned)
+npx expo run:android              # development build on the emulator or phone
+npm run web                       # web version in the browser
+```
+
+The app uses local native modules (`app/modules/tinkerblink-sensors`) and a patched expo-video, so it needs a
+development build: Expo Go is not enough.
+
+### Release APK
+
+```sh
+cd app/android
+./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a,x86_64
+cd ../..
+node app/scripts/sign-release.js
+```
+
+`sign-release.js` aligns and signs the APK with the key in `keys/` (not versioned) and writes
+`release/tinkerblink-<version>.apk`. `keys/keystore.properties` contains `storeFile`, `keyAlias`, `storePassword`
+and `keyPassword`. Keep a copy of your key: updates only install over an app signed with the same key.
+
+On Windows the native release build can exceed the 260-character path limit: the config plugin
+`app/plugins/withShortCxxPath.js` moves the CMake build folder to `C:\bl-cxx`.
+
+## Project status
+
+TinkerBlink is in daily use on **Android** with a self-hosted server, and works in the browser.
+
+**iOS has never been tested.** Most of the app is cross-platform React Native and Expo code, but these parts need
+work or at least testing before an iPhone or iPad release:
+
+- **RTSP video**: works thanks to a patch of expo-video for Android (Media3, RTP over TCP). AVPlayer on iOS does
+  not support RTSP, so iOS needs another player (for example one based on libVLC or FFmpeg).
+- **Phone sensors**: the local native module `tinkerblink-sensors` exists only in Kotlin; the iOS part (Core
+  Motion and the environmental sensors where available) still has to be written.
+- **GPS Stream and GPS Trigger in background**: expo-location and expo-task-manager support iOS, but with different
+  rules ("Always" permission, `UIBackgroundModes` with `location`, updates throttled by the system).
+- **Network and certificates**: `app/plugins/withNetworkSecurityConfig.js` (user certificates and cleartext traffic
+  in debug builds) is Android-only. On iOS, App Transport Security applies, and a private CA must be installed and
+  trusted in the device settings.
+- **Build and signing**: `withShortCxxPath.js` and `sign-release.js` are for Android; iOS needs EAS Build or Xcode
+  and an Apple Developer Program membership.
+- **App Review**: an app that connects to a private server may need a working demo account for the reviewers.
+- **Everything else** (grid, widgets, editor, SuperChart, map in a WebView, secure storage, returning from the
+  background) has not been verified on iPhone or iPad.
+
+Contributions and test reports are welcome.
+
+## Use of AI
+
+TinkerBlink was developed with an AI coding assistant: **Claude** by Anthropic, used through
+**[Claude Code](https://claude.com/claude-code)**.
+
+- **The author** set the goals and the requirements, made the design decisions (features, behaviour, user
+  interface, license), tested the app every day with real devices on a self-hosted server, and reviewed the
+  results.
+- **Claude** studied the blynk-server source to describe the protocol and the data model, and wrote most of the
+  code, the comments, the documentation in [docs/](docs/), the icons (as SVG code) and the commit messages. It
+  also ran the type checks, the protocol self-test and many tests on the Android emulator against a local
+  test server.
+
+AI-written code can contain mistakes like any other code: bug reports are welcome.
+
+## License
+
+TinkerBlink is free software, released under the **GNU General Public License v3.0 or later** ([LICENSE](LICENSE)),
+with an **additional permission** that allows distribution through app stores such as the Apple App Store and
+Google Play ([LICENSE-EXCEPTION.md](LICENSE-EXCEPTION.md)).
+
+The protocol package in [protocol/](protocol/) is released under the **MIT License**
+([protocol/LICENSE](protocol/LICENSE)), so it can be reused in any project.
+
+Board definitions and widget documentation by Blynk Inc. are included under the MIT License: see
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). The credits page of the app lists libraries, fonts and map
+services.
