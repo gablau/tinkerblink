@@ -1,8 +1,8 @@
-// Config plugin: sposta la cartella dei file intermedi C++ (CMake/ninja) dell'app Android in <disco>:\bl-cxx.
-// Su Windows la build di release supera il limite di 260 caratteri dei percorsi: i file oggetto di
-// react-native-gesture-handler hanno nomi lunghissimi, e la cartella predefinita
-// (app/android/app/.cxx/RelWithDebInfo/<hash>/arm64-v8a) li allunga ancora. Con la cartella corta si
-// recuperano circa 40 caratteri. Su macOS/Linux non serve, quindi il percorso cambia solo su Windows.
+// Config plugin: moves the folder of the intermediate C++ files (CMake/ninja) of the Android app to <drive>:\bl-cxx.
+// On Windows the release build exceeds the 260-character path limit: the object files of
+// react-native-gesture-handler have very long names, and the default folder
+// (app/android/app/.cxx/RelWithDebInfo/<hash>/arm64-v8a) makes them even longer. The short folder saves
+// about 40 characters. macOS/Linux do not need it, so the path changes only on Windows.
 const { withAppBuildGradle } = require('expo/config-plugins');
 
 const MARKER = '// blynk: short cxx path';

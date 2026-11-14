@@ -1,7 +1,7 @@
-// Fuso orario per il Time Input: il valore inviato contiene l'offset UTC del fuso **al momento del
-// salvataggio** (vedi docs/widgets.md), quindi va calcolato ogni volta (ora legale / solare).
+// Time zone for the Time Input: the value sent contains the UTC offset of the zone **at the moment of
+// saving** (see docs/widgets.md), so it is computed every time (daylight saving / standard time).
 
-/** Offset in secondi del fuso IANA `tz` all'istante `at` (es. Europe/Rome a ottobre → 7200). */
+/** Offset in seconds of the IANA zone `tz` at instant `at` (e.g. Europe/Rome in October → 7200). */
 export function tzOffsetSeconds(tz: string | undefined, at: Date = new Date()): number {
   if (tz) {
     try {
@@ -11,13 +11,13 @@ export function tzOffsetSeconds(tz: string | undefined, at: Date = new Date()): 
       const m = /GMT([+-])(\d{1,2}):?(\d{2})?/.exec(name);
       if (m) return (m[1] === '-' ? -1 : 1) * (Number(m[2]) * 3600 + Number(m[3] ?? 0) * 60);
     } catch {
-      // Intl senza supporto ai fusi: si usa il fuso del telefono.
+      // Intl without time zone support: the phone time zone is used.
     }
   }
   return -at.getTimezoneOffset() * 60;
 }
 
-/** Valore da inviare: <start>\0<stop>\0<tzName>\0<giorni>\0<offset> (stop vuoto = non impostato). */
+/** Value to send: <start>\0<stop>\0<tzName>\0<days>\0<offset> (empty stop = not set). */
 export function timeInputValue(opts: {
   start: number | 'sr' | 'ss';
   stop?: number | 'sr' | 'ss';

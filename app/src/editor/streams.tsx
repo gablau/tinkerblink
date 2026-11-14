@@ -1,7 +1,7 @@
-// Stream del SuperChart (dataStreams, GraphDataStream del server):
-// elenco degli stream con "Aggiungi stream" e, per ognuno, una schermata con sorgente (device e pin), stile
-// (LINE / FILLED_LINE / BAR / BINARY), colore, asse Y (Auto, Min/Max, Altezza, Delta), suffisso, decimali,
-// punti mancanti, curve smussate, etichette dello stato per il binario e formula.
+// SuperChart streams (dataStreams, GraphDataStream on the server):
+// list of the streams with "Add stream" and, for each one, a screen with source (device and pin), style
+// (LINE / FILLED_LINE / BAR / BINARY), color, Y axis (Auto, Min/Max, Height, Delta), suffix, decimals,
+// missing points, smoothed curves, state labels for binary streams and formula.
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { Animated, Modal, PanResponder, Pressable, ScrollView, StyleSheet, Text, View, type PanResponderInstance } from 'react-native';
@@ -36,7 +36,7 @@ export interface GraphStream {
 
 const MAX_STREAMS = 4;
 
-/** Stream nuovo con i valori iniziali (campi di GraphDataStream del server). */
+/** New stream with the initial values (fields of GraphDataStream on the server). */
 function newStream(dash: Dashboard, theme: ControlTheme['theme']): GraphStream {
   return {
     title: '',
@@ -99,7 +99,7 @@ export function StreamsField({
 
   return (
     <View style={styles.list}>
-      {/* Trascinando la maniglia si cambia l'ordine degli stream. */}
+      {/* Dragging the handle changes the order of the streams. */}
       <View>
         {streams.map((s, i) => (
           <DraggableRow key={i} index={i} count={streams.length} drag={drag} setDrag={setDrag} onMove={move}>
@@ -151,7 +151,7 @@ export function StreamsField({
   );
 }
 
-/** Altezza di una riga dell'elenco (riga + spazio), usata per calcolare la posizione durante il trascinamento. */
+/** Height of a list row (row + gap), used to compute the position while dragging. */
 const ROW_STEP = 56;
 
 interface DragState {
@@ -160,10 +160,10 @@ interface DragState {
 }
 
 /**
- * Riga trascinabile: la maniglia (props passate a `children`) avvia il trascinamento, la riga segue il dito e
- * le altre si spostano di una posizione per fare spazio; al rilascio si chiama onMove(from, to).
- * Durante il gesto lo scorrimento della schermata è bloccato (su Android la ScrollView nativa si
- * prenderebbe il gesto).
+ * Draggable row: the handle (props passed to `children`) starts the drag, the row follows the finger and
+ * the others shift by one position to make room; on release onMove(from, to) is called.
+ * During the gesture scrolling of the screen is locked (on Android the native ScrollView would
+ * take over the gesture).
  */
 function DraggableRow({
   index,
@@ -213,7 +213,7 @@ function DraggableRow({
   }, [index, count, onMove, lock, dy, setDrag]);
 
   const dragging = drag?.from === index;
-  // Le righe tra la posizione di partenza e quella di arrivo scorrono di un posto.
+  // The rows between the start and the target position shift by one place.
   let shift = 0;
   if (drag && !dragging) {
     if (drag.from < index && index <= drag.to) shift = -ROW_STEP;
@@ -260,7 +260,7 @@ function StreamEditor({
   const board = dash.devices?.find((d) => d.id === deviceId)?.boardType;
   const pins = pinsForWidget(widget.type, board);
   const used = usedPins(dash, widget, deviceId);
-  // Pin già usati dagli altri stream dello stesso SuperChart sullo stesso device: segnati come in uso.
+  // Pins already used by the other streams of the same SuperChart on the same device: marked as used.
   for (const o of others) {
     if ((o.targetId ?? 0) !== deviceId || !o.pin || typeof o.pin.pin !== 'number' || o.pin.pin < 0 || !o.pin.pinType) continue;
     const key = pinKeyOf(o.pin.pinType, o.pin.pin);

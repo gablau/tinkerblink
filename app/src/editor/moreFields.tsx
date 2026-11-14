@@ -1,4 +1,4 @@
-// Campi particolari dell'editor: orario del Timer, periodi del SuperChart, schede del widget Tabs.
+// Special editor fields: Timer time, SuperChart periods, tabs of the Tabs widget.
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import type { Widget } from '@/model/profile';
@@ -11,14 +11,14 @@ import { te } from './strings';
 
 const DAY = 86400;
 
-/** Scarto del fuso del telefono rispetto a UTC, in secondi. */
+/** Offset of the phone time zone from UTC, in seconds. */
 function localOffset(): number {
   return -new Date().getTimezoneOffset() * 60;
 }
 
 /**
- * Orario del Timer: nel JSON secondi dalla mezzanotte UTC (-1 = non impostato); qui si mostra e si modifica
- * nel fuso del telefono.
+ * Timer time: in the JSON seconds from midnight UTC (-1 = not set); here it is shown and edited
+ * in the phone time zone.
  */
 export function TimeOfDayField({ value, onChange, ct }: { value: unknown; onChange: (v: number) => void; ct: ControlTheme }) {
   const utc = typeof value === 'number' ? value : -1;
@@ -55,8 +55,8 @@ export function TimeOfDayField({ value, onChange, ct }: { value: unknown; onChan
 }
 
 /**
- * Periodi selezionabili del SuperChart (massimo 7, "Time Ranges Picker"). Per 1d, 3d, 1w, 1M
- * e 3M il server ha due versioni: standard (N_*) e ad alta risoluzione.
+ * Selectable SuperChart periods (at most 7, "Time Ranges Picker"). For 1d, 3d, 1w, 1M
+ * and 3M the server has two versions: standard (N_*) and high resolution.
  */
 const PERIOD_CHOICES: { value: GraphPeriod; high?: boolean }[] = [
   { value: 'LIVE' },
@@ -120,8 +120,8 @@ interface Tab {
 }
 
 /**
- * Schede del widget Tabs: si rinominano e se ne aggiungono. Togliere una scheda farebbe cancellare al server
- * i widget che contiene (MobileDeleteWidgetLogic.deleteTabs): si permette solo per l'ultima e solo se è vuota.
+ * Tabs of the Tabs widget: they can be renamed and added. Removing a tab would make the server delete
+ * the widgets it contains (MobileDeleteWidgetLogic.deleteTabs): allowed only for the last one and only if empty.
  */
 export function TabsField({ draft, widgets, onChange, ct }: { draft: Widget; widgets: Widget[]; onChange: (tabs: Tab[]) => void; ct: ControlTheme }) {
   const tabs = Array.isArray(draft.tabs) ? (draft.tabs as Tab[]) : [];

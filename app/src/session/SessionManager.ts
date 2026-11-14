@@ -1,12 +1,12 @@
-// Sessione con il server: una sola connessione WebSocket (wss://<host>/dashws) per tutta l'app.
-// Classe normale (fuori da React): il contesto React ne osserva solo lo stato.
+// Session with the server: a single WebSocket connection (wss://<host>/dashws) for the whole app.
+// Plain class (outside React): the React context only observes its state.
 //
-// - In background la connessione si chiude (pause): il server smette di interrogare i device e invia
-//   "adis" ai flussi Node-RED. Al ritorno in primo piano (resume) si riconnette e ricarica il
-//   profilo, che contiene già l'ultimo valore di ogni widget.
-// - Se la connessione cade mentre l'app è attiva, si riprova con attese crescenti.
-// - Il client è in sola lettura tranne le scritture sui pin (HARDWARE): l'app comanda i device ma non
-//   può modificare i progetti.
+// - In the background the connection is closed (pause): the server stops polling the devices and sends
+//   "adis" to the Node-RED flows. Back in the foreground (resume) it reconnects and reloads the
+//   profile, which already holds the last value of every widget.
+// - If the connection drops while the app is active, it retries with growing delays.
+// - The client is read-only except for pin writes (HARDWARE): the app controls the devices but cannot
+//   change the projects.
 import { LegacyClient, ProtocolError, Command, ResponseCode, WebSocketTransport, type DashSettings, type GraphData, type GraphPeriod } from '@tinkerblink/protocol';
 import { t } from '@/i18n';
 import { canControl, pinKey, type Dashboard, type Device, type Profile, type Widget } from '@/model/profile';
@@ -22,13 +22,13 @@ export interface SessionState {
   status: SessionStatus;
   error?: string;
   profile?: Profile;
-  /** Avviso temporaneo, per esempio device offline dopo un comando. */
+  /** Temporary notice, for example device offline after a command. */
   notice?: string;
-  /** Dashboard modificabili: i progetti dell'utente, compresi quelli appena creati da questa app. */
+  /** Editable dashboards: the user's projects, including those just created by this app. */
   editableDashIds: readonly number[];
 }
 
-/** Dati per un progetto nuovo (schermata "New Project"): un progetto con un device. */
+/** Data for a new project ("New Project" screen): a project with one device. */
 export interface NewProject {
   name: string;
   theme: string;
@@ -42,14 +42,14 @@ export interface NewDevice {
 }
 
 /**
- * Il server non serializza gli array vuoti (Jackson NON_EMPTY): un progetto senza widget arriva senza `widgets`
- * (e senza device senza `devices`). Qui si rimettono, così il resto dell'app può contarci.
+ * The server does not serialize empty arrays (Jackson NON_EMPTY): a project without widgets comes without
+ * `widgets` (and without devices without `devices`). They are added back here, so the rest of the app can rely on them.
  */
 function normalizeProfile(p: Profile): Profile {
   return { ...p, dashBoards: (p.dashBoards ?? []).map((d) => ({ ...d, widgets: d.widgets ?? [], devices: d.devices ?? [] })) };
 }
 
-/** Id casuale positivo non usato (gli id dei progetti sono int lato server, DashBoard.id). */
+/** Random unused positive id (project ids are ints on the server, DashBoard.id). */
 function freeId(used: number[], max = 2147483647): number {
   for (;;) {
     const id = 1 + Math.floor(Math.random() * (max - 1));
@@ -69,7 +69,7 @@ const SETTINGS_KEYS = [
   'isDefaultColor',
 ] as const;
 
-/** Impostazioni correnti di un progetto, con i default del server per i campi assenti. */
+/** Current settings of a project, with the server defaults for missing fields. */
 export function dashSettingsOf(dash: Dashboard): DashSettings {
   return {
     name: dash.name,
@@ -86,13 +86,13 @@ export function dashSettingsOf(dash: Dashboard): DashSettings {
 
 const RETRY_DELAYS_MS = [2000, 5000, 10000, 30000];
 const NOTICE_MS = 3000;
-/** Il server segnala gli errori di scrittura subito: oltre questo tempo il msgId non serve più. */
+/** The server reports write errors right away: after this time the msgId is no longer needed. */
 const WRITE_ERROR_WINDOW_MS = 5000;
 
 /**
- * Login rifiutato dal server: password sbagliata (5), utente cancellato (3), accesso non consentito (6: IP bloccato
- * dopo troppi tentativi sul server nuovo, oppure login vietato). Non si riprova in automatico: con il blocco per IP
- * l'app si bloccherebbe da sola (docs/APP-CLIENT.md del fork del server).
+ * Login rejected by the server: wrong password (5), user deleted (3), access not allowed (6: IP blocked after
+ * too many attempts on the newer server, or login forbidden). No automatic retry: with the IP block the app
+ * would lock itself out (docs/APP-CLIENT.md of the server fork).
  */
 function isLoginRejected(e: unknown): boolean {
   return (
@@ -115,10 +115,10 @@ function describeError(e: unknown): string {
 
 export class SessionManager {
   readonly store = new LiveStore();
-  /** Sensori del telefono: attivi solo mentre la sessione è online. */
+  /** Phone sensors: active only while the session is online. */
   readonly sensors = new SensorsWorker((dashId, deviceId, pin, values) => this.writeSensor(dashId, deviceId, pin, values));
   private state: SessionState = { status: 'idle', editableDashIds: [] };
-  /** Progetti creati da questa app con l'account corrente (persistiti in AsyncStorage). */
+  /** Projects created by this app with the current account (persisted in AsyncStorage). */
   private createdDashIds: number[] = [];
   private listeners = new Set<() => void>();
   private client: LegacyClient | null = null;
@@ -127,7 +127,7 @@ export class SessionManager {
   private retryAttempt = 0;
   private retryTimer?: ReturnType<typeof setTimeout>;
   private noticeTimer?: ReturnType<typeof setTimeout>;
-  /** Scritture inviate di recente (msgId → pin e valore di prima), per riconoscere gli errori e annullarle. */
+  /** Recently sent writes (msgId → pin and previous value), to recognize errors and undo them. */
   private pendingWrites = new Map<number, { key: string; previous: string[] | undefined }>();
 
   getState = (): SessionState => this.state;
@@ -163,8 +163,8 @@ export class SessionManager {
   };
 
   /**
-   * Scrive un pin virtuale (Button, Menu, Time Input…) e aggiorna subito il valore mostrato, perché
-   * il server non rimanda il valore a chi lo ha inviato. False se non connessi.
+   * Writes a virtual pin (Button, Menu, Time Input…) and updates the shown value right away, because
+   * the server does not send the value back to the sender. False when not connected.
    */
   writePin = (dashId: number, deviceId: number, pin: number, values: string[]): boolean => {
     const client = this.client;
@@ -185,7 +185,7 @@ export class SessionManager {
     return true;
   };
 
-  /** Scrittura dei sensori: niente avvisi (device offline, non connessi), arrivano di continuo. */
+  /** Sensor writes: no notices (device offline, not connected), they arrive continuously. */
   private writeSensor(dashId: number, deviceId: number, pin: number, values: string[]): void {
     const client = this.client;
     if (!client || this.state.status !== 'online') return;
@@ -195,11 +195,11 @@ export class SessionManager {
     this.store.setLocal(pinKey(dashId, deviceId, 'VIRTUAL', pin), values);
   }
 
-  /** Storico di un SuperChart (GET_ENHANCED_GRAPH_DATA). `null` = nessun dato; errore se non connessi. */
+  /** SuperChart history (GET_ENHANCED_GRAPH_DATA). `null` = no data; error when not connected. */
   /**
-   * Editor: salva un widget modificato (UPDATE_WIDGET) e aggiorna il profilo locale. Solo sulle dashboard
-   * ammesse (il client rifiuta le altre). Dopo il salvataggio si chiede l'APP_SYNC della dashboard, così i
-   * valori seguono un eventuale cambio di pin.
+   * Editor: saves a changed widget (UPDATE_WIDGET) and updates the local profile. Only on the allowed
+   * dashboards (the client rejects the others). After saving, the dashboard APP_SYNC is requested, so the
+   * values follow a possible pin change.
    */
   updateWidget = async (dashId: number, widget: Widget): Promise<void> => {
     const client = this.client;
@@ -218,7 +218,7 @@ export class SessionManager {
     await client.syncDashboard(dashId).catch(() => undefined);
   };
 
-  /** Editor: aggiunge un widget (CREATE_WIDGET) e lo inserisce nel profilo locale. */
+  /** Editor: adds a widget (CREATE_WIDGET) and inserts it into the local profile. */
   createWidget = async (dashId: number, widget: Widget): Promise<void> => {
     const client = this.requireOnline();
     await client.createWidget(dashId, widget);
@@ -227,8 +227,8 @@ export class SessionManager {
   };
 
   /**
-   * Editor: elimina un widget (DELETE_WIDGET). Come il server, eliminando il widget Tabs si tolgono anche i
-   * widget delle schede oltre la prima (MobileDeleteWidgetLogic.deleteTabs).
+   * Editor: deletes a widget (DELETE_WIDGET). Like the server, deleting the Tabs widget also removes the
+   * widgets of every tab after the first (MobileDeleteWidgetLogic.deleteTabs).
    */
   deleteWidget = async (dashId: number, widgetId: number): Promise<void> => {
     const client = this.requireOnline();
@@ -238,12 +238,12 @@ export class SessionManager {
     this.patchDash(dashId, (widgets) => widgets.filter((w) => w.id !== widgetId && !(isTabs && (w.tabId ?? 0) > 0)));
   };
 
-  /** Energy disponibile per i widget (GET_ENERGY). */
+  /** Energy available for widgets (GET_ENERGY). */
   getEnergy = (): Promise<number> => this.requireOnline().getEnergy();
 
   /**
-   * Crea un progetto con un device (CREATE_DASH), lo rende modificabile e lo aggiunge al profilo locale.
-   * Il server genera il token del device: lo si legge subito con GET_DEVICES. Restituisce l'id del progetto.
+   * Creates a project with one device (CREATE_DASH), makes it editable and adds it to the local profile.
+   * The server generates the device token: it is read right away with GET_DEVICES. Returns the project id.
    */
   createProject = async (p: NewProject): Promise<number> => {
     const client = this.requireOnline();
@@ -268,7 +268,7 @@ export class SessionManager {
     return id;
   };
 
-  /** Impostazioni del progetto (UPDATE_PROJECT_SETTINGS): si parte da quelle correnti e si cambiano solo i campi dati. */
+  /** Project settings (UPDATE_PROJECT_SETTINGS): starts from the current ones and changes only the given fields. */
   updateDashSettings = async (dashId: number, patch: Partial<DashSettings>): Promise<void> => {
     const client = this.requireOnline();
     const settings = { ...dashSettingsOf(this.dashOrThrow(dashId)), ...patch };
@@ -278,8 +278,8 @@ export class SessionManager {
   };
 
   /**
-   * Play / stop (ACTIVATE / DEACTIVATE_DASHBOARD). Dopo il play si chiede l'APP_SYNC come all'avvio.
-   * Restituisce false se il server segnala che nessun device del progetto è connesso.
+   * Play / stop (ACTIVATE / DEACTIVATE_DASHBOARD). After play, APP_SYNC is requested as at startup.
+   * Returns false if the server reports that no device of the project is connected.
    */
   setDashActive = async (dashId: number, active: boolean): Promise<boolean> => {
     const client = this.requireOnline();
@@ -292,7 +292,7 @@ export class SessionManager {
     return devicesOnline;
   };
 
-  /** Elimina un progetto (DELETE_DASH): il server cancella anche lo storico dei suoi device. */
+  /** Deletes a project (DELETE_DASH): the server also deletes the history of its devices. */
   deleteDash = async (dashId: number): Promise<void> => {
     const client = this.requireOnline();
     await client.deleteDash(dashId);
@@ -302,7 +302,7 @@ export class SessionManager {
     void syncGps(this.state.profile ?? null, this.credentials?.host ?? '');
   };
 
-  /** Aggiunge un device (CREATE_DEVICE): il server lo restituisce con il token. */
+  /** Adds a device (CREATE_DEVICE): the server returns it with its token. */
   createDevice = async (dashId: number, d: NewDevice): Promise<Device> => {
     const client = this.requireOnline();
     const dash = this.dashOrThrow(dashId);
@@ -312,16 +312,16 @@ export class SessionManager {
     return created;
   };
 
-  /** Modifica nome, board o connessione di un device (UPDATE_DEVICE); il token non cambia. */
+  /** Changes name, board or connection of a device (UPDATE_DEVICE); the token does not change. */
   updateDevice = async (dashId: number, device: Device): Promise<void> => {
     const client = this.requireOnline();
-    // Stato e token li gestisce il server: non si rimandano.
+    // Status and token are managed by the server: they are not sent back.
     const { token: _token, status: _status, connectTime: _connect, disconnectTime: _disconnect, ...body } = device;
     await client.updateDevice(dashId, { ...body, boardType: device.boardType ?? 'Generic Board' });
     this.patchDashboard(dashId, (x) => ({ ...x, devices: (x.devices ?? []).map((v) => (v.id === device.id ? { ...v, ...body } : v)) }));
   };
 
-  /** Elimina un device (DELETE_DEVICE): il server cancella anche lo storico dei suoi pin e i valori dei widget collegati. */
+  /** Deletes a device (DELETE_DEVICE): the server also deletes its pin history and the values of bound widgets. */
   deleteDevice = async (dashId: number, deviceId: number): Promise<void> => {
     const client = this.requireOnline();
     await client.deleteDevice(dashId, deviceId);
@@ -341,14 +341,14 @@ export class SessionManager {
     this.setState({ profile: { ...profile, dashBoards: profile.dashBoards.map((d) => (d.id === dashId ? update(d) : d)) } });
   }
 
-  /** Progetti modificabili: quelli dell'utente e quelli creati dall'app, mai quelli assegnati da altri utenti. */
+  /** Editable projects: the user's own and those created by the app, never those assigned by other users. */
   private editableFor(profile: Profile | undefined): number[] {
     const assigned = new Set((profile?.dashBoards ?? []).filter((d) => d.assigned).map((d) => d.id));
     const own = (profile?.dashBoards ?? []).map((d) => d.id);
     return [...new Set([...this.createdDashIds, ...own])].filter((id) => !assigned.has(id));
   }
 
-  /** Aggiorna l'elenco dei progetti creati dall'app (e quindi modificabili) e lo salva. */
+  /** Updates the list of projects created by the app (and therefore editable) and saves it. */
   private async rememberCreated(dashId: number, add: boolean): Promise<void> {
     const others = this.createdDashIds.filter((x) => x !== dashId);
     this.createdDashIds = add ? [...others, dashId] : others;
@@ -373,7 +373,7 @@ export class SessionManager {
     return client.getGraphData(req);
   };
 
-  /** App in background: chiude la connessione. */
+  /** App in the background: closes the connection. */
   pause(): void {
     this.active = false;
     if (!this.credentials) return;
@@ -382,7 +382,7 @@ export class SessionManager {
     this.setState({ status: 'paused' });
   }
 
-  /** App in primo piano: riconnette se c'era una sessione. */
+  /** App in the foreground: reconnects if there was a session. */
   resume(): void {
     this.active = true;
     if (!this.credentials || this.client) return;
@@ -413,7 +413,7 @@ export class SessionManager {
         this.pendingWrites.delete(m.msgId);
         if (m.code === ResponseCode.DEVICE_NOT_IN_NETWORK) this.showNotice(t.deviceOffline);
         else if (m.code === ResponseCode.NOT_ALLOWED) {
-          // Comando rifiutato (progetto assegnato in sola lettura): il widget torna com'era.
+          // Command rejected (read-only assigned project): the widget goes back to how it was.
           this.store.restoreValue(write.key, write.previous);
           this.showNotice(t.writeRejected);
         }
@@ -422,14 +422,14 @@ export class SessionManager {
       this.store.apply(m);
     });
     client.onDisconnect(() => {
-      if (this.client !== client) return; // chiusura voluta o connessione già sostituita
+      if (this.client !== client) return; // intentional close or connection already replaced
       this.client = null;
       this.scheduleReconnect();
     });
     await client.connect();
     await client.login(c.email, c.password);
     const profile = normalizeProfile((await client.loadProfile()) as Profile);
-    // Progetti creati da questa app in sessioni precedenti: restano modificabili finché esistono.
+    // Projects created by this app in earlier sessions: they stay editable as long as they exist.
     const existing = new Set(profile.dashBoards.map((d) => d.id));
     const created = (await loadCreatedDashIds(c.host, c.email)).filter((id) => existing.has(id));
     if (this.client !== client) return;
@@ -440,8 +440,8 @@ export class SessionManager {
     this.retryAttempt = 0;
     this.setState({ status: 'online', error: undefined, profile, editableDashIds: this.editableFor(profile) });
     void syncGps(profile, c.host);
-    // Sincronizzazione delle dashboard attive (APP_SYNC). Il server rimanda lo stato di ogni widget,
-    // compresa la cronologia dei Terminal, che non è nel profilo.
+    // Sync of the active dashboards (APP_SYNC). The server resends the state of every widget,
+    // including the Terminal history, which is not in the profile.
     for (const dash of profile.dashBoards) {
       if (dash.isActive === false || this.client !== client) continue;
       await client.syncDashboard(dash.id).catch(() => undefined);
@@ -464,8 +464,8 @@ export class SessionManager {
   }
 
   /**
-   * Riconnessione rifiutata (password cambiata dal pannello admin, utente cancellato, IP bloccato): si torna al
-   * login con il motivo e si dimentica la password salvata, così nemmeno l'accesso automatico ritenta.
+   * Reconnection rejected (password changed from the admin panel, user deleted, IP blocked): back to the login
+   * screen with the reason, and the saved password is forgotten, so the automatic login does not retry either.
    */
   private loginRejected(e: unknown): void {
     this.clearRetry();
@@ -499,7 +499,7 @@ export class SessionManager {
     this.noticeTimer = setTimeout(() => this.setState({ notice: undefined }), NOTICE_MS);
   };
 
-  /** Chiusura voluta: azzerare this.client prima di close() evita che parta la riconnessione. */
+  /** Intentional close: clearing this.client before close() keeps the reconnection from starting. */
   private closeClient(): void {
     const c = this.client;
     this.client = null;

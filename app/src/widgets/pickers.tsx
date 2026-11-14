@@ -1,4 +1,4 @@
-// Selettori aperti dai widget: elenco delle voci del Menu ed editor di orario e giorni del Time Input.
+// Pickers opened by widgets: the Menu item list and the Time Input time and days editor.
 import { useState, type ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { t } from '@/i18n';
@@ -25,7 +25,7 @@ function Sheet({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
-        {/* Il tocco dentro il pannello non deve chiuderlo. */}
+        {/* A tap inside the panel must not close it. */}
         <Pressable style={[styles.sheet, { backgroundColor: bg }]} onPress={() => {}}>
           {title !== '' && <Text style={[styles.title, { color: theme.text }]}>{title}</Text>}
           {children}
@@ -44,7 +44,7 @@ function SheetButton({ label, color, onPress }: { label: string; color: string; 
   );
 }
 
-/** Elenco delle voci di un Menu; `selected` e il valore restituito partono da 1, come nel protocollo. */
+/** Item list of a Menu; `selected` and the returned value are 1-based, as in the protocol. */
 export function MenuPicker({
   visible,
   title,
@@ -86,7 +86,7 @@ function clampTime(s: number): number {
   return ((s % day) + day) % day;
 }
 
-/** Orario modificabile con pulsanti: ore ±1, minuti ±1 e ±5. */
+/** Time edited with buttons: hours ±1, minutes ±1 and ±5. */
 function TimeField({ value, onChange, theme, accent }: { value: number; onChange: (s: number) => void; theme: DashboardTheme; accent: string }) {
   const step = (delta: number) => onChange(clampTime(value + delta));
   const btn = (label: string, delta: number) => (
@@ -123,7 +123,7 @@ export interface TimeSelection {
   days: number[];
 }
 
-/** Editor del Time Input: orario di inizio, fine (se previsto dal widget) e giorni (se previsti). */
+/** Time Input editor: start time, stop time (if the widget allows it) and days (if allowed). */
 export function TimeEditor({
   visible,
   title,

@@ -1,5 +1,5 @@
-// Credenziali: su Android nel keystore (expo-secure-store); sul web SecureStore non esiste,
-// quindi si ricordano solo server ed email e la password non viene mai salvata.
+// Credentials: on Android in the keystore (expo-secure-store); on the web there is no SecureStore,
+// so only server and email are remembered and the password is never stored.
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
@@ -9,7 +9,7 @@ export interface Credentials {
   password: string;
 }
 
-/** Nessun server predefinito: l'utente scrive il suo. HOST_EXAMPLE è il segnaposto del campo. */
+/** No default server: users type their own. HOST_EXAMPLE is the field placeholder. */
 export const DEFAULT_HOST = '';
 export const HOST_EXAMPLE = 'myserver.example.com:9443';
 const KEY = 'blynk.credentials';
@@ -32,11 +32,11 @@ export async function saveCredentials(c: Credentials, rememberPassword: boolean)
       await SecureStore.setItemAsync(KEY, JSON.stringify(stored));
     }
   } catch {
-    // Non salvare le credenziali non è un errore bloccante.
+    // Failing to save the credentials is not a blocking error.
   }
 }
 
-/** Al logout si dimentica la password ma si tengono server ed email. */
+/** On logout the password is forgotten, but server and email are kept. */
 export async function forgetPassword(): Promise<void> {
   const current = await loadCredentials();
   if (!current) return;
@@ -45,11 +45,11 @@ export async function forgetPassword(): Promise<void> {
     if (Platform.OS === 'web') globalThis.localStorage?.setItem(KEY, kept);
     else await SecureStore.setItemAsync(KEY, kept);
   } catch {
-    // ignorato
+    // ignored
   }
 }
 
-/** "example.com" → "wss://example.com/dashws"; un URL completo viene usato così com'è. */
+/** "example.com" → "wss://example.com/dashws"; a full URL is used as is. */
 export function serverUrl(host: string): string {
   const h = host.trim();
   return h.includes('://') ? h : `wss://${h}/dashws`;

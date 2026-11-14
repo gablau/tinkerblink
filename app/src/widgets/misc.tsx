@@ -1,12 +1,12 @@
-// Timer e Image Gallery (modelli Timer e Image del server).
+// Timer and Image Gallery (server models Timer and Image).
 //
-// - Timer: l'app mostra solo l'orario di avvio (`startTime`, secondi dalla mezzanotte UTC, convertito nel fuso
-//   del telefono) come HH:mm:ss, centrato, nel colore del widget. Avvio e arresto li esegue il server, che a
-//   quegli orari scrive `startValue` / `stopValue` sul pin: l'app non invia nulla.
-// - Image Gallery: mostra l'immagine numero `valore` (da 1) fra gli URL del widget. `scaling` FIT = tutta
-//   l'immagine nel riquadro, altrimenti riempie ritagliando; poi rotazione, scala (%) e opacità (%).
-//   Il firmware può cambiare gli URL con setProperty: "urls" (elenco, o "clr" per svuotare) e "url" (indice
-//   e URL), oltre a "opacity", "scale" e "rotation".
+// - Timer: the app shows only the start time (`startTime`, seconds from midnight UTC, converted to the phone
+//   time zone) as HH:mm:ss, centered, in the widget color. The server starts and stops it, writing
+//   `startValue` / `stopValue` to the pin at those times: the app sends nothing.
+// - Image Gallery: shows image number `value` (1-based) among the widget URLs. `scaling` FIT = the whole
+//   image in the box, otherwise it fills and crops; then rotation, scale (%) and opacity (%).
+//   The firmware can change the URLs with setProperty: "urls" (list, or "clr" to empty it) and "url"
+//   (index and URL), as well as "opacity", "scale" and "rotation".
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { useWidgetProps, useWidgetValue } from '@/session/hooks';
 import { fontSizeOf, VALUE_FONT_SIZE } from '@/ui/dashboardTheme';
@@ -16,7 +16,7 @@ import { useLabel, WidgetFrame, type WidgetViewProps } from './WidgetFrame';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
-/** Secondi dalla mezzanotte UTC → "HH:mm:ss" nel fuso del telefono. */
+/** Seconds from midnight UTC → "HH:mm:ss" in the phone time zone. */
 function utcSecondsToLocal(seconds: unknown): string {
   if (typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds < 0) return '--:--:--';
   const now = new Date();
@@ -47,7 +47,7 @@ const clampInt = (v: unknown, lo: number, hi: number, fallback: number) => {
   return Number.isFinite(n) ? Math.min(hi, Math.max(lo, Math.trunc(n))) : fallback;
 };
 
-/** URL correnti: quelli del widget, sostituiti da setProperty "urls" e aggiornati da "url" (indice\0URL). */
+/** Current URLs: those of the widget, replaced by setProperty "urls" and updated by "url" (index\0URL). */
 function currentUrls(widgetUrls: unknown, props: Record<string, string>): string[] {
   let urls = Array.isArray(widgetUrls) ? widgetUrls.map(String) : [];
   if (props.urls !== undefined) {

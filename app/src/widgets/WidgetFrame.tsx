@@ -1,4 +1,4 @@
-// Cornice comune: etichetta piccola in maiuscolo in alto a sinistra e contenuto.
+// Common frame: small upper-case label at the top left, then the content.
 import type { ReactNode } from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import type { Widget } from '@/model/profile';
@@ -13,9 +13,9 @@ export interface WidgetViewProps {
 }
 
 /**
- * Titolo di default quando il widget non ha un'etichetta.
- * Mancano apposta i tipi con titolo facoltativo (Value Display, Labeled
- * Value, Menu, Styled Button, Switch, Text Input…) e quelli che non mostrano l'etichetta.
+ * Default title when the widget has no label.
+ * Types with an optional title (Value Display, Labeled
+ * Value, Menu, Styled Button, Switch, Text Input…) and those that show no label are left out on purpose.
  */
 const DEFAULT_TITLES: Record<string, string> = {
   BUTTON: 'Button',

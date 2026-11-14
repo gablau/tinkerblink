@@ -1,4 +1,4 @@
-// Mappa Leaflet sul web: iframe con la stessa pagina della WebView di Android (leafletHtml.ts).
+// Leaflet map on the web: an iframe with the same page as the Android WebView (leafletHtml.ts).
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
 import { buildLeafletHtml } from './leafletHtml';
 import type { LeafletHandle, LeafletProps } from './LeafletView';
@@ -19,7 +19,7 @@ export const LeafletView = forwardRef<LeafletHandle, LeafletProps>(function Leaf
       try {
         onMessage(JSON.parse(String(e.data)));
       } catch {
-        // messaggio non valido: ignorato
+        // invalid message: ignored
       }
     };
     window.addEventListener('message', listener);

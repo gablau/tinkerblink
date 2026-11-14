@@ -1,5 +1,5 @@
-// Indice delle definizioni delle schede Blynk (licenza MIT, vedi data/LICENSE).
-// Chiave = nome della scheda come nel campo boardType dei device.
+// Index of the Blynk board definitions (MIT license, see data/LICENSE).
+// Key = board name as in the boardType field of the devices.
 import type { BoardJson } from './types';
 
 export const BOARD_FILES: Record<string, BoardJson> = {

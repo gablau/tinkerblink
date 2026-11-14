@@ -1,5 +1,5 @@
-// Markdown essenziale per i testi della documentazione dei widget: titoli (#), blocchi di codice (```), elenchi
-// (- / *), paragrafi; nel testo **grassetto**, `codice` e [collegamenti](url) (si aprono nel browser).
+// Minimal Markdown for the widget documentation texts: headings (#), code blocks (```), lists
+// (- / *), paragraphs; inline **bold**, `code` and [links](url) (opened in the browser).
 import { Linking, StyleSheet, Text, View } from 'react-native';
 import { FONT } from '@/ui/fonts';
 import { withAlpha } from '@/widgets/color';
@@ -37,7 +37,7 @@ function parse(md: string): Block[] {
   return blocks;
 }
 
-/** Testo con **grassetto**, `codice` e [collegamenti](url). */
+/** Text with **bold**, `code` and [links](url). */
 function Inline({ text, color, accent }: { text: string; color: string; accent: string }) {
   const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g).filter((p) => p !== '');
   return (

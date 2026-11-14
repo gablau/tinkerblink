@@ -1,13 +1,13 @@
-// Dati di un SuperChart: storico dal server (GET_ENHANCED_GRAPH_DATA) e, nel periodo LIVE, i valori che
-// arrivano in tempo reale dai device.
+// SuperChart data: history from the server (GET_ENHANCED_GRAPH_DATA) and, in the LIVE period, the values
+// arriving in real time from the devices.
 //
-// Funzionamento:
-// - lo storico si ricarica ogni 60 s mentre il grafico è visibile e la sessione è connessa;
-// - le pagine precedenti si chiedono con `page` (il server salta page × punti del periodo) quando si
-//   scorre indietro; quando il server risponde NO_DATA non ce ne sono altre;
-// - LIVE parte dagli ultimi 60 valori grezzi che il server tiene in memoria per ogni pin, poi aggiunge
-//   ogni scrittura del pin. Se la scrittura ha un secondo valore che è un timestamp, si usa quello;
-//   con yAxisScale MINMAX il valore è limitato a [yAxisMin, yAxisMax]. Al massimo 1000 punti per stream.
+// How it works:
+// - history is reloaded every 60 s while the chart is visible and the session is connected;
+// - previous pages are requested with `page` (the server skips page × points of the period) when
+//   scrolling back; when the server answers NO_DATA there are no more;
+// - LIVE starts from the last 60 raw values the server keeps in memory for each pin, then appends
+//   every write of the pin. If the write has a second value that is a timestamp, that is used;
+//   with yAxisScale MINMAX the value is clamped to [yAxisMin, yAxisMax]. At most 1000 points per stream.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { GraphPeriod, GraphPoint } from '@tinkerblink/protocol';
 import { useSession } from '@/session/SessionContext';
@@ -18,27 +18,27 @@ const LIVE_MAX_POINTS = 1000;
 const LIVE_TRIM = 200;
 
 export interface GraphState {
-  /** Una serie per datastream, nell'ordine del widget, in ordine di tempo. */
+  /** One series per datastream, in widget order, sorted by time. */
   streams: GraphPoint[][];
   loading: boolean;
-  /** Ora dell'ultima risposta: fine della finestra dei periodi storici. */
+  /** Time of the last answer: end of the window for history periods. */
   loadedAt: number;
-  /** Ultima pagina chiesta al server (0 = la più recente). */
+  /** Last page requested from the server (0 = the latest). */
   page: number;
   loadingOlder: boolean;
-  /** Il server non ha dati più vecchi. */
+  /** The server has no older data. */
   lastPage: boolean;
 }
 
 const EMPTY: GraphState = { streams: [], loading: true, loadedAt: 0, page: 0, loadingOlder: false, lastPage: false };
 
-/** Timestamp in ms plausibile (dopo il 2001): il firmware può inviarlo come secondo valore. */
+/** Plausible timestamp in ms (after 2001): the firmware can send it as a second value. */
 function parseTs(v: string | undefined): number | null {
   if (v === undefined || !/^\d{12,14}$/.test(v)) return null;
   return Number(v);
 }
 
-/** Unisce dati più vecchi (`older`) e più recenti (`newer`): dove si sovrappongono vincono i più recenti. */
+/** Merges older (`older`) and newer (`newer`) data: where they overlap the newer ones win. */
 function merge(older: GraphPoint[], newer: GraphPoint[]): GraphPoint[] {
   if (newer.length === 0) return older;
   const first = newer[0]!.ts;
@@ -57,7 +57,7 @@ export function useGraphData(
   useEffect(() => {
     streamsRef.current = streams;
   }, [streams]);
-  /** Cresce a ogni cambio di periodo: le risposte di un periodo precedente si ignorano. */
+  /** Grows at every period change: answers for a previous period are ignored. */
   const generation = useRef(0);
   const stateRef = useRef(state);
   useEffect(() => {
@@ -73,7 +73,7 @@ export function useGraphData(
     [getGraphData, dashId, widgetId],
   );
 
-  // Caricamento dal server: al cambio di periodo, alla (ri)connessione e ogni 60 s per lo storico.
+  // Loading from the server: on period change, on (re)connection and every 60 s for history.
   useEffect(() => {
     if (!online || !period) return;
     const gen = ++generation.current;
@@ -88,7 +88,7 @@ export function useGraphData(
           const now = Date.now();
           setState((s) => {
             const list = fetched ?? streamsRef.current.map(() => []);
-            // Il ricaricamento sostituisce la parte recente e tiene le pagine più vecchie già caricate.
+            // A reload replaces the recent part and keeps the older pages already loaded.
             const merged = fresh ? list : list.map((pts, i) => merge(s.streams[i] ?? [], pts));
             return { ...s, streams: merged, loading: false, loadedAt: now };
           });
@@ -104,7 +104,7 @@ export function useGraphData(
     };
   }, [online, period, fetchPage]);
 
-  /** Chiede la pagina successiva (più vecchia) e la aggiunge in testa. */
+  /** Requests the next (older) page and prepends it. */
   const loadOlder = useCallback(() => {
     const s = stateRef.current;
     if (!online || !period || period === 'LIVE' || s.loading || s.loadingOlder || s.lastPage) return;
@@ -128,7 +128,7 @@ export function useGraphData(
       });
   }, [online, period, fetchPage]);
 
-  // LIVE: aggiunge le scritture dei pin dei datastream.
+  // LIVE: appends the writes to the datastream pins.
   useEffect(() => {
     if (period !== 'LIVE') return;
     return store.subscribePinWrites((key, values, now) => {

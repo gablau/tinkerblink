@@ -1,12 +1,12 @@
-# Credenziali locali
+# Local credentials
 .env
 .env.*
 
-# Chiave di firma della release (password comprese) e APK generati
+# Release signing key (passwords included) and generated APKs
 keys/
 release/
 
-# Build Android
+# Android build
 .gradle/
 build/
 local.properties
@@ -16,5 +16,5 @@ local.properties
 *.iml
 node_modules/
 
-# Note personali per Claude Code
+# Personal notes for Claude Code
 CLAUDE.local.md

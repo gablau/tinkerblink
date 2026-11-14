@@ -1,6 +1,6 @@
-// Disegno dell'icona TinkerBlink (proposta "H"): griglia 2×2 di widget su area 108×108 (icona adattiva Android,
-// contenuto dentro l'area sicura centrale di 66). Usato da app/scripts/render-icons.mjs per generare i PNG.
-// Varianti: dark (H, icona dell'app e splash scuro), light (K, web e splash chiaro), mono (icone a tema).
+// Drawing of the TinkerBlink icon (design "H"): 2×2 grid of widgets on a 108×108 area (Android adaptive icon,
+// content inside the central safe area of 66). Used by app/scripts/render-icons.mjs to render the PNGs.
+// Variants: dark (H, app icon and dark splash), light (K, web and light splash), mono (themed icons).
 
 const GREEN = '#23c48e';
 const GREEN_DARK = '#0e6e4f';
@@ -10,7 +10,7 @@ const RED = '#d3435c';
 
 export const BACKGROUND = { dark: '#12202a', light: '#eef2f0' };
 
-/** Elementi in primo piano; `gauge` = colori del riquadro col manometro (chiaro su H, scuro su K). */
+/** Foreground elements; `gauge` = colors of the gauge tile (light on H, dark on K). */
 function tiles(gauge) {
   return `
   <rect x="23" y="23" width="30" height="30" rx="6" fill="${GREEN}"/>
@@ -33,7 +33,7 @@ const GAUGE = {
   light: { tile: '#1d1e22', track: '#3b4048', needle: '#ffffff' },
 };
 
-/** Monocromatica: riquadri pieni con i dettagli ritagliati (Android la colora con il tema). */
+/** Monochrome: filled tiles with the details cut out (Android colors it with the theme). */
 const MONO = `
   <defs>
     <mask id="cut">
@@ -54,8 +54,8 @@ const MONO = `
   <rect width="108" height="108" fill="#ffffff" mask="url(#cut)"/>`;
 
 /**
- * SVG completo. `background`: colore di fondo (omesso = trasparente); `round`: angoli arrotondati come un
- * launcher (per favicon e anteprime); `zoom`: ingrandimento del contenuto (lo splash mostra solo il disegno).
+ * Complete SVG. `background`: background color (omitted = transparent); `round`: rounded corners like a
+ * launcher (for the favicon and previews); `zoom`: content scale (the splash shows only the drawing).
  */
 export function iconSvg(variant, { size, background, round = false, zoom = 1 }) {
   const body = variant === 'mono' ? MONO : tiles(GAUGE[variant]);

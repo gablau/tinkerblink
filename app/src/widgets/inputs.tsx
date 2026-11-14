@@ -1,11 +1,11 @@
-// Text Input e Numeric Input (modelli TextInput e NumberInput del server).
+// Text Input and Numeric Input (server models TextInput and NumberInput).
 //
-// - Text Input: campo di testo nel colore del widget, suggerimento (`hint` o "Input value here"), al massimo
-//   `limit` caratteri; il valore si invia con Invio/Fine della tastiera.
-// - Numeric Input: "−  valore  +" con i pulsanti nel colore del widget; ogni tocco aggiunge o toglie `step`
-//   (con isLoopOn oltre i limiti si riparte dall'altro estremo), il valore si può anche scrivere a mano ed è
-//   sempre limitato a [min, max]. Si invia a ogni cambio. Se step, min e max sono interi il valore è intero,
-//   altrimenti fino a 5 decimali. `suffix` si mostra dopo il numero.
+// - Text Input: text field in the widget color, hint (`hint` or "Input value here"), at most `limit`
+//   characters; the value is sent with Enter/Done on the keyboard.
+// - Numeric Input: "−  value  +" with the buttons in the widget color; every tap adds or subtracts `step`
+//   (with isLoopOn, going past a limit wraps to the other end); the value can also be typed and is always
+//   clamped to [min, max]. It is sent on every change. If step, min and max are integers the value is an
+//   integer, otherwise up to 5 decimals. `suffix` is shown after the number.
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -18,9 +18,9 @@ import { useLabel, WidgetFrame, type WidgetViewProps } from './WidgetFrame';
 
 const num = (v: unknown, fallback: number) => (typeof v === 'number' && Number.isFinite(v) ? v : fallback);
 
-/** Dimensioni del testo per FontSize. */
+/** Text sizes for FontSize. */
 const TEXT_INPUT_SIZE = { SMALL: 14, MEDIUM: 18, LARGE: 24 } as const;
-/** Dimensioni del testo del Numeric Input per FontSize (si riducono se non ci stanno). */
+/** Numeric Input text sizes for FontSize (they shrink if the text does not fit). */
 const NUMBER_INPUT_SIZE = { SMALL: 24, MEDIUM: 32, LARGE: 64 } as const;
 
 export function TextInputWidget({ dashId, widget, theme }: WidgetViewProps) {
@@ -29,7 +29,7 @@ export function TextInputWidget({ dashId, widget, theme }: WidgetViewProps) {
   const props = useWidgetProps(dashId, widget);
   const write = useWritePin(dashId, widget);
   const current = value?.join(' ') ?? '';
-  // Bozza mentre si scrive; quando il campo non ha il fuoco si mostra il valore del server.
+  // Draft while typing; when the field is not focused the server value is shown.
   const [draft, setDraft] = useState<string | null>(null);
   const text = draft ?? current;
   const color = widgetColor(props.color ?? widget.color, theme);
@@ -55,7 +55,7 @@ export function TextInputWidget({ dashId, widget, theme }: WidgetViewProps) {
   );
 }
 
-/** Numero come lo mostra NumberInput: intero se tutto è intero, altrimenti fino a 5 decimali senza zeri finali. */
+/** Number as NumberInput shows it: integer if everything is, otherwise up to 5 decimals without trailing zeros. */
 function formatNumber(v: number, integers: boolean): string {
   if (integers) return String(Math.round(v));
   return String(Number(v.toFixed(5)));

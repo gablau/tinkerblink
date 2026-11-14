@@ -1,5 +1,5 @@
-// Codici dei comandi e delle risposte del protocollo app.
-// Fonte: server/core/.../protocol/enums/Command.java e Response.java (blynk-server 0.41.17).
+// Command and response codes of the app protocol.
+// Source: server/core/.../protocol/enums/Command.java and Response.java (blynk-server 0.41.17).
 
 export const Command = {
   RESPONSE: 0,
@@ -74,13 +74,13 @@ export function commandName(code: number): string {
 }
 
 /**
- * msgId degli APP_SYNC che il server invia in risposta a una richiesta di sincronizzazione
- * (MobileSyncWidget.SYNC_DEFAULT_MESSAGE_ID). Gli APP_SYNC inoltrati da altre app hanno invece il msgId
- * del messaggio inoltrato.
+ * msgId of the APP_SYNC messages the server sends in reply to a sync request
+ * (MobileSyncWidget.SYNC_DEFAULT_MESSAGE_ID). APP_SYNC messages forwarded from other apps carry the msgId
+ * of the forwarded message instead.
  */
 export const SYNC_MESSAGE_ID = 1111;
 
-/** Comandi a cui il server risponde con un body binario (gzip). */
+/** Commands the server answers with a binary body (gzip). */
 export const BINARY_RESPONSE_COMMANDS: ReadonlySet<number> = new Set([
   Command.LOAD_PROFILE_GZIPPED,
   Command.GET_ENHANCED_GRAPH_DATA,

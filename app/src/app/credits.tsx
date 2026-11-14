@@ -1,4 +1,4 @@
-// Crediti e licenze (elenco in src/credits.ts). Raggiungibile dal login e dall'elenco dei progetti.
+// Credits and licenses (list in src/credits.ts). Reachable from the login and from the project list.
 import Constants from 'expo-constants';
 import { Stack } from 'expo-router';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';

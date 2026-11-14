@@ -1,22 +1,22 @@
-// Disposizione dei widget sullo schermo, a partire dalla griglia a 8 colonne (x, y, width, height sul server).
+// Layout of the widgets on the screen, starting from the 8-column grid (x, y, width, height on the server).
 //
-// Telefono in verticale: una sola colonna, con la griglia così com'è.
-// Schermi larghi (orizzontale, tablet, web): la dashboard viene divisa in "fasce" orizzontali
-// (gruppi di righe che nessun widget attraversa) e le fasce vengono distribuite su più colonne
-// affiancate, ognuna larga come un telefono. Dentro ogni fascia la disposizione resta identica
-// alla griglia; i dati sul server non cambiano.
+// Phone in portrait: a single column, with the grid as it is.
+// Wide screens (landscape, tablet, web): the dashboard is split into horizontal "bands"
+// (groups of rows that no widget crosses) and the bands are distributed over several
+// side-by-side columns, each as wide as a phone. Inside each band the layout is identical
+// to the grid; the data on the server does not change.
 
 export const GRID_COLUMNS = 8;
 export const CELL_ASPECT = 1.35;
-/** Larghezza minima di una colonna: sotto questa misura le 8 celle diventano troppo strette. */
+/** Minimum width of a column: below this size the 8 cells become too narrow. */
 export const MIN_COLUMN_WIDTH = 340;
-/** Larghezza massima di una colonna: oltre, i widget diventano inutilmente grandi. */
+/** Maximum width of a column: beyond it the widgets become needlessly large. */
 export const MAX_COLUMN_WIDTH = 560;
-/** Spazio orizzontale tra due colonne affiancate. */
+/** Horizontal space between two side-by-side columns. */
 export const COLUMN_GAP = 16;
 /**
- * Spazio verticale tra due fasce, ma solo se nella griglia erano separate da righe vuote
- * (l'utente le aveva staccate apposta). Le fasce adiacenti restano attaccate.
+ * Vertical space between two bands, but only if they were separated by empty rows in the grid
+ * (the user had set them apart on purpose). Adjacent bands stay attached.
  */
 export const BAND_GAP = 12;
 
@@ -45,14 +45,14 @@ export interface Layout<T extends GridItem> {
 }
 
 interface Band<T> {
-  top: number; // prima riga (in celle)
-  rows: number; // altezza in righe
+  top: number; // first row (in cells)
+  rows: number; // height in rows
   items: T[];
-  /** true se nella griglia c'erano righe vuote tra questa fascia e la precedente. */
+  /** true if in the grid there were empty rows between this band and the previous one. */
   separated: boolean;
 }
 
-/** Divide gli elementi in fasce: intervalli di righe [y, y+height) che si sovrappongono vengono uniti. */
+/** Splits the items into bands: row ranges [y, y+height) that overlap are merged. */
 export function splitIntoBands<T extends GridItem>(items: T[]): Band<T>[] {
   const sorted = [...items].sort((a, b) => a.y - b.y || a.x - b.x);
   const bands: Band<T>[] = [];
@@ -71,16 +71,16 @@ export function splitIntoBands<T extends GridItem>(items: T[]): Band<T>[] {
 }
 
 /**
- * Calcola le posizioni in pixel.
- * @param rowOffset righe da togliere in alto (1 quando c'è la barra delle schede al posto della riga 0)
- * @param availableWidth larghezza disponibile in pixel
+ * Computes the positions in pixels.
+ * @param rowOffset rows to remove at the top (1 when the tab bar replaces row 0)
+ * @param availableWidth available width in pixels
  */
 export function computeLayout<T extends GridItem>(items: T[], rowOffset: number, availableWidth: number, singleColumn = false): Layout<T> {
   const shifted = items.map((it) => ({ it, y: it.y - rowOffset }));
-  // singleColumn: griglia a 8 colonne anche sugli schermi larghi (modalità modifica dell'editor).
+  // singleColumn: 8-column grid also on wide screens (editor edit mode).
   const columns = singleColumn ? 1 : Math.max(1, Math.floor((availableWidth + COLUMN_GAP) / (MIN_COLUMN_WIDTH + COLUMN_GAP)));
 
-  // Una colonna: griglia a 8 colonne, comprese le righe vuote lasciate apposta dall'utente.
+  // One column: 8-column grid, including the empty rows left on purpose by the user.
   if (columns === 1) {
     const colWidth = Math.min(availableWidth, MAX_COLUMN_WIDTH);
     const cellW = colWidth / GRID_COLUMNS;
@@ -101,7 +101,7 @@ export function computeLayout<T extends GridItem>(items: T[], rowOffset: number,
     };
   }
 
-  // Più colonne: fasce distribuite in ordine di lettura, colonna dopo colonna, bilanciando le altezze.
+  // Several columns: bands distributed in reading order, column after column, balancing the heights.
   const colWidth = Math.min((availableWidth - COLUMN_GAP * (columns - 1)) / columns, MAX_COLUMN_WIDTH);
   const cellW = colWidth / GRID_COLUMNS;
   const cellH = cellW * CELL_ASPECT;
@@ -115,8 +115,8 @@ export function computeLayout<T extends GridItem>(items: T[], rowOffset: number,
   let col = 0;
   for (const band of bands) {
     const h = bandHeight(band);
-    // Si passa alla colonna successiva se questa fascia sforerebbe l'altezza obiettivo di più di metà
-    // della sua altezza (e se ci sono ancora colonne libere).
+    // Move to the next column if this band would exceed the target height by more than half
+    // of its own height (and if there are still free columns).
     if (colHeights[col]! > 0 && col < columns - 1 && colHeights[col]! + h / 2 > target) col++;
     const top = colHeights[col]! + (colHeights[col]! > 0 && band.separated ? BAND_GAP : 0);
     const left = col * (colWidth + COLUMN_GAP);

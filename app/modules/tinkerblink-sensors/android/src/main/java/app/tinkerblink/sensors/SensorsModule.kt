@@ -8,10 +8,10 @@ import android.hardware.SensorManager
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
-// Sensori del telefono per i widget Accelerometer, Gravity, Light, Proximity, Barometer, Humidity e
-// Temperature. Il tipo è la costante di android.hardware.Sensor (1, 9, 5, 8, 6, 12, 13); la
-// registrazione usa SENSOR_DELAY_NORMAL. Ogni evento arriva a JS come
-// "onSensor" { type, values, maxRange }: formato e frequenza d'invio li decide il lato JS.
+// Phone sensors for the Accelerometer, Gravity, Light, Proximity, Barometer, Humidity and
+// Temperature widgets. The type is the android.hardware.Sensor constant (1, 9, 5, 8, 6, 12, 13); the
+// listener is registered with SENSOR_DELAY_NORMAL. Every event reaches JS as
+// "onSensor" { type, values, maxRange }: the JS side decides the value format and the send rate.
 class SensorsModule : Module() {
   private val manager: SensorManager?
     get() = appContext.reactContext?.getSystemService(Context.SENSOR_SERVICE) as? SensorManager

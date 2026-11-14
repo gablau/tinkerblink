@@ -1,7 +1,7 @@
-// Genera i PNG dell'icona e dello splash da app/assets/icon-src/tiles.js usando Microsoft Edge (o Chrome) in
-// modalità headless, già presente sul PC: niente dipendenze npm in più.
+// Renders the icon and splash PNGs from app/assets/icon-src/tiles.mjs with headless Microsoft Edge (or Chrome),
+// already installed on the PC: no extra npm dependencies.
 //   node app/scripts/render-icons.mjs
-// Su un altro sistema: BROWSER=/percorso/chrome node app/scripts/render-icons.mjs
+// On other systems: BROWSER=/path/to/chrome node app/scripts/render-icons.mjs
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -19,22 +19,22 @@ const BROWSERS = [
   '/usr/bin/google-chrome',
 ].filter(Boolean);
 const browser = BROWSERS.find((b) => fs.existsSync(b));
-if (!browser) throw new Error('Nessun browser Chromium trovato: impostare BROWSER');
+if (!browser) throw new Error('No Chromium browser found: set BROWSER');
 
 const OUTPUTS = [
-  // Icona generica (web, store): quadrata e piena, il sistema arrotonda da sé.
+  // Generic icon (web, stores): square and filled, the system rounds it.
   ['icon.png', iconSvg('dark', { size: 1024, background: BACKGROUND.dark })],
-  // Icona adattiva Android: primo piano trasparente + colore di fondo in app.json; monocromatica per i temi.
-  // Ridotte a 0,82: il launcher ritaglia a cerchio (area sicura di diametro 66 su 108) e gli angoli dei riquadri
-  // devono restarci dentro.
+  // Android adaptive icon: transparent foreground + background color in app.json; monochrome for themed icons.
+  // Scaled to 0.82: the launcher crops to a circle (safe area 66 across out of 108) and the corners of the tiles
+  // must stay inside it.
   ['android-icon-foreground.png', iconSvg('dark', { size: 1024, zoom: 0.82 })],
   ['android-icon-monochrome.png', iconSvg('mono', { size: 1024, zoom: 0.82 })],
-  // Splash: solo il disegno (lo sfondo è il backgroundColor in app.json); K con il tema chiaro, H con lo scuro.
-  // Da Android 12 l'immagine dello splash viene ritagliata in un cerchio di 2/3 della larghezza: stessa riduzione
-  // dell'icona adattiva.
+  // Splash: the drawing only (the background is backgroundColor in app.json); K with the light theme, H with the dark.
+  // Since Android 12 the splash image is cropped to a circle 2/3 of the width wide: same scaling as the adaptive
+  // icon.
   ['splash-icon.png', iconSvg('light', { size: 1024, zoom: 0.82 })],
   ['splash-icon-dark.png', iconSvg('dark', { size: 1024, zoom: 0.82 })],
-  // Favicon della versione web: K con gli angoli arrotondati.
+  // Favicon of the web version: K with rounded corners.
   ['favicon.png', iconSvg('light', { size: 192, background: BACKGROUND.light, round: true, zoom: 108 / 76 })],
 ];
 
@@ -47,7 +47,7 @@ for (const [name, svg] of OUTPUTS) {
   fs.writeFileSync(src, svg);
   const out = path.join(ASSETS, name);
   fs.rmSync(out, { force: true });
-  // Su Windows msedge.exe restituisce subito il controllo e scrive lo screenshot poco dopo: si aspetta il file.
+  // On Windows msedge.exe returns immediately and writes the screenshot shortly after: wait for the file.
   execFileSync(
     browser,
     [
@@ -67,16 +67,16 @@ for (const [name, svg] of OUTPUTS) {
   let last = -1;
   for (;;) {
     const bytes = fs.existsSync(out) ? fs.statSync(out).size : -1;
-    if (bytes > 0 && bytes === last) break; // dimensione stabile = scrittura finita
-    if (Date.now() > deadline) throw new Error(`${name}: screenshot non creato`);
+    if (bytes > 0 && bytes === last) break; // stable size = writing finished
+    if (Date.now() > deadline) throw new Error(`${name}: screenshot not created`);
     last = bytes;
     sleep(400);
   }
   console.log(`${name} (${size}×${size})`);
 }
-// Il browser può tenere aperto il profilo per qualche istante: la cartella temporanea si lascia al sistema se occupata.
+// The browser may keep the profile open for a moment: if the temporary folder is busy, leave it to the system.
 try {
   fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 500 });
 } catch {
-  // resta in %TEMP%
+  // stays in %TEMP%
 }

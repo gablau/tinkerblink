@@ -1,5 +1,5 @@
-// Testi dell'app nella lingua del telefono: italiano oppure inglese (default).
-// I testi dei widget usano la terminologia della documentazione di Blynk Legacy, che esiste solo in inglese.
+// App texts in the phone language: Italian or English (default).
+// Widget texts use the terminology of the Blynk Legacy documentation, which exists only in English.
 import { getLocales } from 'expo-localization';
 
 const en = {
@@ -10,7 +10,7 @@ const en = {
   sunrise: 'Sunrise',
   sunset: 'Sunset',
   days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-  // Schermate
+  // Screens
   appTitle: 'TinkerBlink',
   loginSubtitle: 'Log in to your server',
   server: 'Server',
@@ -43,7 +43,7 @@ const en = {
   stop: 'Stop',
   send: 'Send',
   noStop: 'No end time',
-  // Stato dei device
+  // Device status
   onlineSince: (when: string) => `Online since ${when}`,
   offlineSince: (when: string) => `Offline since ${when}`,
   neverOnline: 'Never connected',
@@ -127,5 +127,5 @@ const it: Strings = {
 
 export const language = getLocales()[0]?.languageCode === 'it' ? 'it' : 'en';
 
-/** Testi nella lingua del telefono (letta all'avvio dell'app). */
+/** Texts in the phone language (read when the app starts). */
 export const t: Strings = language === 'it' ? it : en;

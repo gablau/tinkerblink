@@ -1,4 +1,4 @@
-// Gauge e Level H (modelli Gauge e LevelDisplay del server, cc.blynk.server.core.model.widgets.outputs).
+// Gauge and Level H (server models Gauge and LevelDisplay, cc.blynk.server.core.model.widgets.outputs).
 import { useState } from 'react';
 import { StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import Svg, { Path, Text as SvgText } from 'react-native-svg';
@@ -9,19 +9,19 @@ import { widgetColor, withAlpha } from './color';
 import { formatFixedDigits, formatMaxDigits, parseFloatValue } from './format';
 import { useLabel, WidgetFrame, type WidgetViewProps } from './WidgetFrame';
 
-/** Valore mancante. */
+/** Missing value. */
 const EMPTY_VALUE = '----';
 const PIN_PATTERN = /\/pin\.?#*\//i;
 
-/** Arco del Gauge: parte da 140° (in senso orario da destra) e copre 260°. */
+/** Gauge arc: starts at 140° (clockwise from the right) and spans 260°. */
 const ARC_START = 140;
 const ARC_SWEEP = 260;
 
 const num = (v: unknown, fallback: number) => (typeof v === 'number' && Number.isFinite(v) ? v : fallback);
 
 /**
- * Testo del Gauge: il numero ha al massimo 2 decimali, oppure quelli del formato
- * "/pin.##/". Con `valueFormatting` il testo attorno al numero è a metà grandezza.
+ * Gauge text: the number has at most 2 decimals, or those of the
+ * "/pin.##/" format. With `valueFormatting` the text around the number is half size.
  */
 function gaugeText(value: number | null, formatting: string | undefined): { before: string; number: string; after: string } {
   if (value === null) return { before: '', number: EMPTY_VALUE, after: '' };
@@ -46,8 +46,8 @@ function arcPath(cx: number, cy: number, r: number, start: number, sweep: number
 }
 
 /**
- * Gauge: arco di sfondo e arco del valore (estremi arrotondati), min e max agli estremi, valore al centro
- * nel colore dell'arco. Il valore fuori da [min, max] riempie l'arco fino all'estremo.
+ * Gauge: background arc and value arc (rounded ends), min and max at the ends, value in the center
+ * in the arc color. A value outside [min, max] fills the arc up to the end.
  */
 export function GaugeWidget({ dashId, widget, theme }: WidgetViewProps) {
   const value = useWidgetValue(dashId, widget);
@@ -66,7 +66,7 @@ export function GaugeWidget({ dashId, widget, theme }: WidgetViewProps) {
   const text = gaugeText(v, formatting);
   const fontSize = fontSizeOf(VALUE_FONT_SIZE, widget.fontSize);
 
-  // Geometria: quadrato del 90% del lato corto, spessore = 1/10 del lato per cella.
+  // Geometry: a square 90% of the short side, thickness = 1/10 of the side per cell.
   const box = Math.min(size.w, size.h) * 0.9;
   const cols = Math.max(1, widget.width);
   const rows = Math.max(1, widget.height);
@@ -113,9 +113,9 @@ export function GaugeWidget({ dashId, widget, theme }: WidgetViewProps) {
 }
 
 /**
- * Level H: barra arrotondata con lo sfondo del colore del widget (alfa 0,3) e il riempimento in percentuale
- * (intera). Con isAxisFlipOn si riempie da destra. Con showValueOn il valore (#.##) sta a
- * destra del titolo, come negli altri widget con titolo e valore.
+ * Level H: rounded bar with a background in the widget color (alpha 0.3) and a fill in percent
+ * (integer). With isAxisFlipOn it fills from the right. With showValueOn the value (#.##) is to the
+ * right of the title, as in the other widgets with title and value.
  */
 export function LevelWidget({ dashId, widget, theme }: WidgetViewProps) {
   const value = useWidgetValue(dashId, widget);
@@ -126,15 +126,15 @@ export function LevelWidget({ dashId, widget, theme }: WidgetViewProps) {
   const v = parseFloatValue(value?.[0] ?? '') ?? min;
   const progress = v - min;
   const range = max - min;
-  // Percentuale intera, limitata a 0-100 (anche con max < min).
+  // Integer percentage, clamped to 0-100 (also with max < min).
   const percent = range === 0 ? 0 : Math.max(0, Math.min(100, Math.trunc((progress * 100) / range)));
   const color = widgetColor(props.color ?? widget.color, theme, { min, max, value: v });
   const flipped = widget.isAxisFlipOn === true;
   const showValue = widget.showValueOn !== false;
 
   if (widget.type === 'VERTICAL_LEVEL_DISPLAY') {
-    // Level V: titolo, valore sotto, barra che si riempie dal basso
-    // (dall'alto con isAxisFlipOn).
+    // Level V: title, value below, bar filling from the bottom
+    // (from the top with isAxisFlipOn).
     return (
       <View style={styles.levelFrame}>
         <Text style={[styles.levelLabel, styles.levelLabelV, { color: theme.text, opacity: theme.labelAlpha }]} numberOfLines={1}>

@@ -1,5 +1,5 @@
-// Crediti: provenienza e licenze di ciò che l'app usa o include. Mostrati nella pagina /credits.
-// Aggiornare quando si aggiunge una libreria, un font, un servizio o un dato preso da fuori.
+// Credits: origin and licenses of what the app uses or includes. Shown on the /credits page.
+// Update it when adding a library, a font, a service or external data.
 import { language } from '@/i18n';
 
 export interface Credit {
@@ -7,7 +7,7 @@ export interface Credit {
   author: string;
   license: string;
   url: string;
-  /** A cosa serve nell'app. */
+  /** What it is used for in the app. */
   use: string;
 }
 
@@ -19,7 +19,7 @@ export interface CreditGroup {
 const it = language === 'it';
 const say = (itText: string, enText: string) => (it ? itText : enText);
 
-/** Sorgente di TinkerBlink (la GPL chiede che chi riceve l'app possa ottenerlo). */
+/** TinkerBlink source (the GPL requires that people who receive the app can get it). */
 export const SOURCE_URL = 'https://github.com/gablau/tinkerblink';
 
 export const CREDIT_GROUPS: CreditGroup[] = [

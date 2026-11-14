@@ -1,9 +1,9 @@
-// "Widget Box" (fase 3 dell'editor): tutti i widget da aggiungere in un'unica schermata, divisi per gruppo
-// (Controlli, Display, …), in griglia a 3 colonne con icona e nome. Il pulsante "i" apre le informazioni del widget, prese dalla documentazione
-// utente di Blynk Legacy (licenza MIT, editor/widgetDocs.ts). Non selezionabili i widget ammessi una sola volta
-// che ci sono già. Il widget nuovo va nel primo posto libero della scheda attiva della dashboard (il Tabs nella
-// riga 0, spingendo giù gli altri) e si salva con CREATE_WIDGET. L'Energy non si mostra: il server la scala lo
-// stesso e, se non bastasse, risponde con un errore.
+// "Widget Box" (editor phase 3): every widget that can be added, on one screen, split by group
+// (Controllers, Displays, …), in a 3-column grid with icon and name. The "i" button opens the widget information,
+// taken from the Blynk Legacy user documentation (MIT license, editor/widgetDocs.ts). Widgets allowed only once
+// that are already present cannot be selected. The new widget goes in the first free spot of the active tab of
+// the dashboard (the Tabs widget in row 0, pushing the others down) and is saved with CREATE_WIDGET. Energy is
+// not shown: the server charges it anyway and, if there is not enough, replies with an error.
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -39,7 +39,7 @@ export function WidgetBox({
     setError(null);
     try {
       const plan = planNewWidget(type, dash, tab, theme);
-      // Prima si fa posto (solo Tabs), poi si crea il widget.
+      // First make room (Tabs only), then create the widget.
       for (const [id, rect] of plan.moves) {
         const w = dash.widgets.find((x) => x.id === id);
         if (w) await updateWidget(dash.id, { ...w, ...rect });
@@ -106,7 +106,7 @@ export function WidgetBox({
   );
 }
 
-/** Informazioni sul widget (documentazione utente di Blynk Legacy, in inglese). */
+/** Widget information (Blynk Legacy user documentation, in English). */
 function InfoSheet({ item, theme, onClose }: { item: CatalogItem; theme: DashboardTheme; onClose: () => void }) {
   const bg = theme.light ? '#FFFFFF' : '#2C2D32';
   return (

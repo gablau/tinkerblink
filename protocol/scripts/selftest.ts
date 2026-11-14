@@ -1,17 +1,17 @@
-// Test offline di framing e hash. Uso: npm run selftest
+// Offline tests of framing and hashing. Usage: npm run selftest
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { unzlibSync, zlibSync } from 'fflate';
 import { LegacyClient, Command, encodeMessage, FrameDecoder, parseGraphData, passwordHash, WsCodec, type Transport } from '../src/index.ts';
 
-// Hash: confronto con un'implementazione indipendente (crypto di Node).
+// Hash: compared with an independent implementation (Node crypto).
 {
   const salt = createHash('sha256').update('a@b.it').digest();
   const expected = createHash('sha256').update(Buffer.concat([Buffer.from('prova123'), salt])).digest('base64');
   assert.equal(passwordHash('prova123', 'A@B.it'), expected);
 }
 
-// Framing: un HARDWARE e una RESPONSE, spezzati in chunk arbitrari.
+// Framing: a HARDWARE and a RESPONSE, split into arbitrary chunks.
 {
   const hw = encodeMessage(20, 7, '1-0\0vw\x005\x001');
   const resp = new Uint8Array([0, 0, 9, 0, 0, 0, 200]);
@@ -24,14 +24,14 @@ import { LegacyClient, Command, encodeMessage, FrameDecoder, parseGraphData, pas
   ]);
 }
 
-// Profilo: la risposta 24 è binaria.
+// Profile: reply 24 is binary.
 {
   const d = new FrameDecoder();
   const [m] = d.push(new Uint8Array([24, 0, 1, 0, 0, 0, 2, 0x1f, 0x8b]));
   assert.equal(m?.kind, 'binary');
 }
 
-// WebSocket: header da 3 byte, niente lunghezza; RESPONSE con codice u32.
+// WebSocket: 3-byte header, no length; RESPONSE with a u32 code.
 {
   const ws = new WsCodec();
   assert.deepEqual([...ws.encode(2, 1, 'ab')], [2, 0, 1, 97, 98]);
@@ -45,7 +45,7 @@ import { LegacyClient, Command, encodeMessage, FrameDecoder, parseGraphData, pas
   assert.equal(bin?.kind, 'binary');
 }
 
-// SuperChart: payload zlib con dashId + 2 stream (2 punti e 0 punti).
+// SuperChart: zlib payload with dashId + 2 streams (2 points and 0 points).
 {
   const raw = new Uint8Array(4 + 4 + 2 * 16 + 4);
   const v = new DataView(raw.buffer);
@@ -69,7 +69,7 @@ import { LegacyClient, Command, encodeMessage, FrameDecoder, parseGraphData, pas
   });
 }
 
-// Permessi: in sola lettura passa solo HARDWARE (con allowHardwareWrites), mai le modifiche ai progetti.
+// Permissions: in read-only mode only HARDWARE goes through (with allowHardwareWrites), never project changes.
 {
   const written: Uint8Array[] = [];
   const fake: Transport = {
@@ -87,14 +87,14 @@ import { LegacyClient, Command, encodeMessage, FrameDecoder, parseGraphData, pas
   const [m] = new WsCodec().push(written[0]!);
   assert.deepEqual(m, { kind: 'text', command: Command.HARDWARE, msgId: 1, body: '123456789-0\0vw\x0020\x00ciao' });
   assert.throws(() => hw.send(Command.CREATE_WIDGET, '{}'), /bloccato/);
-  // Editor: comandi di modifica solo sulle dashboard ammesse (dashId = primo campo del body).
+  // Editor: edit commands only on the allowed dashboards (dashId = first field of the body).
   const ed = new LegacyClient(fake, { readOnly: true, editableDashIds: [123456789] });
   assert.doesNotThrow(() => ed.send(Command.UPDATE_WIDGET, '123456789\0{}'));
   assert.throws(() => ed.send(Command.UPDATE_WIDGET, '999\0{}'), /bloccato/);
   assert.throws(() => ed.send(Command.UPDATE_WIDGET, '1234567890\0{}'), /bloccato/);
   assert.throws(() => ed.send(Command.UPDATE_DASH, '123456789\0{}'), /bloccato/);
   assert.throws(() => ed.writePin(123456789, 0, 20, ['x']), /bloccato/);
-  // Progetti e device: stessi limiti; stop senza dashId (= tutte) e CREATE_DASH senza opzione bloccati.
+  // Projects and devices: same limits; stop without dashId (= all) and CREATE_DASH without the option are blocked.
   assert.doesNotThrow(() => ed.send(Command.DELETE_DEVICE, '123456789\x001'));
   assert.doesNotThrow(() => ed.send(Command.ACTIVATE_DASHBOARD, '123456789'));
   assert.throws(() => ed.send(Command.DELETE_DASH, '999'), /bloccato/);

@@ -1,5 +1,5 @@
-// Impostazioni di un progetto (solo progetti modificabili, editor/policy.ts): nome, tema, avvisi, avvio e arresto,
-// elenco dei device (con aggiunta) ed eliminazione del progetto.
+// Settings of a project (editable projects only, editor/policy.ts): name, theme, notifications, start and stop,
+// device list (with adding) and project deletion.
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -53,13 +53,13 @@ function ProjectSettings({ dash }: { dash: Dashboard }) {
   const [notice, setNotice] = useState<string | null>(null);
   const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
   const leave = useUnsavedGuard(dirty);
-  // Anteprima del tema scelto.
+  // Preview of the chosen theme.
   const theme = dashboardTheme(draft.theme);
   const ct: ControlTheme = { theme, accent: theme.accent };
   const sectionStyle = [styles.section, { borderBottomColor: withAlpha(theme.text, 0.1) }];
 
-  // Se l'azione chiude la schermata (restituisce true) lo stato non si tocca più: aggiornare l'intestazione di una
-  // schermata già tolta dallo stack fa cadere react-native-screens (errore sullo stack delle schermate).
+  // If the action closes the screen (returns true) the state is no longer touched: updating the header of a screen
+  // already removed from the stack crashes react-native-screens (screen stack error).
   const run = async (action: () => Promise<boolean | void>, errorLabel: string) => {
     setBusy(true);
     setError(null);

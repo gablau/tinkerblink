@@ -1,6 +1,6 @@
-// Nuovo progetto: nome, primo device (modello e connessione) e tema.
-// Il server genera il token del device; dopo la creazione si apre la dashboard con sopra le impostazioni del
-// progetto, dove il token si può vedere e condividere.
+// New project: name, first device (board and connection) and theme.
+// The server generates the device token; after creation the dashboard opens with the project settings on top,
+// where the token can be seen and shared.
 import { Redirect, Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
@@ -28,7 +28,7 @@ export default function NewProjectScreen() {
   const create = async () => {
     setBusy(true);
     setError(null);
-    // Nomi vuoti = "New Project" / "New Device"; il device prende il nome del progetto.
+    // Empty names = "New Project" / "New Device"; the device takes the project name.
     const projectName = name.trim() || tp.defaultProjectName;
     const deviceName = device.name.trim() || name.trim() || tp.defaultDeviceName;
     try {

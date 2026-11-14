@@ -1,22 +1,22 @@
-// Campi modificabili di ogni tipo di widget (fase 1 dell'editor: impostazioni dei widget esistenti).
-// Funzione pura: dal JSON del widget ricava le sezioni del modulo. I nomi dei campi sono quelli del modello
-// del server (cc.blynk.server.core.model.widgets): un campo che il server non conosce verrebbe scartato.
+// Editable fields of each widget type (editor phase 1: settings of existing widgets).
+// Pure function: from the widget JSON it builds the sections of the form. Field names are those of the server
+// model (cc.blynk.server.core.model.widgets): a field unknown to the server would be dropped.
 //
-// Widget a più pin (LCD, Joystick, RGB): interruttore SPLIT / MERGE (per l'LCD SEMPLICE /
-// AVANZATO), in MERGE lo stesso pin va in tutte le posizioni dell'array `pins`; ogni pin ha il suo intervallo.
-// Esclusi: fuso orario di RTC e Time Input, intestazioni del WebHook, Eventor, Reports, Device Selector e Tiles.
+// Multi-pin widgets (LCD, Joystick, RGB): SPLIT / MERGE switch (SIMPLE / ADVANCED for the LCD);
+// in MERGE the same pin goes in every position of the `pins` array; each pin has its own range.
+// Left out: time zone of RTC and Time Input, WebHook headers, Eventor, Reports, Device Selector and Tiles.
 import type { Widget } from '@/model/profile';
 import { te } from './strings';
 
 export type Option = { value: string | number | boolean; label: string };
 
-/** Pin multipli: posizioni nell'array `pins` e, se c'è, l'interruttore tra pin separati e pin unico. */
+/** Multiple pins: positions in the `pins` array and, if present, the switch between separate pins and one pin. */
 export interface MultiPinConfig {
   slots: { label: string; color?: 'x' | 'y' | 'r' | 'g' | 'b' }[];
   mode?: { key: string; splitWhen: boolean; labels: [split: string, merge: string] };
-  /** In modalità unica si mostrano comunque gli intervalli di ogni posizione (Joystick, RGB; non l'LCD avanzato). */
+  /** In single-pin mode the range of each position is still shown (Joystick, RGB; not the advanced LCD). */
   rangeInMerge: boolean;
-  /** Il pin unico accetta solo pin virtuali (LCD avanzato). */
+  /** The single pin accepts only virtual pins (advanced LCD). */
   mergedVirtualOnly?: boolean;
 }
 
@@ -44,29 +44,29 @@ export interface Section {
   fields: Field[];
 }
 
-/** Widget che inviano valori al device (sezione "Uscita"); gli altri leggono ("Ingresso"). */
+/** Widgets that send values to the device ("Output" section); the others read ("Input"). */
 const OUTPUT_TYPES = new Set([
   'BUTTON', 'STYLED_BUTTON', 'SLIDER', 'VERTICAL_SLIDER', 'STEP', 'VERTICAL_STEP', 'MENU', 'SEGMENTED_CONTROL',
   'TEXT_INPUT', 'NUMBER_INPUT', 'TERMINAL', 'TIMER', 'PLAYER', 'TABLE', 'TIME_INPUT',
   'ACCELEROMETER', 'GRAVITY', 'LIGHT', 'PROXIMITY', 'BAROMETER', 'HUMIDITY', 'TEMPERATURE', 'GPS_STREAMING', 'GPS_TRIGGER',
 ]);
 
-/** Widget con min/max significativi. */
+/** Widgets with meaningful min/max. */
 const RANGE_TYPES = new Set([
   'BUTTON', 'STYLED_BUTTON', 'SLIDER', 'VERTICAL_SLIDER', 'STEP', 'VERTICAL_STEP', 'NUMBER_INPUT',
   'GAUGE', 'LEVEL_DISPLAY', 'VERTICAL_LEVEL_DISPLAY',
 ]);
 
-/** Widget il cui colore può essere un gradiente legato al valore. */
+/** Widgets whose color can be a gradient tied to the value. */
 const GRADIENT_TYPES = new Set(['GAUGE', 'LEVEL_DISPLAY', 'VERTICAL_LEVEL_DISPLAY', 'DIGIT4_DISPLAY', 'LABELED_VALUE_DISPLAY', 'LED']);
 
-/** La frequenza di questi widget è l'intervallo minimo tra due invii. */
+/** For these widgets the frequency is the minimum interval between two writes. */
 const WRITE_FREQUENCY_TYPES = new Set([
   'SLIDER', 'VERTICAL_SLIDER', 'STEP', 'VERTICAL_STEP', 'TWO_AXIS_JOYSTICK',
   'ACCELEROMETER', 'GRAVITY', 'LIGHT', 'PROXIMITY', 'BAROMETER', 'HUMIDITY', 'TEMPERATURE',
 ]);
 
-/** Widget a cui non si cambia colore (niente selettore). */
+/** Widgets whose color cannot be changed (no color picker). */
 const NO_COLOR_TYPES = new Set(['TABS', 'IMAGE', 'VIDEO', 'GPS_STREAMING', 'GPS_TRIGGER', 'NOTIFICATION', 'EMAIL', 'WEBHOOK', 'RTC', 'BRIDGE']);
 
 function duration(ms: number): string {
@@ -76,7 +76,7 @@ function duration(ms: number): string {
   return `${ms / 3600000} h`;
 }
 
-/** Frequenze di lettura (frequency dei widget sul server): Push, poi da 1 s a 24 h. */
+/** Reading frequencies (widget frequency on the server): Push, then from 1 s to 24 h. */
 const READ_FREQUENCIES: Option[] = [
   { value: 0, label: te.pushRate },
   ...[1, 2, 5, 10, 15, 30].map((s) => s * 1000),
@@ -84,7 +84,7 @@ const READ_FREQUENCIES: Option[] = [
   ...[1, 2, 4, 8, 12, 24].map((h) => h * 3600000),
 ].map((v) => (typeof v === 'number' ? { value: v, label: duration(v) } : v));
 
-/** Intervalli di invio: da 100 ms a 1 s. */
+/** Write intervals: from 100 ms to 1 s. */
 const WRITE_FREQUENCIES: Option[] = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000].map((v) => ({ value: v, label: duration(v) }));
 
 const FONT_SIZES: Option[] = [
@@ -95,7 +95,7 @@ const FONT_SIZES: Option[] = [
 
 const has = (w: Widget, key: string) => key in w;
 
-/** True se il widget ha un solo pin (OnePinWidget del server). */
+/** True if the widget has a single pin (OnePinWidget on the server). */
 export function isOnePin(w: Widget): boolean {
   return has(w, 'pin') && !has(w, 'pins');
 }
@@ -138,7 +138,7 @@ function specificFields(w: Widget): Field[] {
     case 'VERTICAL_STEP':
       return [
         { kind: 'number', key: 'step', label: te.step },
-        // Nel JSON isArrowsOn = true vuol dire pulsanti + / − (il nome inganna: vedi StepWidget).
+        // In the JSON isArrowsOn = true means + / − buttons (the name is misleading: see StepWidget).
         { kind: 'bool', key: 'isArrowsOn', label: te.plusMinus },
         { kind: 'bool', key: 'isLoopOn', label: te.loop },
         { kind: 'bool', key: 'isSendStep', label: te.sendStep },
@@ -184,7 +184,7 @@ function specificFields(w: Widget): Field[] {
     case 'TWO_AXIS_JOYSTICK':
       return [
         { kind: 'bool', key: 'autoReturnOn', label: te.autoReturn },
-        // ROTATE ON TILT = !portraitLocked (TwoAxisJoystick del server).
+        // ROTATE ON TILT = !portraitLocked (TwoAxisJoystick on the server).
         { kind: 'bool', key: 'portraitLocked', label: te.rotateOnTilt, invert: true },
       ];
     case 'RGB':
@@ -212,7 +212,7 @@ function specificFields(w: Widget): Field[] {
         { kind: 'bool', key: 'allowFullScreen', label: te.allowFullScreen },
       ];
     case 'VIDEO':
-      // L'URL contiene le credenziali della telecamera: campo nascosto.
+      // The URL contains the camera credentials: hidden field.
       return [
         { kind: 'text', key: 'url', label: te.url, secret: true },
         { kind: 'bool', key: 'forceTCP', label: te.forceTcp },
@@ -286,7 +286,7 @@ export function editorSections(w: Widget): Section[] {
   return sections;
 }
 
-/** Configurazione dei widget a più pin (Joystick, RGB, LCD). */
+/** Configuration of multi-pin widgets (Joystick, RGB, LCD). */
 export function multiPinConfig(w: Widget): MultiPinConfig | null {
   switch (w.type) {
     case 'TWO_AXIS_JOYSTICK':
@@ -313,7 +313,7 @@ export function multiPinConfig(w: Widget): MultiPinConfig | null {
   }
 }
 
-/** Valore corrente di una frequenza non presente nell'elenco: la si aggiunge per non perderla. */
+/** Current value of a frequency missing from the list: it is added so that it is not lost. */
 export function withCurrent(options: Option[], current: unknown): Option[] {
   if (current === undefined || options.some((o) => o.value === current)) return options;
   const label = typeof current === 'number' ? duration(current) : String(current);

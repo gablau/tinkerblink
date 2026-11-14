@@ -1,12 +1,12 @@
-// LCD (modello LCD del server): display 16 × 2 caratteri su un
-// rettangolo arrotondato del colore del widget, testo chiaro (textLight) o scuro, un carattere centrato per cella.
+// LCD (server model LCD): a 16 × 2 character display on a
+// rounded rectangle in the widget color, light (textLight) or dark text, one centered character per cell.
 //
-// - Modalità semplice: riga 1 = textFormatLine1 (default "/pin0/"), riga 2 = textFormatLine2 (default "/pin1/").
-//   "/pin0/" è il valore del primo pin così com'è, "/pin0.##/" con 2 decimali fissi (come il Labeled Value).
-//   Se il primo pin riceve due valori insieme ("a\0b"), vanno uno per riga.
-// - Modalità avanzata: il firmware scrive "p\0x\0y\0testo" (posizione colonna x, riga y) e "clr" per pulire; il
-//   testo che esce dai 32 caratteri si taglia. I comandi li tiene il LiveStore.
-// Il widget non ha titolo.
+// - Simple mode: line 1 = textFormatLine1 (default "/pin0/"), line 2 = textFormatLine2 (default "/pin1/").
+//   "/pin0/" is the value of the first pin as is, "/pin0.##/" with 2 fixed decimals (as in the Labeled Value).
+//   If the first pin receives two values at once ("a\0b"), they go one per line.
+// - Advanced mode: the firmware writes "p\0x\0y\0text" (column x, row y) and "clr" to clear; text going
+//   past the 32 characters is cut. The LiveStore keeps the commands.
+// The widget has no title.
 import { useState } from 'react';
 import { StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import { pinKey, type PinType } from '@/model/profile';
@@ -24,7 +24,7 @@ interface LcdPin {
   pinType?: PinType;
 }
 
-/** Scrive `text` nel buffer a partire dalla cella y × 16 + x, tagliando quello che esce. */
+/** Writes `text` into the buffer from cell y × 16 + x, cutting what goes past the end. */
 function putText(buf: string[], x: number, y: number, text: string): void {
   let start = y * COLS + x;
   if (start < -text.length || start > COLS * ROWS) return;
@@ -36,7 +36,7 @@ function putText(buf: string[], x: number, y: number, text: string): void {
   for (let i = 0; i < s.length && start + i < COLS * ROWS; i++) buf[start + i] = s[i]!;
 }
 
-/** Sostituisce "/pinN/" o "/pinN.##/" con il valore (decimali fissi se indicati). */
+/** Replaces "/pinN/" or "/pinN.##/" with the value (fixed decimals if given). */
 function applyFormat(format: string, n: 0 | 1, value: string | undefined): string {
   const re = new RegExp(`/pin${n}\\.?#*/`, 'i');
   return format.replace(re, (token) => {
@@ -89,7 +89,7 @@ export function LcdWidget({ dashId, widget, theme }: WidgetViewProps) {
   const padV = 6;
   const cellW = Math.max(1, (size.w - padH * 2) / COLS);
   const cellH = Math.max(1, (size.h - padV * 2) / ROWS);
-  // VT323 è stretto e alto: la dimensione è limitata dall'altezza della cella e da 1,6 × la larghezza.
+  // VT323 is narrow and tall: the size is limited by the cell height and by 1.6 × the width.
   const fontSize = Math.max(6, Math.min(cellH * 0.85, cellW * 1.6));
 
   return (

@@ -1,13 +1,13 @@
-// SuperChart (ENHANCED_GRAPH, modello Superchart del server):
-// titolo, legenda, grafico, selettore dei periodi in basso.
+// SuperChart (ENHANCED_GRAPH, server model Superchart):
+// title, legend, chart, period selector at the bottom.
 //
-// - Tenendo premuto sul grafico compaiono una linea verticale, l'ora e i valori di ogni stream al posto
-//   della legenda; trascinando si sposta il cursore. Toccando una voce della legenda si nasconde o mostra
-//   lo stream.
-// - Trascinando in orizzontale (periodi storici) si scorre indietro nel tempo; quando si arriva ai dati più
-//   vecchi già caricati si chiede la pagina precedente al server.
-// - Periodo scelto e stream nascosti si salvano sul telefono (prefs.ts).
-// - Non ancora fatti: schermo intero, linea obiettivo, curve smussate.
+// - A long press on the chart shows a vertical line, the time and the value of each stream in place of
+//   the legend; dragging moves the cursor. Tapping a legend entry hides or shows
+//   the stream.
+// - Dragging horizontally (history periods) scrolls back in time; when the oldest loaded data is
+//   reached the previous page is requested from the server.
+// - The chosen period and the hidden streams are saved on the phone (prefs.ts).
+// - Not done yet: full screen, goal line, smoothed curves.
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { GraphPeriod, GraphPoint } from '@tinkerblink/protocol';
 import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
@@ -36,20 +36,20 @@ import {
 import { cachedChartPrefs, loadChartPrefs, saveChartPrefs } from './prefs';
 import { useGraphData } from './useGraphData';
 
-// Le preferenze si caricano subito, così di solito sono pronte quando si apre una dashboard.
+// Preferences load right away, so they are usually ready when a dashboard opens.
 void loadChartPrefs();
 
-/** Dimensione del titolo per FontSize. */
+/** Title size for FontSize. */
 const TITLE_SIZE = { SMALL: 12, MEDIUM: 16, LARGE: 20 } as const;
 const AXIS_FONT = 10;
-/** Stile dei riempimenti. */
+/** Fill style. */
 const AREA_ALPHA = 0.8;
 const BAR_ALPHA = 0.8;
 const BINARY_FILL_ALPHA = 0.2;
 const GRADIENT_FILL_ALPHA = [0.2, 0.1, 0] as const;
-/** Pressione prolungata che attiva il cursore (ms). */
+/** Long press that activates the cursor (ms). */
 const HOLD_MS = 250;
-/** Nel LIVE si mostrano gli ultimi punti: almeno 30 s. */
+/** LIVE shows the latest points: at least 30 s. */
 const LIVE_POINTS = 60;
 const LIVE_MIN_SPAN_MS = 30_000;
 
@@ -66,7 +66,7 @@ export function SuperChartWidget({ dashId, widget, theme }: WidgetViewProps) {
   const label = useLabel(dashId, widget);
   const streams = useMemo(() => parseStreams(dashId, widget), [dashId, widget]);
   const periods = useMemo(() => selectablePeriods(widget.selectedPeriods), [widget.selectedPeriods]);
-  // Preferenze salvate: finché non sono caricate il periodo è null e non si chiede nulla al server.
+  // Saved preferences: until they are loaded the period is null and nothing is requested from the server.
   const [prefs, setPrefs] = useState(() => cachedChartPrefs(dashId, widget.id));
   useEffect(() => {
     if (prefs) return;
@@ -83,7 +83,7 @@ export function SuperChartWidget({ dashId, widget, theme }: WidgetViewProps) {
   const fallback = isGraphPeriod(widget.period) && periods.includes(widget.period) ? widget.period : periods[0]!;
   const period: GraphPeriod | null = chosen ?? (prefs ? (saved && periods.includes(saved) ? saved : fallback) : null);
   const shownPeriod = period ?? fallback;
-  /** Fine della finestra quando si è scorso indietro; null = segue i dati più recenti. */
+  /** End of the window after scrolling back; null = follows the latest data. */
   const [viewEnd, setViewEnd] = useState<number | null>(null);
   const setPeriod = (p: GraphPeriod) => {
     setChosen(p);
@@ -102,8 +102,8 @@ export function SuperChartWidget({ dashId, widget, theme }: WidgetViewProps) {
   const titleColor = widgetColor(widget.color, theme);
   const showTitle = widget.showTitle !== false && label !== '' && !isTransparent(titleColor);
 
-  // Finestra temporale: storico = un periodo che finisce all'ultimo caricamento, oppure a viewEnd se si è
-  // scorso indietro; LIVE = ultimi punti ricevuti.
+  // Time window: history = one period ending at the last load, or at viewEnd after scrolling
+  // back; LIVE = latest points received.
   const [start, end] = useMemo(
     () => timeWindow(shownPeriod, data.streams, data.loadedAt, viewEnd),
     [shownPeriod, data.streams, data.loadedAt, viewEnd],
@@ -113,7 +113,7 @@ export function SuperChartWidget({ dashId, widget, theme }: WidgetViewProps) {
     [data.streams, start, end, shownPeriod],
   );
   const labels = yLabelCount(widget.height);
-  // La scala dello storico usa tutti i dati caricati: non cambia mentre si scorre.
+  // The history scale uses all the loaded data: it does not change while scrolling.
   const scaleData = shownPeriod === 'LIVE' ? shown : data.streams;
   const hiddenKey = hidden.join();
   const scales = useMemo(
@@ -124,7 +124,7 @@ export function SuperChartWidget({ dashId, widget, theme }: WidgetViewProps) {
   const empty = !streams.some((s, i) => hasValues(s, shown[i]));
   const loadedEmpty = !streams.some((s, i) => hasValues(s, data.streams[i]));
 
-  /** Scorrimento: dx in pixel, positivo = dito verso destra = indietro nel tempo. */
+  /** Scrolling: dx in pixels, positive = finger moving right = back in time. */
   const pan = (dx: number) => {
     if (shownPeriod === 'LIVE' || size.width === 0 || data.loadedAt === 0) return;
     const span = periodSpanMs(shownPeriod);
@@ -135,7 +135,7 @@ export function SuperChartWidget({ dashId, widget, theme }: WidgetViewProps) {
     const wanted = (viewEnd ?? latest) - (dx / size.width) * span;
     const next = Math.max(Math.min(wanted, latest), Math.min(latest, oldest + span));
     setViewEnd(next >= latest ? null : next);
-    // Vicino ai dati più vecchi già caricati: si chiede la pagina precedente.
+    // Close to the oldest loaded data: request the previous page.
     if (wanted - span < oldest + span / 2) data.loadOlder();
   };
   const gesture = useChartGesture(setCursor, pan, size.width, !loadedEmpty, shownPeriod !== 'LIVE');
@@ -151,8 +151,8 @@ export function SuperChartWidget({ dashId, widget, theme }: WidgetViewProps) {
 
   return (
     <View style={styles.frame}>
-      {/* Col cursore attivo, titolo e legenda diventano invisibili (lo spazio resta, così il grafico non si
-          sposta) e al loro posto compaiono i valori. */}
+      {/* With the cursor active, title and legend become invisible (their space stays, so the chart does not
+          move) and the values appear in their place. */}
       <View style={styles.header}>
         <View style={{ opacity: cursorTs !== null ? 0 : 1 }}>
           {showTitle && (
@@ -217,8 +217,8 @@ function timeWindow(period: GraphPeriod, streams: GraphPoint[][], loadedAt: numb
   if (period !== 'LIVE') {
     const span = periodSpanMs(period);
     let endTs = viewEnd ?? now;
-    // Dopo una riconnessione i dati ripartono dalla pagina più recente: la finestra scorsa indietro non
-    // deve finire oltre i dati caricati, altrimenti il grafico resta vuoto.
+    // After a reconnection the data restarts from the latest page: a window scrolled back must not
+    // end beyond the loaded data, otherwise the chart stays empty.
     let oldest = Infinity;
     for (const pts of streams) if (pts.length > 0) oldest = Math.min(oldest, pts[0]!.ts);
     if (viewEnd !== null && oldest !== Infinity) endTs = Math.min(now, Math.max(endTs, oldest + span));
@@ -237,10 +237,10 @@ function timeWindow(period: GraphPeriod, streams: GraphPoint[][], loadedAt: numb
 }
 
 /**
- * Gesti sul grafico:
- * - pressione prolungata → cursore, che segue il dito;
- * - trascinamento orizzontale (se `canPan`) → scorrimento nel tempo.
- * Finché nessuno dei due è partito, il gesto si cede allo scorrimento verticale della dashboard.
+ * Chart gestures:
+ * - long press → cursor, which follows the finger;
+ * - horizontal drag (if `canPan`) → scrolling in time.
+ * Until one of them starts, the gesture is released to the vertical scrolling of the dashboard.
  */
 function useChartGesture(
   setCursor: (x: number | null) => void,
@@ -335,7 +335,7 @@ function Legend({
   );
 }
 
-/** Punto più vicino a `ts` (per tempo). */
+/** Point closest to `ts` (in time). */
 function nearest(points: GraphPoint[], ts: number): GraphPoint | undefined {
   let best: GraphPoint | undefined;
   let bestDist = Infinity;
@@ -364,8 +364,8 @@ function CursorValues({
   theme: DashboardTheme;
   align: 'left' | 'center' | 'right';
 }) {
-  // Sovrapposto a titolo e legenda (e, se serve più spazio, alla parte alta del grafico): per ogni stream
-  // il nome e sotto il valore.
+  // Drawn over title and legend (and, if more room is needed, over the top of the chart): for each stream
+  // the name with the value below.
   return (
     <View
       style={[styles.legend, styles.values, { justifyContent: JUSTIFY[align], backgroundColor: withAlpha(theme.background, 0.75) }]}
@@ -415,7 +415,7 @@ function PeriodPicker({
 
 const JUSTIFY = { left: 'flex-start', center: 'center', right: 'flex-end' } as const;
 
-// ——— Disegno ———
+// ——— Drawing ———
 
 interface ChartSvgProps {
   width: number;
@@ -436,7 +436,7 @@ interface ChartSvgProps {
 
 function ChartSvg(p: ChartSvgProps) {
   const { width, height, streams, shown, visible, scales, start, end, period, theme } = p;
-  // Margini verticali: metà testo sopra; sotto anche le etichette dell'asse X.
+  // Vertical margins: half a text line above; below, also the X axis labels.
   const top = AXIS_FONT / 2;
   const bottom = p.xAxis ? AXIS_FONT + 8 : AXIS_FONT / 2;
   const plotH = Math.max(1, height - top - bottom);
@@ -477,7 +477,7 @@ function ChartSvg(p: ChartSvgProps) {
 function StreamGradients({ id, s, sc, theme, y0, y1 }: { id: number; s: ChartStream; sc: StreamScale; theme: DashboardTheme; y0: number; y1: number }) {
   const at = (v: number) => widgetColor(s.color, theme, { min: sc.lo, max: sc.hi, value: v });
   const mid = (sc.lo + sc.hi) / 2;
-  // In alto il colore del valore massimo, in basso quello del minimo. Il riempimento sfuma verso il basso.
+  // The color of the maximum at the top, of the minimum at the bottom. The fill fades towards the bottom.
   const top = isGradient(s.color) ? at(sc.hi) : widgetColor(s.color, theme);
   const middle = isGradient(s.color) ? at(mid) : top;
   const low = isGradient(s.color) ? at(sc.lo) : top;
@@ -507,7 +507,7 @@ interface Geometry {
 
 function renderSeries(s: ChartStream, sc: StreamScale, pts: GraphPoint[], id: number, g: Geometry) {
   const color = widgetColor(s.color, g.theme);
-  // Colori a gradiente: linea con gradiente verticale dal colore del minimo a quello del massimo.
+  // Gradient colors: line with a vertical gradient from the color of the minimum to that of the maximum.
   const line = isGradient(s.color) ? `url(#line${id})` : color;
   const baseY = g.yOf(sc, sc.lo);
 
@@ -519,7 +519,7 @@ function renderSeries(s: ChartStream, sc: StreamScale, pts: GraphPoint[], id: nu
     });
   }
 
-  // Segmenti continui: senza connectMissingPointsEnabled la linea si interrompe dove mancano punti.
+  // Continuous segments: without connectMissingPointsEnabled the line breaks where points are missing.
   const segments: GraphPoint[][] = [];
   let current: GraphPoint[] = [];
   for (const pt of pts) {
@@ -572,7 +572,7 @@ function renderSeries(s: ChartStream, sc: StreamScale, pts: GraphPoint[], id: nu
   });
 }
 
-/** Testo con alone del colore di sfondo, per le etichette degli assi. */
+/** Text with a halo in the background color, for the axis labels. */
 function HaloText({ x, y, text, color, anchor, theme }: { x: number; y: number; text: string; color: string; anchor: 'start' | 'middle' | 'end'; theme: DashboardTheme }) {
   return (
     <>
@@ -586,7 +586,7 @@ function HaloText({ x, y, text, color, anchor, theme }: { x: number; y: number; 
   );
 }
 
-/** Larghezza approssimata di un'etichetta (le cifre del font sono larghe circa 0,55 em). */
+/** Approximate width of a label (the font digits are about 0.55 em wide). */
 const textWidth = (s: string) => s.length * AXIS_FONT * 0.55;
 
 function YAxes(p: ChartSvgProps & { top: number; plotH: number }) {
@@ -607,10 +607,10 @@ function YAxes(p: ChartSvgProps & { top: number; plotH: number }) {
     );
   }
 
-  // Una colonna di etichette per stream, affiancate dal bordo verso l'interno.
+  // One column of labels per stream, side by side from the edge inwards.
   const out: ReactElement[] = [];
   const offset = { left: 4, right: width - 4 };
-  // Con 4 assi si disegna nell'ordine 0, 1, 3, 2: a destra il quarto stream sta sul bordo.
+  // With 4 axes the drawing order is 0, 1, 3, 2: on the right the fourth stream sits on the edge.
   const order = streams.map((_, i) => i);
   if (scales.streams.filter((sc) => sc.axis).length === 4 && streams.length === 4) order.splice(2, 2, 3, 2);
   order.forEach((i) => {
@@ -633,7 +633,7 @@ function YAxes(p: ChartSvgProps & { top: number; plotH: number }) {
         return { y, text: formatFixed(v, sc.axisDecimals), color: colorAt(v) };
       });
     } else {
-      // HEIGHT: etichette solo nella fascia dello stream, quante ce ne stanno.
+      // HEIGHT: labels only within the stream band, as many as fit.
       const bandPx = (sc.b1 - sc.b0) * plotH;
       const n = Math.max(1, Math.min(Math.floor(labels * (sc.b1 - sc.b0)), Math.floor(bandPx / (AXIS_FONT * 1.2))));
       entries = Array.from({ length: n + 1 }, (_, k) => {

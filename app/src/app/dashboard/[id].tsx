@@ -1,5 +1,5 @@
-// Dashboard: barra delle schede (se presenti) e griglia con i widget.
-// Colori: tema della dashboard (Blynk / BlynkLight, enum Theme del server) e colori del widget Tabs.
+// Dashboard: tab bar (if any) and the widget grid.
+// Colors: dashboard theme (Blynk / BlynkLight, server Theme enum) and colors of the Tabs widget.
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
@@ -29,12 +29,12 @@ export default function DashboardScreen() {
   const [boxOpen, setBoxOpen] = useState(false);
   const router = useRouter();
   const editable = dash !== undefined && isEditableDash(dash.id, editableDashIds);
-  // Si modifica solo a progetto fermo. Avviarlo (anche dalle impostazioni) chiude la modifica.
+  // Editing only while the project is stopped. Starting it (also from the settings) ends editing.
   const stopped = dash?.isActive === false;
   const editing = editRequested && editable && stopped;
-  // Stabile durante i gesti di spostamento: la griglia ricrea i gestori quando cambiano le callback.
-  // Callback stabili durante i gesti: se l'oggetto cambiasse a ogni render, la griglia ricreerebbe i PanResponder
-  // a metà trascinamento e il gesto si interromperebbe. `editing` resta fuori dalle dipendenze.
+  // Stable during move gestures: the grid recreates its handlers when the callbacks change.
+  // Stable callbacks during gestures: if the object changed on every render, the grid would recreate the
+  // PanResponders mid-drag and the gesture would break. `editing` stays out of the dependencies.
   const editActions = useMemo<GridEdit>(
     () => ({
       onSettings: (w) => router.push(`/edit/${id}/${w.id}`),
@@ -71,8 +71,8 @@ export default function DashboardScreen() {
                   <MaterialCommunityIcons name="plus" size={26} color="#1D1E22" />
                 </Pressable>
               )}
-              {/* Matita (o "fine") solo a progetto fermo; in esecuzione restano solo avvia/ferma e device.
-                  In modifica avvia/ferma sparisce: si torna alla vista normale con "fine". */}
+              {/* Pencil (or "done") only while the project is stopped; while running only start/stop and devices.
+                  While editing start/stop disappears: "done" goes back to the normal view. */}
               {editable && stopped && (
                 <Pressable onPress={() => setEditing(!editing)} hitSlop={10} accessibilityLabel={editing ? te.done : te.edit}>
                   <MaterialCommunityIcons name={editing ? 'check' : 'pencil'} size={24} color="#1D1E22" />
@@ -106,7 +106,7 @@ export default function DashboardScreen() {
       {boxOpen && <WidgetBox dash={dash} tab={tabs.length > 0 ? tab : undefined} theme={theme} onClose={() => setBoxOpen(false)} />}
       {tabs.length > 0 && (
         <ScrollView horizontal style={{ flexGrow: 0, backgroundColor: tabBg }} contentContainerStyle={styles.tabs}>
-          {/* Nel JSON gli id delle schede valgono tutti 0: il tabId dei widget è la posizione della scheda. */}
+          {/* In the JSON all tab ids are 0: the tabId of a widget is the position of its tab. */}
           {tabs.map((t, i) => (
             <Pressable key={i} onPress={() => setTab(i)} style={[styles.tab, i === tab && { borderBottomColor: tabUnderline }]}>
               <Text style={[styles.tabText, { color: i === tab ? tabActive : tabText }]}>{t.label.toUpperCase()}</Text>

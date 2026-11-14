@@ -20,8 +20,8 @@ index 460fb7b..beb6ee5 100644
    }
 -  val mediaSourceFactory = buildMediaSourceFactory(context, dataSourceFactory)
    val mediaItem = videoSource.toMediaItem(context)
-+  // Blynk Legacy: RTSP sempre con RTP su TCP. Con UDP dietro un NAT (emulatore, accesso da fuori) i pacchetti
-+  // non arrivano, e il ripiego automatico di Media3 su TCP rifà la SETUP senza Authorization (400).
++  // TinkerBlink: always play RTSP with RTP over TCP. Over UDP behind a NAT (emulator, remote access) the packets
++  // do not arrive, and the automatic Media3 fallback to TCP repeats the SETUP without Authorization (400).
 +  if (videoSource.uri?.scheme?.startsWith("rtsp") == true) {
 +    return androidx.media3.exoplayer.rtsp.RtspMediaSource.Factory()
 +      .setForceUseRtpTcp(true)

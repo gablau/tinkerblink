@@ -1,7 +1,7 @@
-// Stato dei device di una dashboard:
-// - nell'intestazione l'icona della scheda con un badge rosso = numero di device offline;
-// - toccandola si apre sotto l'intestazione l'elenco dei device con "Online since…", "Offline since…"
-//   oppure "Wasn't online yet" e un pallino verde (online) o grigio (offline).
+// Device status of a dashboard:
+// - in the header, the board icon with a red badge = number of offline devices;
+// - tapping it opens the device list below the header with "Online since…", "Offline since…"
+//   or "Never connected" and a green (online) or grey (offline) dot.
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { t } from '@/i18n';
@@ -23,7 +23,7 @@ const CONNECTION_ICON: Record<string, keyof typeof MaterialCommunityIcons.glyphM
   GSM: 'signal-cellular-3',
 };
 
-/** Pulsante dell'intestazione con il badge dei device offline. */
+/** Header button with the badge of the offline devices. */
 export function DevicesButton({ dash, open, onPress }: { dash: Dashboard; open: boolean; onPress: () => void }) {
   const ids = (dash.devices ?? []).map((d) => d.id);
   const offline = useOfflineCount(dash.id, ids);
@@ -66,7 +66,7 @@ function DeviceRow({ dashId, device, theme }: { dashId: number; device: Device; 
   );
 }
 
-/** Elenco dei device sotto l'intestazione. */
+/** Device list below the header. */
 export function DevicesPanel({ dash, theme }: { dash: Dashboard; theme: DashboardTheme }) {
   const bg = theme.light ? '#E6ECF0' : '#191A1F';
   return (
@@ -79,7 +79,7 @@ export function DevicesPanel({ dash, theme }: { dash: Dashboard; theme: Dashboar
 }
 
 const styles = StyleSheet.create({
-  // Spazio a destra e in basso: il badge sporge dall'icona e altrimenti verrebbe tagliato dall'intestazione.
+  // Space on the right and at the bottom: the badge sticks out of the icon and would be cut by the header.
   button: { paddingLeft: 4, paddingRight: 12, paddingBottom: 6 },
   badge: {
     position: 'absolute',

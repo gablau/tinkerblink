@@ -1,4 +1,4 @@
-// Widget di visualizzazione: Value Display, Labeled Value, LED.
+// Display widgets: Value Display, Labeled Value, LED.
 import { useState } from 'react';
 import { StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import { useWidgetProps, useWidgetValue } from '@/session/hooks';
@@ -52,14 +52,14 @@ export function LabeledValue({ dashId, widget, theme }: WidgetViewProps) {
   );
 }
 
-/** LED: cerchio con bordo, riempito con il colore del widget e opacità = valore / 255. */
+/** LED: circle with a border, filled with the widget color and opacity = value / 255. */
 export function Led({ dashId, widget, theme }: WidgetViewProps) {
   const value = useWidgetValue(dashId, widget);
   const props = useWidgetProps(dashId, widget);
   const label = useLabel(dashId, widget);
   const brightness = Math.max(0, Math.min(255, parseFloatValue(value?.[0] ?? '') ?? 0));
   const color = widgetColor(props.color ?? widget.color, theme, { min: 0, max: 255, value: brightness });
-  // Il cerchio scala con la cella: 80% del lato più corto dello spazio disponibile.
+  // The circle scales with the cell: 80% of the shorter side of the available space.
   const [size, setSize] = useState(0);
   const onLayout = (e: LayoutChangeEvent) =>
     setSize(Math.floor(Math.min(e.nativeEvent.layout.width, e.nativeEvent.layout.height) * 0.8));

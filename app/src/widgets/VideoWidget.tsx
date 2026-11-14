@@ -1,11 +1,11 @@
-// Video Streaming: con la dashboard attiva lo stream parte da solo,
-// un tocco mette in pausa o riprende, durante il caricamento c'è l'indicatore, in caso di errore un messaggio.
+// Video Streaming: while the dashboard is running the stream starts by itself,
+// a tap pauses or resumes it, a spinner shows while loading and a message on error.
 //
-// Player: expo-video (Media3/ExoPlayer su Android) con il modulo RTSP aggiunto da plugins/withMedia3Rtsp.js.
-// Media3 prova RTP su UDP e, se non arriva nulla, passa a TCP. L'audio è disattivato.
-// Il browser non riproduce RTSP: sul web si mostra un avviso (servirebbe un gateway).
+// Player: expo-video (Media3/ExoPlayer on Android) with the RTSP module added by plugins/withMedia3Rtsp.js.
+// Media3 tries RTP over UDP and, if nothing arrives, switches to TCP. Audio is muted.
+// Browsers cannot play RTSP: on the web a notice is shown (a gateway would be needed).
 //
-// L'URL contiene le credenziali della telecamera: non va mai mostrato né scritto nei log.
+// The URL contains the camera credentials: never show it or write it to the logs.
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useEvent } from 'expo';
 import { useVideoPlayer, VideoView } from 'expo-video';
@@ -15,7 +15,7 @@ import { useWidgetProps } from '@/session/hooks';
 import { FONT } from '@/ui/fonts';
 import { useLabel, WidgetFrame, type WidgetViewProps } from './WidgetFrame';
 
-/** URL accettati: si controlla solo lo schema. */
+/** Accepted URLs: only the scheme is checked. */
 function validUrl(url: unknown): string | null {
   return typeof url === 'string' && /^(rtsp|rtsps|http|https):\/\//i.test(url.trim()) ? url.trim() : null;
 }

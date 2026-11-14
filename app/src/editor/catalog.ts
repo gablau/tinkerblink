@@ -1,9 +1,9 @@
-// Catalogo dei widget che si possono aggiungere (fase 3 dell'editor), il "Widget Box":
-// gruppi, nomi, prezzo in Energy (Widget.getPrice del server), widget ammessi una sola volta per progetto
-// e valori iniziali di ogni tipo, con i nomi dei campi del modello del server
-// (cc.blynk.server.core.model.widgets: per esempio min / max).
-// Esclusi: widget che la nuova app non disegna o non sa configurare (Eventor, Reports, Device Selector / Tiles)
-// e quelli segnati "da non implementare" (BLE, Bluetooth, Twitter, Text, Switch).
+// Catalog of the widgets that can be added (editor phase 3), the "Widget Box":
+// groups, names, Energy price (Widget.getPrice on the server), widgets allowed only once per project
+// and initial values of each type, with the field names of the server model
+// (cc.blynk.server.core.model.widgets: for example min / max).
+// Left out: widgets that the app does not draw or cannot configure (Eventor, Reports, Device Selector / Tiles)
+// and the ones marked "not to implement" (BLE, Bluetooth, Twitter, Text, Switch).
 import type { Dashboard, Widget } from '@/model/profile';
 import type { DashboardTheme, WidgetGroup } from '@/ui/dashboardTheme';
 import { cssToRgba } from './colors';
@@ -105,13 +105,13 @@ export const CATALOG: CatalogGroup[] = [
   },
 ];
 
-/** Prezzo in Energy (anche per i widget fuori catalogo già presenti, restituito eliminandoli). */
+/** Energy price (also for widgets outside the catalog already present, refunded when they are deleted). */
 export function priceOf(type: string): number {
   for (const g of CATALOG) for (const i of g.items) if (i.type === type) return i.price;
   return 0;
 }
 
-/** Ammessi una sola volta per progetto. */
+/** Allowed only once per project. */
 const SINGLE = new Set([
   'TWITTER', 'NOTIFICATION', 'EMAIL', 'BRIDGE', 'RTC', 'BLUETOOTH', 'BLUETOOTH_SERIAL', 'EVENTOR', 'GPS_STREAMING', 'LIGHT',
   'PROXIMITY', 'TEMPERATURE', 'BAROMETER', 'ACCELEROMETER', 'GRAVITY', 'HUMIDITY', 'TABS', 'MAP', 'DEVICE_TILES', 'REPORT',
@@ -121,7 +121,7 @@ export function isSingle(type: string): boolean {
   return SINGLE.has(type);
 }
 
-/** Widget con un solo pin (OnePinWidget del server). */
+/** Widgets with a single pin (OnePinWidget on the server). */
 const ONE_PIN = new Set([
   'ACCELEROMETER', 'BAROMETER', 'BUTTON', 'GPS_STREAMING', 'GPS_TRIGGER', 'GRAVITY', 'HUMIDITY', 'IMAGE', 'LED', 'LIGHT', 'MAP',
   'MENU', 'NUMBER_INPUT', 'PLAYER', 'PROXIMITY', 'SEGMENTED_CONTROL', 'SLIDER', 'VERTICAL_SLIDER', 'STEP', 'VERTICAL_STEP',
@@ -132,7 +132,7 @@ const ONE_PIN = new Set([
 const emptyPin = (max: number) => ({ pin: -1, pwmMode: false, rangeMappingOn: false, min: 0, max });
 const button = { textColor: undefined, backgroundColor: undefined };
 
-/** Campi propri di ogni tipo, con i valori iniziali. */
+/** Fields specific to each type, with their initial values. */
 function typeDefaults(type: string): Record<string, unknown> {
   switch (type) {
     case 'BUTTON':
@@ -204,7 +204,7 @@ function typeDefaults(type: string): Record<string, unknown> {
     case 'GPS_STREAMING':
       return { accuracy: 1, interval: 30000 };
     case 'GPS_TRIGGER':
-      // 100 / 200 = coordinate non valide: zona da impostare.
+      // 100 / 200 = invalid coordinates: area still to be set.
       return { triggerOnEnter: true, triggerLat: 100, triggerLon: 200, triggerRadius: 500 };
     case 'TEMPERATURE':
       return { isCelsius: true, frequency: 100 };
@@ -220,7 +220,7 @@ function typeDefaults(type: string): Record<string, unknown> {
   }
 }
 
-/** Id nuovo: casuale sotto 200000 e non usato nella dashboard. */
+/** New id: random below 200000 and not used in the dashboard. */
 function newId(dash: Dashboard): number {
   const used = new Set(dash.widgets.map((w) => w.id));
   for (;;) {
@@ -229,7 +229,7 @@ function newId(dash: Dashboard): number {
   }
 }
 
-/** Pin azzerato (come un widget appena creato): pin -1, niente pinType né valore; restano intervallo e opzioni. */
+/** Cleared pin (like a newly created widget): pin -1, no pinType or value; range and options stay. */
 function clearPin<T extends Record<string, unknown>>(p: T): T {
   const next: Record<string, unknown> = { ...p, pin: -1 };
   delete next.pinType;
@@ -238,9 +238,9 @@ function clearPin<T extends Record<string, unknown>>(p: T): T {
 }
 
 /**
- * Copia di un widget ("duplica"): tutte le proprietà tranne i pin, che restano da scegliere
- * (anche quelli dei widget a più pin e degli stream del SuperChart); nuovo id, primo posto libero nella stessa
- * scheda, senza valore.
+ * Copy of a widget ("duplicate"): every property except the pins, which are left to choose
+ * (also those of multi-pin widgets and of the SuperChart streams); new id, first free spot in the same
+ * tab, no value.
  */
 export function duplicateOf(w: Widget, dash: Dashboard): Widget {
   const hasTabs = dash.widgets.some((x) => x.type === 'TABS');
@@ -259,13 +259,13 @@ export function duplicateOf(w: Widget, dash: Dashboard): Widget {
 
 export interface NewWidgetPlan {
   widget: Widget;
-  /** Widget da spingere per fare posto (solo per il Tabs, che deve stare nella riga 0). */
+  /** Widgets to push down to make room (only for Tabs, which must be in row 0). */
   moves: Map<number, Rect>;
 }
 
 /**
- * Widget nuovo con i valori iniziali, nel primo posto libero della scheda attiva. Il Tabs va nella riga 0
- * larga 8 colonne: gli altri widget scendono di quanto serve (reflow).
+ * New widget with the initial values, in the first free spot of the active tab. Tabs goes in row 0,
+ * 8 columns wide: the other widgets move down as much as needed (reflow).
  */
 export function planNewWidget(type: string, dash: Dashboard, tab: number | undefined, theme: DashboardTheme): NewWidgetPlan {
   const [width, height] = defaultSize(type);

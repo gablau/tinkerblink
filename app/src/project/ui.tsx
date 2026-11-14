@@ -1,4 +1,4 @@
-// Pezzi comuni delle schermate di progetti e device: campi del device, token, pulsanti e conferme.
+// Shared parts of the project and device screens: device fields, token, buttons and confirmations.
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Platform, Pressable, Share, StyleSheet, Text, View } from 'react-native';
@@ -10,9 +10,9 @@ import { withAlpha } from '@/widgets/color';
 import { BOARD_TYPES, CONNECTION_TYPES, isWifiBoard } from './boardTypes';
 import { tp } from './strings';
 
-/** Nome, modello e connessione di un device (schermata del progetto nuovo e del device). */
+/** Name, board and connection of a device (new project screen and device screen). */
 export function DeviceFields({ value, onChange, ct }: { value: NewDevice; onChange: (v: NewDevice) => void; ct: ControlTheme }) {
-  // Un nome di modello sconosciuto al server (non dovrebbe capitare) resta visibile come voce in più.
+  // A board name unknown to the server (it should not happen) stays visible as an extra item.
   const boards = BOARD_TYPES.includes(value.boardType) ? BOARD_TYPES : [value.boardType, ...BOARD_TYPES];
   return (
     <>
@@ -24,7 +24,7 @@ export function DeviceFields({ value, onChange, ct }: { value: NewDevice; onChan
           title={tp.hardwareModel}
           value={value.boardType}
           options={boards.map((b) => ({ value: b, label: b }))}
-          // Scegliendo una scheda Wi-Fi la connessione passa a Wi-Fi.
+          // Choosing a Wi-Fi board switches the connection to Wi-Fi.
           onChange={(b) => onChange({ ...value, boardType: String(b), connectionType: isWifiBoard(String(b)) ? 'WI_FI' : value.connectionType })}
           ct={ct}
         />
@@ -43,8 +43,8 @@ export function DeviceFields({ value, onChange, ct }: { value: NewDevice; onChan
 }
 
 /**
- * Token del device: nascosto finché non si tocca "Mostra", selezionabile e condivisibile (per copiarlo nel
- * firmware). Non finisce mai nei log.
+ * Device token: hidden until "Show" is tapped, selectable and shareable (to copy it into the
+ * firmware). It never ends up in the logs.
  */
 export function TokenField({ token, ct }: { token: string | undefined; ct: ControlTheme }) {
   const [shown, setShown] = useState(false);
@@ -86,7 +86,7 @@ export function SmallButton({
   );
 }
 
-/** Conferma prima di un'azione distruttiva (sul web con confirm del browser). */
+/** Confirmation before a destructive action (on the web with the browser confirm). */
 export function confirmDestructive(title: string, message: string, action: string, onConfirm: () => void): void {
   if (Platform.OS === 'web') {
     if (globalThis.confirm?.(`${title}\n\n${message}`)) onConfirm();
@@ -99,8 +99,8 @@ export function confirmDestructive(title: string, message: string, action: strin
 }
 
 /**
- * Chiede conferma prima di uscire con modifiche non salvate. `leave()` va chiamato prima di una navigazione
- * voluta (dopo il salvataggio), che altrimenti verrebbe fermata.
+ * Asks for confirmation before leaving with unsaved changes. Call `leave()` before an intended navigation
+ * (after saving), which would otherwise be blocked.
  */
 export function useUnsavedGuard(dirty: boolean): () => void {
   const navigation = useNavigation();

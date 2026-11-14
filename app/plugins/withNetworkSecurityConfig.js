@@ -1,10 +1,10 @@
-// Config plugin: configurazione di rete Android (network_security_config) diversa per release e debug.
-// - release (src/main): solo certificati di sistema e niente traffico in chiaro, come il default di Android.
-// - debug (src/debug, sostituisce la risorsa di main nelle build di debug): anche traffico in chiaro (Metro su
-//   http://localhost:8081) e certificati installati dall'utente, così la dev build si collega a un blynk-server
-//   locale con un certificato firmato da una CA di prova installata sul dispositivo (Impostazioni → Sicurezza →
-//   Installa un certificato → Certificato CA).
-// Con una network_security_config Android ignora android:usesCleartextTraffic, per questo il chiaro va qui.
+// Config plugin: Android network configuration (network_security_config), different for release and debug.
+// - release (src/main): system certificates only and no cleartext traffic, like the Android default.
+// - debug (src/debug, replaces the main resource in debug builds): also cleartext traffic (Metro on
+//   http://localhost:8081) and user-installed certificates, so the dev build can reach a local blynk-server
+//   with a certificate signed by a test CA installed on the device (Settings → Security →
+//   Install a certificate → CA certificate).
+// With a network_security_config Android ignores android:usesCleartextTraffic, so cleartext is enabled here.
 const fs = require('fs');
 const path = require('path');
 const { withAndroidManifest, withDangerousMod } = require('expo/config-plugins');

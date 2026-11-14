@@ -1,5 +1,6 @@
 export interface SensorEvent {
-  /** Costante di android.hardware.Sensor (1 accelerometro, 9 gravità, 5 luce, 8 prossimità, 6 pressione, 12 umidità, 13 temperatura). */
+  /** android.hardware.Sensor constant (1 accelerometer, 9 gravity, 5 light, 8 proximity, 6 pressure,
+   *  12 humidity, 13 temperature). */
   type: number;
   values: number[];
   maxRange: number;

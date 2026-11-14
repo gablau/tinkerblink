@@ -1,9 +1,9 @@
-// Controlli che scrivono valori numerici: Slider, Vertical Slider, Step (H e V) e zeRGBa (modelli
-// Slider, VerticalSlider, Step, VerticalStep e RGB del server). Regole in docs/widgets.md.
+// Controls that write numbers: Slider, Vertical Slider, Step (H and V) and zeRGBa (server models
+// Slider, VerticalSlider, Step, VerticalStep and RGB). Rules in docs/widgets.md.
 //
-// - Gli slider e lo zeRGBa con sendOnReleaseOn scrivono solo al rilascio; altrimenti anche durante il
-//   trascinamento, al massimo una volta ogni `frequency` ms.
-// - Mentre il dito è sul controllo la dashboard non scorre (scrollLock).
+// - Sliders and zeRGBa with sendOnReleaseOn write only on release; otherwise also while
+//   dragging, at most once every `frequency` ms.
+// - While a finger is on the control the dashboard does not scroll (scrollLock).
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, type GestureResponderEvent, type LayoutChangeEvent } from 'react-native';
@@ -20,16 +20,16 @@ import { useLabel, type WidgetViewProps } from './WidgetFrame';
 
 const num = (v: unknown, fallback: number) => (typeof v === 'number' && Number.isFinite(v) ? v : fallback);
 
-/** Dimensioni della maniglia degli slider. */
+/** Size of the slider handle. */
 const HANDLE_LONG = 64;
 const HANDLE_SHORT = 28;
 const STRIP_LONG = 10;
 const STRIP_SHORT = 3;
-/** Spessore della traccia (8 dp) e della linea di sfondo (2 dp, cioè 8 dp meno 3 dp per lato). */
+/** Thickness of the track (8 dp) and of the background line (2 dp, i.e. 8 dp minus 3 dp per side). */
 const TRACK = 8;
 const TRACK_LINE = 2;
 
-/** Titolo a sinistra e valore a destra (oppure centrato sotto). */
+/** Title on the left and value on the right (or centered below). */
 function Header({ label, value, theme, centered }: { label: string; value?: string; theme: DashboardTheme; centered?: boolean }) {
   if (centered) {
     return (
@@ -54,8 +54,8 @@ function Header({ label, value, theme, centered }: { label: string; value?: stri
 }
 
 /**
- * Trascinamento su un'area: chiama onMove con la posizione del dito relativa all'area (i figli hanno
- * pointerEvents="none", quindi locationX/Y sono sempre relative al contenitore) e onEnd al rilascio.
+ * Dragging over an area: calls onMove with the finger position relative to the area (the children have
+ * pointerEvents="none", so locationX/Y are always relative to the container) and onEnd on release.
  */
 function useDrag(onMove: (x: number, y: number) => void, onEnd: () => void) {
   const lock = useScrollLock();
@@ -77,7 +77,7 @@ function useDrag(onMove: (x: number, y: number) => void, onEnd: () => void) {
   };
 }
 
-/** Invio durante il trascinamento: al massimo uno ogni `ms`. */
+/** Sending while dragging: at most once every `ms`. */
 export function useThrottle(ms: number) {
   const last = useRef(0);
   return (fn: () => void) => {
@@ -94,7 +94,7 @@ function useSize() {
   return [size, onLayout] as const;
 }
 
-/** Maniglia: pillola del colore di sfondo, bordo e tre righine nel colore del widget. */
+/** Handle: a pill in the background color, with border and three small lines in the widget color. */
 function Handle({ color, theme, vertical, width, height }: { color: string; theme: DashboardTheme; vertical: boolean; width: number; height: number }) {
   const strip = vertical ? { width: STRIP_LONG, height: STRIP_SHORT } : { width: STRIP_SHORT, height: STRIP_LONG };
   return (
@@ -112,7 +112,7 @@ function Handle({ color, theme, vertical, width, height }: { color: string; them
   );
 }
 
-/** Logica comune di Slider e Vertical Slider. */
+/** Logic shared by Slider and Vertical Slider. */
 function useSlider(dashId: number, widget: WidgetViewProps['widget'], theme: DashboardTheme) {
   const value = useWidgetValue(dashId, widget);
   const props = useWidgetProps(dashId, widget);
@@ -126,7 +126,7 @@ function useSlider(dashId: number, widget: WidgetViewProps['widget'], theme: Das
   const hi = Math.max(min, max);
   const current = Math.min(Math.max(parseFloatValue(value?.[0] ?? '') ?? min, lo), hi);
   const [drag, setDragState] = useState<number | null>(null);
-  // Copia nel ref: al rilascio si scrive il valore senza effetti dentro setState.
+  // Copy in a ref: on release the value is written without side effects inside setState.
   const dragRef = useRef<number | null>(null);
   const setDrag = (v: number | null) => {
     dragRef.current = v;
@@ -136,7 +136,7 @@ function useSlider(dashId: number, widget: WidgetViewProps['widget'], theme: Das
   const fraction = max === min ? 0 : (shown - min) / (max - min);
   const color = widgetColor(props.color ?? widget.color, theme, { min, max, value: shown });
 
-  /** Nuova posizione (0-1): valore arrotondato ai decimali del widget. */
+  /** New position (0-1): value rounded to the widget decimals. */
   const moveTo = (f: number) => {
     const clamped = Math.min(Math.max(f, 0), 1);
     const v = Number(formatMaxDigits(min + clamped * (max - min), digits));
@@ -152,7 +152,7 @@ function useSlider(dashId: number, widget: WidgetViewProps['widget'], theme: Das
   return { fraction, color, moveTo, release, text };
 }
 
-/** Slider orizzontale: traccia da 8 dp centrata, maniglia 64 × 28 dp. */
+/** Horizontal slider: centered 8 dp track, 64 × 28 dp handle. */
 export function SliderWidget({ dashId, widget, theme }: WidgetViewProps) {
   const label = useLabel(dashId, widget);
   const s = useSlider(dashId, widget, theme);
@@ -179,7 +179,7 @@ export function SliderWidget({ dashId, widget, theme }: WidgetViewProps) {
   );
 }
 
-/** Slider verticale: titolo, valore centrato, traccia verticale; il minimo in basso. */
+/** Vertical slider: title, centered value, vertical track; the minimum at the bottom. */
 export function VerticalSliderWidget({ dashId, widget, theme }: WidgetViewProps) {
   const label = useLabel(dashId, widget);
   const s = useSlider(dashId, widget, theme);
@@ -208,9 +208,9 @@ export function VerticalSliderWidget({ dashId, widget, theme }: WidgetViewProps)
 }
 
 /**
- * Step H e V: due pulsanti che tolgono o aggiungono `step`. Con isLoopOn oltre il massimo
- * si riparte dal minimo e viceversa; altrimenti ci si ferma ai limiti. Si invia il nuovo valore (#.#####),
- * oppure solo il passo (+step / −step) con isSendStep. Il valore mostrato ha al massimo 2 decimali.
+ * Step H and V: two buttons that subtract or add `step`. With isLoopOn, going past the maximum
+ * wraps to the minimum and vice versa; otherwise it stops at the limits. The new value is sent (#.#####),
+ * or only the step (+step / −step) with isSendStep. The shown value has at most 2 decimals.
  */
 export function StepWidget({ dashId, widget, theme }: WidgetViewProps) {
   const label = useLabel(dashId, widget);
@@ -223,8 +223,8 @@ export function StepWidget({ dashId, widget, theme }: WidgetViewProps) {
   const current = parseFloatValue(value?.[0] ?? '') ?? min;
   const color = widgetColor(props.color ?? widget.color, theme, { min, max, value: current });
   const vertical = widget.type === 'VERTICAL_STEP';
-  // Attenzione al nome: isArrowsOn = true mostra + e −, false le frecce
-  // (comportamento atteso dai progetti creati con l'app Blynk Legacy).
+  // Mind the name: isArrowsOn = true shows + and −, false shows arrows
+  // (the behaviour expected by projects created with the Blynk Legacy app).
   const arrows = widget.isArrowsOn !== true;
 
   const press = (dir: 1 | -1) => {
@@ -273,7 +273,7 @@ export function StepWidget({ dashId, widget, theme }: WidgetViewProps) {
 
 // ——— zeRGBa ———
 
-/** HSV (h 0-360, s e v 0-1) → [r, g, b] 0-255. */
+/** HSV (h 0-360, s and v 0-1) → [r, g, b] 0-255. */
 function hsvToRgb(h: number, s: number, v: number): [number, number, number] {
   const c = v * s;
   const hh = (((h % 360) + 360) % 360) / 60;
@@ -307,11 +307,11 @@ interface RgbPin {
 
 
 /**
- * RGB (zeRGBa): tavolozza con la tinta in orizzontale e la luminosità in verticale
- * (saturazione piena) su un rettangolo arrotondato, più un pallino bianco in alto a sinistra; maniglia rotonda del
- * colore scelto con bordo bianco. Il colore dipende solo dalla posizione del dito. Ogni componente
- * 0-255 si converte nell'intervallo min-max del suo pin. Modalità unita: "r\0g\0b" sul primo pin;
- * splitMode: un valore per pin.
+ * RGB (zeRGBa): palette with hue horizontally and brightness vertically
+ * (full saturation) on a rounded rectangle, plus a white dot at the top left; round handle in the
+ * chosen color with a white border. The color depends only on the finger position. Each 0-255
+ * component is converted to the min-max range of its pin. Merged mode: "r\0g\0b" on the first pin;
+ * splitMode: one value per pin.
  */
 export function RgbWidget({ dashId, widget, theme }: WidgetViewProps) {
   const label = useLabel(dashId, widget);
@@ -324,7 +324,7 @@ export function RgbWidget({ dashId, widget, theme }: WidgetViewProps) {
   const keys = split ? pins.map(keyOf) : [keyOf(pins[0])];
   const values = usePinValues(keys);
   const range = (i: number) => ({ min: num(pins[i]?.min, 0), max: num(pins[i]?.max, 255) });
-  /** Valore del pin → 0-255. */
+  /** Pin value → 0-255. */
   const to255 = (i: number, v: number) => {
     const { min, max } = range(i);
     return max === min ? 0 : ((v - min) * 255) / (max - min);
@@ -340,7 +340,7 @@ export function RgbWidget({ dashId, widget, theme }: WidgetViewProps) {
   const rgb = drag ?? fromServer;
 
   const send = (c: [number, number, number]) => {
-    // 0-255 → intervallo del pin, numero intero.
+    // 0-255 → pin range, integer.
     const out = c.map((v, i) => {
       const { min, max } = range(i);
       return String(Math.round((v * (max - min)) / 255 + min));
@@ -357,7 +357,7 @@ export function RgbWidget({ dashId, widget, theme }: WidgetViewProps) {
   const [size, onLayout] = useSize();
   const handleR = Math.max(8, Math.min(24, size.w / 6, size.h / 6));
   const dotR = Math.min(8, handleR / 2);
-  // Tavolozza: tutta l'area, rientrata del raggio della maniglia.
+  // Palette: the whole area, inset by the handle radius.
   const gx = handleR;
   const gy = handleR;
   const gw = Math.max(1, size.w - handleR * 2);
@@ -384,7 +384,7 @@ export function RgbWidget({ dashId, widget, theme }: WidgetViewProps) {
     },
   );
 
-  // Posizione della maniglia dal colore corrente.
+  // Handle position from the current color.
   const isWhite = rgb[0] >= 250 && rgb[1] >= 250 && rgb[2] >= 250;
   const [h, , v] = rgbToHsv(rgb[0], rgb[1], rgb[2]);
   const hx = isWhite ? dotX : gx + (h / 360) * gw;
@@ -399,7 +399,7 @@ export function RgbWidget({ dashId, widget, theme }: WidgetViewProps) {
           {label.toUpperCase()}
         </Text>
       )}
-      {/* Riga dei valori: spazi uguali, due prima del primo numero e uno dopo gli altri. */}
+      {/* Value row: equal spaces, two before the first number and one after the others. */}
       <View style={styles.rgbRow}>
         <View style={styles.rgbGap2} />
         {rgb.flatMap((c, i) => [

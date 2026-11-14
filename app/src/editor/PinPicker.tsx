@@ -1,7 +1,7 @@
-// Selettore del pin: tipi disponibili (Digitale / Analogico /
-// Virtuale) e pin della scheda del device, filtrati per tipo di widget. Prima voce "Nessuno". Accanto a ogni pin:
-// IN USO (con i widget che lo usano), OCCUPATO (altro pin dello stesso
-// widget: non selezionabile), PWM.
+// Pin picker: available types (Digital / Analog /
+// Virtual) and pins of the device's board, filtered by widget type. First entry "None". Next to each pin:
+// USED (with the widgets using it), BUSY (another pin of the same
+// widget: not selectable), PWM.
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';

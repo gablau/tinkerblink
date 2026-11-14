@@ -1,5 +1,5 @@
-// Controlli e widget di interfaccia: Button, Styled Button, Menu, Segmented Switch, Time Input, Terminal.
-// Le scritture passano da useWritePin (comando HARDWARE): il valore mostrato si aggiorna subito.
+// Controls and interface widgets: Button, Styled Button, Menu, Segmented Switch, Time Input, Terminal.
+// Writes go through useWritePin (HARDWARE command): the shown value updates right away.
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, type LayoutChangeEvent } from 'react-native';
 import { t } from '@/i18n';
@@ -22,7 +22,7 @@ function minMax(widget: Widget): { min: number; max: number } {
   };
 }
 
-/** Stato acceso/spento: acceso quando il valore coincide con `max` (di solito 1). */
+/** On/off state: on when the value equals `max` (usually 1). */
 function useOn(dashId: number, widget: Widget): boolean {
   const value = useWidgetValue(dashId, widget);
   const n = parseFloatValue(value?.[0] ?? '');
@@ -32,9 +32,9 @@ function useOn(dashId: number, widget: Widget): boolean {
 }
 
 /**
- * Comportamento dei pulsanti:
- * - push: `max` alla pressione e `min` al rilascio;
- * - switch: ogni tocco inverte lo stato.
+ * Button behaviour:
+ * - push: `max` on press and `min` on release;
+ * - switch: every tap toggles the state.
  */
 function useButtonPress(dashId: number, widget: Widget, on: boolean) {
   const write = useWritePin(dashId, widget);
@@ -46,8 +46,8 @@ function useButtonPress(dashId: number, widget: Widget, on: boolean) {
 }
 
 /**
- * Button: raggio 50% con bordo colorato; acceso = pieno. L'altezza non supera la
- * larghezza: in una cella più alta che larga (2×2) è un cerchio, in una più larga (4×2) una pillola.
+ * Button: 50% radius with a colored border; on = filled. The height never exceeds the
+ * width: in a cell taller than wide (2×2) it is a circle, in a wider one (4×2) a pill.
  */
 export function ButtonWidget({ dashId, widget, theme }: WidgetViewProps) {
   const props = useWidgetProps(dashId, widget);
@@ -91,7 +91,7 @@ interface ButtonState {
   backgroundColor?: number;
 }
 
-/** Styled Button: colori di testo e sfondo diversi per acceso/spento, stile pieno o solo bordo. */
+/** Styled Button: different text and background colors for on/off, filled or outline style. */
 export function StyledButtonWidget({ dashId, widget, theme }: WidgetViewProps) {
   const props = useWidgetProps(dashId, widget);
   const label = useLabel(dashId, widget);
@@ -125,7 +125,7 @@ function useLabels(dashId: number, widget: Widget): string[] {
   return props.labels ? props.labels.split('\0') : (widget.labels ?? []);
 }
 
-/** Menu: voce selezionata (indice a partire da 1) oppure il suggerimento, più la freccia. Tocco = elenco. */
+/** Menu: selected item (1-based index) or the hint, plus the arrow. Tap = list. */
 export function MenuWidget({ dashId, widget, theme }: WidgetViewProps) {
   const value = useWidgetValue(dashId, widget);
   const props = useWidgetProps(dashId, widget);
@@ -168,7 +168,7 @@ export function MenuWidget({ dashId, widget, theme }: WidgetViewProps) {
   );
 }
 
-/** Segmented Switch: segmenti affiancati, quello selezionato pieno. Tocco = selezione. */
+/** Segmented Switch: side-by-side segments, the selected one filled. Tap = select. */
 export function SegmentedWidget({ dashId, widget, theme }: WidgetViewProps) {
   const value = useWidgetValue(dashId, widget);
   const props = useWidgetProps(dashId, widget);
@@ -204,7 +204,7 @@ function toSeconds(raw: string | undefined): number | undefined {
   return raw !== undefined && raw !== '' && Number.isFinite(n) && n >= 0 ? n : undefined;
 }
 
-/** Time Input: orario di inizio (e fine, se previsto) e giorni. Tocco = editor. */
+/** Time Input: start time (and stop, if enabled) and days. Tap = editor. */
 export function TimeInputWidget({ dashId, widget, theme }: WidgetViewProps) {
   const value = useWidgetValue(dashId, widget);
   const props = useWidgetProps(dashId, widget);
@@ -214,7 +214,7 @@ export function TimeInputWidget({ dashId, widget, theme }: WidgetViewProps) {
   const color = widgetColor(props.color ?? widget.color, theme);
   const format = (widget.format as string | undefined) ?? 'HH:mm';
   const tz = (widget.tzName as string | undefined) ?? 'Europe/Rome';
-  // Valore: <start>\0<stop>\0<tz>\0<giorni>\0<offset>; senza valore si usa la configurazione del widget.
+  // Value: <start>\0<stop>\0<tz>\0<days>\0<offset>; without a value the widget settings are used.
   const start = value?.[0] ?? (typeof widget.startAt === 'number' && widget.startAt >= 0 ? String(widget.startAt) : undefined);
   const stop = value?.[1] ?? (typeof widget.stopAt === 'number' && widget.stopAt >= 0 ? String(widget.stopAt) : undefined);
   const days = value?.[3] ? value[3].split(',').map(Number) : ((widget.days as number[] | undefined) ?? []);
@@ -240,7 +240,7 @@ export function TimeInputWidget({ dashId, widget, theme }: WidgetViewProps) {
           </Text>
         )}
       </Pressable>
-      {/* Montato solo quando aperto: così l'editor riparte ogni volta dal valore corrente. */}
+      {/* Mounted only when open, so the editor always starts from the current value. */}
       {open && (
         <TimeEditor
           visible
@@ -259,14 +259,14 @@ export function TimeInputWidget({ dashId, widget, theme }: WidgetViewProps) {
   );
 }
 
-/** Terminal: righe ricevute (cronologia nel LiveStore, "clr" pulisce) e, se previsto, riga di invio. */
+/** Terminal: received lines (history in the LiveStore, "clr" clears it) and, if enabled, an input line. */
 export function TerminalWidget({ dashId, widget, theme }: WidgetViewProps) {
   const props = useWidgetProps(dashId, widget);
   const label = useLabel(dashId, widget);
   const lines = useTerminalLog(dashId, widget);
   const write = useWritePin(dashId, widget);
-  // Nel Terminal `color` è lo SFONDO (trasparente = sfondo di default del tema) e `textLightOn` sceglie
-  // il testo chiaro o scuro.
+  // In the Terminal `color` is the BACKGROUND (transparent = default theme background) and `textLightOn`
+  // picks light or dark text.
   const c = widgetColor(props.color ?? widget.color, theme);
   const background = isTransparent(c) ? theme.terminalBackground : c;
   const color = widget.textLightOn === false ? '#000000' : '#FFFFFF';

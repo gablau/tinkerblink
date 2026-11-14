@@ -1,18 +1,18 @@
-// Stato "vivo" della sessione: valori dei pin, proprietà impostate dal firmware e stato dei device.
-// Ogni componente si iscrive solo alla sua chiave (useSyncExternalStore), così un aggiornamento
-// di un pin ridisegna solo il widget interessato.
+// Live state of the session: pin values, properties set by the firmware and device status.
+// Each component subscribes only to its own key (useSyncExternalStore), so a pin update
+// re-renders only the widget concerned.
 import { Command, splitBody, SYNC_MESSAGE_ID, type Message } from '@tinkerblink/protocol';
 import { deviceKey, pinKey, widgetPinKey, type PinType, type Profile } from '@/model/profile';
 
 type Listener = () => void;
-/** Scrittura di un pin ricevuta dal server (per i grafici LIVE): chiave del pin, valori, ora di arrivo. */
+/** Pin write received from the server (for LIVE charts): pin key, values, arrival time. */
 export type PinWriteListener = (key: string, values: string[], ts: number) => void;
 
-/** Righe tenute in memoria per ogni Terminal. */
+/** Lines kept in memory for each Terminal. */
 const TERMINAL_MAX_LINES = 200;
 
-// "vw" = scrittura; "vm" = valori multipli, usato dal server nelle sincronizzazioni dei widget a più
-// valori, come la cronologia dei Terminal (Widget.makeMultiValueHardwareBody).
+// "vw" = write; "vm" = multiple values, used by the server when syncing widgets with several values,
+// such as the Terminal history (Widget.makeMultiValueHardwareBody).
 const OP_PIN_TYPE = {
   vw: 'VIRTUAL',
   dw: 'DIGITAL',
@@ -22,19 +22,19 @@ const OP_PIN_TYPE = {
   am: 'ANALOG',
 } as const;
 
-/** Canale di notifica per qualsiasi cambio di stato dei device (badge e pannello dei device). */
+/** Notification channel for any device status change (badge and device panel). */
 const DEVICES_CHANNEL = '__devices__';
 
 export interface DeviceState {
   online: boolean;
-  /** Ultima connessione / disconnessione (ms), come nel profilo; 0 = mai. */
+  /** Last connection / disconnection (ms), as in the profile; 0 = never. */
   connectTime: number;
   disconnectTime: number;
 }
 
 const OFFLINE: DeviceState = { online: false, connectTime: 0, disconnectTime: 0 };
 
-/** Punto del widget Map: il firmware scrive "<indice>\0<lat>\0<lon>\0<nome>" (WidgetMap.h). */
+/** Map widget point: the firmware writes "<index>\0<lat>\0<lon>\0<name>" (WidgetMap.h). */
 export interface MapPoint {
   index: number;
   lat: number;
@@ -42,7 +42,7 @@ export interface MapPoint {
   label: string;
 }
 
-/** Riga del widget Table (Table.Row del server). */
+/** Table widget row (server Table.Row). */
 export interface TableRow {
   id: number;
   name: string;
@@ -52,16 +52,16 @@ export interface TableRow {
 
 export interface TableState {
   rows: TableRow[];
-  /** Riga corrente impostata dal firmware con "pick" (indice, -1 = nessuna). */
+  /** Current row set by the firmware with "pick" (index, -1 = none). */
   current: number;
 }
 
 const EMPTY_TABLE: TableState = { rows: [], current: -1 };
 
 /**
- * Applica un comando della Table come il server (Table.updateIfSame): add, update, pick, select, deselect, clr,
- * più "order da a" (riordino fatto dall'app). Una sincronizzazione manda tutte le righe come gruppi di 5 valori
- * "add\0id\0nome\0valore\0selezionata": in quel caso le righe si sostituiscono.
+ * Applies a Table command like the server does (Table.updateIfSame): add, update, pick, select, deselect, clr,
+ * plus "order from to" (reordering done by the app). A sync sends all the rows as groups of 5 values
+ * "add\0id\0name\0value\0selected": in that case the rows are replaced.
  */
 function applyTableCommand(state: TableState, values: string[], isSync: boolean): TableState {
   if (isSync && values[0] === 'add' && values.length % 5 === 0) {
@@ -111,7 +111,7 @@ function applyTableCommand(state: TableState, values: string[], isSync: boolean)
 const NO_POINTS: MapPoint[] = [];
 const NO_COMMANDS: string[][] = [];
 
-/** "<indice>\0<lat>\0<lon>[\0<nome>]" → punto; null se non valido. */
+/** "<index>\0<lat>\0<lon>[\0<name>]" → point; null if not valid. */
 function parseMapPoint(values: string[]): MapPoint | null {
   const [i, lat, lon, ...name] = values;
   const p = { index: Number(i), lat: Number(lat), lon: Number(lon), label: name.join(' ') };
@@ -122,26 +122,26 @@ export class LiveStore {
   private values = new Map<string, string[]>();
   private props = new Map<string, Record<string, string>>();
   private devices = new Map<string, DeviceState>();
-  /** Cresce a ogni cambio di stato dei device: è lo "snapshot" per chi osserva tutti i device. */
+  /** Grows at every device status change: it is the "snapshot" for whoever observes all devices. */
   private devicesVersion = 0;
-  /** Cronologia dei pin collegati a un widget Terminal (le chiavi vengono registrate in load). */
+  /** History of the pins bound to a Terminal widget (the keys are registered in load). */
   private terminalLogs = new Map<string, string[]>();
   /**
-   * Punti dei widget Map, per indice (lo stesso indice sostituisce il punto). Il server tiene in memoria gli
-   * ultimi comandi (Map.lastCommands) e li rimanda uno per uno con APP_SYNC; "clr" li cancella.
+   * Points of the Map widgets, by index (the same index replaces the point). The server keeps the last
+   * commands in memory (Map.lastCommands) and resends them one by one with APP_SYNC; "clr" clears them.
    */
   private mapPoints = new Map<string, MapPoint[]>();
   /**
-   * Comandi degli LCD in modalità avanzata dall'ultimo "clr" ("p\0x\0y\0testo"): il componente li riapplica
-   * per ricostruire il display 16×2. Il server li tiene in memoria (LCD.lastCommands) e li rimanda con APP_SYNC.
+   * Commands of the LCDs in advanced mode since the last "clr" ("p\0x\0y\0text"): the component replays them
+   * to rebuild the 16×2 display. The server keeps them in memory (LCD.lastCommands) and resends them with APP_SYNC.
    */
   private lcdCommands = new Map<string, string[][]>();
-  /** Righe dei widget Table: il server le tiene nel profilo (rows) e le rimanda con APP_SYNC. */
+  /** Rows of the Table widgets: the server keeps them in the profile (rows) and resends them with APP_SYNC. */
   private tables = new Map<string, TableState>();
   private listeners = new Map<string, Set<Listener>>();
   private writeListeners = new Set<PinWriteListener>();
 
-  /** Stato iniziale dal profilo: `value` dei widget, `pinsStorage`, stato dei device. */
+  /** Initial state from the profile: widget `value`, `pinsStorage`, device status. */
   load(profile: Profile): void {
     this.values.clear();
     this.props.clear();
@@ -160,7 +160,7 @@ export class LiveStore {
       for (const w of dash.widgets) {
         const key = widgetPinKey(dash.id, w);
         if (key && w.value !== undefined && w.value !== null) this.values.set(key, splitBody(String(w.value)));
-        // Il server rimanda la cronologia con la sincronizzazione; fino ad allora si tiene quella che c'era.
+        // The server resends the history with the sync; until then the previous one is kept.
         if (key && w.type === 'TERMINAL') this.terminalLogs.set(key, previousLogs.get(key) ?? []);
         if (key && w.type === 'MAP') {
           const last = w.value ? parseMapPoint(splitBody(String(w.value))) : null;
@@ -181,7 +181,7 @@ export class LiveStore {
             this.lcdCommands.set(lcdKey, previousLcd.get(lcdKey) ?? (last && last[0] !== 'clr' ? [last] : []));
           }
         }
-        // Widget a più pin (zeRGBa): ogni pin ha il suo valore in pins[i].value.
+        // Multi-pin widgets (zeRGBa): each pin has its value in pins[i].value.
         if (Array.isArray(w.pins)) {
           for (const p of w.pins as { pin?: number; pinType?: PinType; value?: string }[]) {
             if (p.pin === undefined || p.pin < 0 || !p.pinType || p.value === undefined || p.value === null) continue;
@@ -201,7 +201,7 @@ export class LiveStore {
     this.notifyAll();
   }
 
-  /** Applica un messaggio spontaneo del server. Restituisce true se l'ha riconosciuto. */
+  /** Applies a message the server sent on its own. Returns true if it was recognized. */
   apply(m: Message): boolean {
     if (m.kind !== 'text') return false;
     const parts = splitBody(m.body);
@@ -212,8 +212,8 @@ export class LiveStore {
     if (!Number.isFinite(dashId)) return false;
 
     switch (m.command) {
-      // HARDWARE: scrittura del firmware. APP_SYNC: risposta a una sincronizzazione (msgId SYNC_MESSAGE_ID)
-      // oppure scrittura fatta da un'altra app dello stesso account (MobileHardwareLogic).
+      // HARDWARE: firmware write. APP_SYNC: reply to a sync (msgId SYNC_MESSAGE_ID) or a write made by
+      // another app of the same account (MobileHardwareLogic).
       case Command.HARDWARE:
       case Command.APP_SYNC: {
         // <dash>-<dev>\0vw\0<pin>\0<v1>[\0<v2>…]
@@ -227,7 +227,7 @@ export class LiveStore {
         this.updateLcd(key, values);
         this.updateTable(key, values, isSync);
         if (isSync && this.terminalLogs.has(key)) {
-          // Sincronizzazione di un Terminal: i valori sono le ultime righe tenute dal server.
+          // Terminal sync: the values are the last lines kept by the server.
           this.terminalLogs.set(key, values.flatMap((v) => v.split('\n')).slice(-TERMINAL_MAX_LINES));
           this.set(this.values, key, values.slice(-1));
         } else {
@@ -239,7 +239,7 @@ export class LiveStore {
         return true;
       }
       case Command.SET_WIDGET_PROPERTY: {
-        // <dash>-<dev>\0<pin>\0<proprietà>\0<valore>[\0…]  (pin virtuale, eventualmente "V12")
+        // <dash>-<dev>\0<pin>\0<property>\0<value>[\0…]  (virtual pin, possibly "V12")
         const pin = Number(String(parts[1] ?? '').replace(/^[vV]/, ''));
         const prop = parts[2];
         if (!Number.isFinite(pin) || !prop) return false;
@@ -260,16 +260,16 @@ export class LiveStore {
     }
   }
 
-  /** Aggiornamento locale dopo una scrittura dell'app: il server non rimanda il valore a chi lo ha inviato. */
+  /** Local update after a write by the app: the server does not send the value back to the sender. */
   setLocal(key: string, values: string[]): void {
-    // Il Terminal mostra anche le righe inviate dall'app.
+    // The Terminal also shows the lines sent by the app.
     this.appendTerminal(key, values);
-    // Selezione o riordino delle righe di una Table fatti dall'app.
+    // Row selection or reordering of a Table done by the app.
     this.updateTable(key, values, false);
     this.set(this.values, key, values);
   }
 
-  /** Rimette il valore di prima di una scrittura rifiutata dal server (senza toccare Terminal e Table). */
+  /** Restores the value from before a write rejected by the server (Terminal and Table are left alone). */
   restoreValue(key: string, values: string[] | undefined): void {
     this.set(this.values, key, values ?? []);
   }
@@ -291,16 +291,16 @@ export class LiveStore {
     return () => set.delete(listener);
   };
 
-  /** Notifica per ogni scrittura di un pin che arriva dal server (non per le sincronizzazioni). */
+  /** Notified for every pin write that comes from the server (not for syncs). */
   subscribePinWrites = (listener: PinWriteListener): (() => void) => {
     this.writeListeners.add(listener);
     return () => this.writeListeners.delete(listener);
   };
 
-  /** Notifica per qualsiasi cambio di stato dei device. */
+  /** Notified for any device status change. */
   subscribeDevices = (listener: Listener): (() => void) => this.subscribe(DEVICES_CHANNEL, listener);
 
-  /** Aggiorna i punti se il pin è di un widget Map (la notifica arriva con l'aggiornamento del valore). */
+  /** Updates the points if the pin belongs to a Map widget (the notification comes with the value update). */
   private updateMap(key: string, values: string[]): void {
     const points = this.mapPoints.get(key);
     if (!points) return;
@@ -312,13 +312,13 @@ export class LiveStore {
     if (p) this.mapPoints.set(key, [...points.filter((q) => q.index !== p.index), p]);
   }
 
-  /** Applica il comando se il pin è di una Table (la notifica arriva con l'aggiornamento del valore). */
+  /** Applies the command if the pin belongs to a Table (the notification comes with the value update). */
   private updateTable(key: string, values: string[], isSync: boolean): void {
     const state = this.tables.get(key);
     if (state) this.tables.set(key, applyTableCommand(state, values, isSync));
   }
 
-  /** Registra il comando se il pin è di un LCD avanzato: "clr" svuota, "p" si aggiunge (al massimo 100). */
+  /** Records the command if the pin belongs to an advanced LCD: "clr" empties, "p" is appended (at most 100). */
   private updateLcd(key: string, values: string[]): void {
     const commands = this.lcdCommands.get(key);
     if (!commands) return;
@@ -326,7 +326,7 @@ export class LiveStore {
     else if (values[0] === 'p') this.lcdCommands.set(key, [...commands, values].slice(-100));
   }
 
-  /** Aggiunge le righe alla cronologia se il pin è di un Terminal; "clr" la svuota. */
+  /** Appends the lines to the history if the pin belongs to a Terminal; "clr" empties it. */
   private appendTerminal(key: string, values: string[]): void {
     const log = this.terminalLogs.get(key);
     if (!log) return;

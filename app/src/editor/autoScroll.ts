@@ -1,12 +1,12 @@
-// Scorrimento automatico della dashboard durante un trascinamento dell'editor: con il dito vicino al bordo alto o
-// basso dello ScrollView la vista scorre da sola (più veloce più si è vicini al bordo). Il gesto aggiunge al suo
-// spostamento quanto è scorsa la vista (offset()), così il widget resta sotto il dito, e si ricalcola a ogni passo
-// anche se il dito è fermo (onTick).
+// Automatic scrolling of the dashboard while dragging in the editor: with the finger near the top or
+// bottom edge of the ScrollView the view scrolls by itself (faster closer to the edge). The gesture adds to its
+// movement how far the view has scrolled (offset()), so the widget stays under the finger, and it is recomputed
+// at every step even when the finger is still (onTick).
 import type { ScrollView } from 'react-native';
 
-/** Fascia vicino ai bordi in cui parte lo scorrimento (dp). */
+/** Band near the edges where scrolling starts (dp). */
 const EDGE = 96;
-/** Velocità massima, in dp per fotogramma. */
+/** Maximum speed, in dp per frame. */
 const MAX_SPEED = 18;
 
 export class AutoScroller {
@@ -20,12 +20,12 @@ export class AutoScroller {
   private frame: number | null = null;
   private listeners = new Set<() => void>();
 
-  /** Lo ScrollView da far scorrere (collegato in un effect); posizione e misure arrivano dai suoi eventi. */
+  /** The ScrollView to scroll (connected in an effect); position and sizes come from its events. */
   attach(view: ScrollView | null): void {
     this.view = view;
   }
   setScrollY(y: number): void {
-    // Durante lo scorrimento automatico vale la posizione impostata qui, non quella (in ritardo) degli eventi.
+    // During automatic scrolling the position set here wins over the (late) one from the events.
     if (this.frame === null) this.scrollY = y;
   }
   setViewHeight(h: number): void {
@@ -35,7 +35,7 @@ export class AutoScroller {
     this.contentHeight = h;
   }
 
-  /** Inizio del gesto: posizione di partenza e posizione della vista sullo schermo. */
+  /** Start of the gesture: start position and position of the view on the screen. */
   begin(): void {
     this.startY = this.scrollY;
     const v = this.view as unknown as { measureInWindow?: (cb: (x: number, y: number, w: number, h: number) => void) => void } | null;
@@ -45,12 +45,12 @@ export class AutoScroller {
     });
   }
 
-  /** Quanto è scorsa la vista dall'inizio del gesto. */
+  /** How far the view has scrolled since the start of the gesture. */
   offset(): number {
     return this.scrollY - this.startY;
   }
 
-  /** Posizione del dito sullo schermo (pageY / moveY del PanResponder). */
+  /** Position of the finger on the screen (pageY / moveY of the PanResponder). */
   drag(pageY: number): void {
     const fromTop = pageY - this.viewTop;
     const fromBottom = this.viewTop + this.viewHeight - pageY;
@@ -60,14 +60,14 @@ export class AutoScroller {
     if (this.speed !== 0 && this.frame === null) this.frame = requestAnimationFrame(this.step);
   }
 
-  /** Fine del gesto. */
+  /** End of the gesture. */
   end(): void {
     this.speed = 0;
     if (this.frame !== null) cancelAnimationFrame(this.frame);
     this.frame = null;
   }
 
-  /** Avviso a ogni passo dello scorrimento automatico (il gesto ricalcola posizione e anteprima). */
+  /** Notified at every step of automatic scrolling (the gesture recomputes position and preview). */
   onTick(listener: () => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
@@ -83,7 +83,7 @@ export class AutoScroller {
       this.view?.scrollTo({ y: next, animated: false });
       this.listeners.forEach((l) => l());
     }
-    // Al bordo del contenuto si aspetta comunque: il contenuto può crescere (righe in fondo, widget spinti).
+    // At the edge of the content keep waiting anyway: the content can grow (rows at the bottom, pushed widgets).
     this.frame = requestAnimationFrame(this.step);
   };
 }

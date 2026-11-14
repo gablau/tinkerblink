@@ -1,11 +1,11 @@
-// Griglia della dashboard. Le regole di posizionamento stanno in src/layout/bandLayout.ts:
-// - telefono in verticale: griglia a 8 colonne (x, y, width, height dei widget sul server; cella alta 1,35 × larghezza);
-// - schermi larghi: fasce di righe distribuite su più colonne affiancate.
-// Con le schede la riga 0 è occupata dal widget Tabs (sostituito dalla barra delle schede) e viene nascosta.
+// Dashboard grid. The placement rules are in src/layout/bandLayout.ts:
+// - phone in portrait: 8-column grid (x, y, width, height of the widgets on the server; cell height 1.35 × width);
+// - wide screens: bands of rows spread over several side-by-side columns.
+// With tabs, row 0 holds the Tabs widget (replaced by the tab bar) and is hidden.
 //
-// Modalità modifica (editor, fase 2): sempre griglia a 8 colonne su una colonna, qualche riga vuota in fondo per
-// poter spostare i widget più in basso, e sopra i widget il livello di modifica (EditLayer). Dopo uno
-// spostamento la nuova posizione si mostra subito (override) finché il server non conferma.
+// Edit mode (editor): always the 8-column grid in a single column, a few empty rows at the bottom to move
+// widgets further down, and the edit layer (EditLayer) above the widgets. After a move the new position is
+// shown at once (override) until the server confirms it.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { AutoScroller } from '@/editor/autoScroll';
@@ -19,12 +19,12 @@ import { WidgetView } from '@/widgets/WidgetView';
 import { ScrollLockContext } from './scrollLock';
 
 const GRID_PADDING = 4;
-/** Spazio tra un widget e l'altro (metà per lato). */
+/** Gap between widgets (half on each side). */
 const GAP = 4;
 /**
- * Widget che mandano comandi ai device: nei progetti assegnati in sola lettura si mostrano attenuati e non
- * rispondono al tocco (il server rifiuterebbe i comandi). Terminal e Table restano attivi per scorrere: le loro
- * scritture le blocca SessionManager.writePin.
+ * Widgets that send commands to the devices: in read-only assigned projects they are dimmed and do not respond
+ * to touch (the server would reject the commands). Terminal and Table stay active for scrolling: their writes
+ * are blocked by SessionManager.writePin.
  */
 const CONTROL_TYPES = new Set([
   'BUTTON',
@@ -43,22 +43,22 @@ const CONTROL_TYPES = new Set([
   'TIME_INPUT',
   'PLAYER',
 ]);
-/** Righe vuote aggiunte in fondo in modalità modifica. */
+/** Empty rows added at the bottom in edit mode. */
 const EDIT_EXTRA_ROWS = 4;
 
 export interface GridEdit {
-  /** Apre le impostazioni del widget. */
+  /** Opens the widget settings. */
   onSettings: (w: Widget) => void;
-  /** Salva la nuova posizione / dimensione (UPDATE_WIDGET). */
+  /** Saves the new position / size (UPDATE_WIDGET). */
   onLayout: (w: Widget, rect: Rect) => Promise<void>;
 }
 
 interface Props {
   dash: Dashboard;
   theme: DashboardTheme;
-  /** Indice della scheda attiva, oppure undefined se la dashboard non ha schede. */
+  /** Index of the active tab, or undefined if the dashboard has no tabs. */
   tab?: number;
-  /** Modalità modifica: i widget non rispondono, si selezionano, spostano e ridimensionano. */
+  /** Edit mode: widgets do not respond; they are selected, moved and resized. */
   edit?: GridEdit;
 }
 
@@ -78,10 +78,10 @@ export function DashboardGrid({ dash, theme, tab, edit }: Props) {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [overrides, setOverrides] = useState<Record<number, Rect>>({});
   const [preview, setPreviewState] = useState<Moves | null>(null);
-  // Durante il trascinamento arriva un'anteprima per ogni movimento del dito: si aggiorna solo se cambia.
+  // While dragging, a preview arrives for every finger movement: update only when it changes.
   const setPreview = useCallback((next: Moves | null) => setPreviewState((prev) => (sameMoves(prev, next) ? prev : next)), []);
   const lockScroll = useCallback((locked: boolean) => setScrollEnabled(!locked), []);
-  // Scorrimento automatico durante i trascinamenti dell'editor (riceve posizione e misure dello ScrollView).
+  // Auto-scroll while dragging in the editor (receives the ScrollView position and size).
   const scrollRef = useRef<ScrollView>(null);
   const [scroller] = useState(() => new AutoScroller());
   useEffect(() => {
@@ -98,9 +98,9 @@ export function DashboardGrid({ dash, theme, tab, edit }: Props) {
 
   const hasTabs = tab !== undefined;
   const rowOffset = hasTabs ? 1 : 0;
-  // Base dei calcoli del layout: profilo + posizioni appena salvate in attesa di conferma.
+  // Base of the layout computations: profile + positions just saved and waiting for confirmation.
   const allWidgets = useMemo(() => dash.widgets.map((w) => (overrides[w.id] ? { ...w, ...overrides[w.id] } : w)), [dash, overrides]);
-  // Come si mostrano: in più l'anteprima dei widget spinti durante un trascinamento.
+  // What is shown: in addition, the preview of the widgets pushed during a drag.
   const shown = useMemo(
     () =>
       preview
@@ -124,7 +124,7 @@ export function DashboardGrid({ dash, theme, tab, edit }: Props) {
   const cellW = Math.min(width - GRID_PADDING * 2, MAX_COLUMN_WIDTH) / GRID_COLUMNS;
   const cellH = cellW * CELL_ASPECT;
 
-  /** Salva il widget spostato e quelli spinti (uno alla volta, UPDATE_WIDGET); le nuove posizioni si vedono subito. */
+  /** Saves the moved widget and the pushed ones (one at a time, UPDATE_WIDGET); the new positions show at once. */
   const saveLayout = useCallback(
     (w: Widget, rect: Rect, moves: Moves) => {
       if (!edit) return;
@@ -164,7 +164,7 @@ export function DashboardGrid({ dash, theme, tab, edit }: Props) {
         {layout && (
           <View style={{ width: layout.width, height: layout.height + (editing ? EDIT_EXTRA_ROWS * cellH : 0) }}>
             {editing && (
-              // Tocco sullo sfondo: deseleziona.
+              // Tap on the background: deselect.
               <View style={StyleSheet.absoluteFill} onStartShouldSetResponder={() => true} onResponderRelease={() => setSelectedId(null)} />
             )}
             {layout.placed.map((p) => (

@@ -1,4 +1,4 @@
-// Testi delle schermate di progetti e device (it/en secondo la lingua del telefono).
+// Texts of the project and device screens (it/en following the phone language).
 import { language } from '@/i18n';
 
 const en = {

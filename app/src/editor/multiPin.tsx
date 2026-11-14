@@ -1,9 +1,9 @@
-// Pin dei widget a più pin (Joystick, RGB, LCD,
-// MultiPinWidget del server):
-// - interruttore SPLIT / MERGE (LCD: SEMPLICE / AVANZATO);
-// - pin separati: un pulsante per posizione; i pin delle altre posizioni sono OCCUPATI (non selezionabili);
-// - pin unico: un solo pulsante e lo stesso pin scritto in tutte le posizioni dell'array `pins`;
-// - ogni posizione ha il suo intervallo min–max (anche col pin unico, tranne l'LCD avanzato).
+// Pins of multi-pin widgets (Joystick, RGB, LCD,
+// MultiPinWidget on the server):
+// - SPLIT / MERGE switch (LCD: SIMPLE / ADVANCED);
+// - separate pins: one button per position; the pins of the other positions are BUSY (not selectable);
+// - single pin: one button and the same pin written in every position of the `pins` array;
+// - each position has its own min–max range (also with a single pin, except the advanced LCD).
 import { StyleSheet, Text, View } from 'react-native';
 import type { Dashboard, PinType, Widget } from '@/model/profile';
 import { pinKeyOf, pinsForWidget } from './boards/boards';
@@ -30,7 +30,7 @@ function slotsOf(w: Widget, count: number): DataStream[] {
   return Array.from({ length: count }, (_, i) => ({ ...EMPTY, ...pins[i] }));
 }
 
-/** Imposta il pin di una posizione; pinType null = nessun pin (campo rimosso, come un widget nuovo). */
+/** Sets the pin of a position; pinType null = no pin (field removed, like a new widget). */
 function withPin(s: DataStream, pinType: PinType | null, pin: number): DataStream {
   const next: DataStream = { ...s, pin };
   if (pinType) next.pinType = pinType;
@@ -49,7 +49,7 @@ export function MultiPinField({
   ct,
 }: {
   config: MultiPinConfig;
-  /** Widget che si sta modificando (per escluderlo dal calcolo dei pin usati). */
+  /** Widget being edited (to exclude it when computing the used pins). */
   widget: Widget;
   draft: Widget;
   setDraft: (update: (d: Widget) => Widget) => void;
@@ -75,7 +75,7 @@ export function MultiPinField({
       const cur = slotsOf(d, n);
       const first = cur[0]!;
       const pins = toSplit
-        ? // Da pin unico a separati: la prima posizione tiene il pin, le altre (uguali) si svuotano.
+        ? // From single pin to separate pins: the first position keeps the pin, the others (equal) are cleared.
           cur.map((s, i) => (i === 0 || !hasPin(s) || pinKeyOf(s.pinType!, s.pin!) !== pinKeyOf(first.pinType ?? 'VIRTUAL', first.pin ?? -1) ? s : withPin(s, null, -1)))
         : cur.map((s) => (hasPin(first) ? withPin(s, first.pinType!, first.pin!) : withPin(s, null, -1)));
       return { ...d, [key]: toSplit === config.mode!.splitWhen, pins };
@@ -111,7 +111,7 @@ export function MultiPinField({
       )}
       {split ? (
         slots.map((s, i) => {
-          // Pin delle altre posizioni dello stesso widget: OCCUPATI.
+          // Pins of the other positions of the same widget: BUSY.
           const busy = new Set(slots.filter((o, j) => j !== i && hasPin(o)).map((o) => pinKeyOf(o.pinType!, o.pin!)));
           const color = colors[config.slots[i]!.color ?? ''];
           return (

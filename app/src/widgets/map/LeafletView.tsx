@@ -1,4 +1,4 @@
-// Mappa Leaflet su Android: WebView con la pagina di leafletHtml.ts. Sul web c'è LeafletView.web.tsx.
+// Leaflet map on Android: a WebView with the page from leafletHtml.ts. The web uses LeafletView.web.tsx.
 import { forwardRef, useImperativeHandle, useMemo, useRef } from 'react';
 import { StyleSheet } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
@@ -24,13 +24,13 @@ export const LeafletView = forwardRef<LeafletHandle, LeafletProps>(function Leaf
     try {
       onMessage(JSON.parse(e.nativeEvent.data));
     } catch {
-      // messaggio non valido: ignorato
+      // invalid message: ignored
     }
   };
   return (
     <WebView
       ref={web}
-      // baseUrl: le tessere di OpenStreetMap vogliono un Referer.
+      // baseUrl: OpenStreetMap tiles require a Referer.
       source={{ html, baseUrl: 'https://tinkerblink.local/' }}
       originWhitelist={['*']}
       onMessage={handle}

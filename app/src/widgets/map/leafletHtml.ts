@@ -1,18 +1,18 @@
-// Pagina HTML con Leaflet per il widget Map: mappe OpenStreetMap (o immagini satellitari Esri), senza chiavi
-// API. Gira in una WebView (Android) o in un iframe (web) e parla con l'app a messaggi JSON:
+// HTML page with Leaflet for the Map widget: OpenStreetMap maps (or Esri satellite imagery), no API
+// keys. It runs in a WebView (Android) or in an iframe (web) and talks to the app with JSON messages:
 //
-// app → mappa (window.blynk(cmd)):
+// app → map (window.blynk(cmd)):
 //   { type: 'setup', satellite, markerColor, meColor, view?: { lat, lon, zoom }, fallback: { lat, lon } }
-//   { type: 'points', points: [{ index, lat, lon, label }], fit }   fit = inquadra i punti
-//   { type: 'fit' }                                                  inquadra i punti (pulsante)
-//   { type: 'me', lat, lon, accuracy, pan }                          posizione dell'utente
-// mappa → app:
+//   { type: 'points', points: [{ index, lat, lon, label }], fit }   fit = fit the points
+//   { type: 'fit' }                                                  fit the points (button)
+//   { type: 'me', lat, lon, accuracy, pan }                          user location
+// map → app:
 //   { type: 'ready' }
-//   { type: 'view', lat, lon, zoom }                                 dopo uno spostamento fatto dall'utente
+//   { type: 'view', lat, lon, zoom }                                 after the user moved the map
 //
-// Leaflet si carica da unpkg: la mappa richiede comunque Internet per le tessere.
+// Leaflet is loaded from unpkg: the map needs Internet for the tiles anyway.
 
-/** Zoom con un solo punto: abbastanza vicino da vedere la strada. */
+/** Zoom with a single point: close enough to see the street. */
 export const SINGLE_POINT_ZOOM = 16;
 const FIT_PADDING = 48;
 
@@ -68,8 +68,8 @@ export function buildLeafletHtml(): string {
       markers.addLayer(m);
     });
   }
-  // Vista iniziale da riapplicare quando il contenitore prende la dimensione definitiva: se la mappa nasce
-  // mentre la WebView è ancora 0×0, al ridimensionamento Leaflet sposterebbe il centro.
+  // Initial view to apply again when the container gets its final size: if the map is created while the
+  // WebView is still 0×0, Leaflet would move the center on resize.
   var initial = null;
   var touched = false;
   var el = document.getElementById('map');
@@ -82,7 +82,7 @@ export function buildLeafletHtml(): string {
       if (!touched && initial) initial();
     }).observe(el);
   }
-  // Si salva solo la visuale scelta dall'utente (gesti), non gli spostamenti fatti dal codice.
+  // Only the view chosen by the user (gestures) is saved, not the moves made by the code.
   map.on('moveend', function () {
     if (!userMove) return;
     var c = map.getCenter();
@@ -118,7 +118,7 @@ export function buildLeafletHtml(): string {
       if (cmd.pan) { userMove = false; map.setView(ll, Math.max(map.getZoom(), ${SINGLE_POINT_ZOOM})); }
     }
   };
-  // Messaggi dall'app web (iframe).
+  // Messages from the web app (iframe).
   window.addEventListener('message', function (e) {
     try { var cmd = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; if (cmd && cmd.type) window.blynk(cmd); } catch (err) {}
   });

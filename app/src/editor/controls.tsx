@@ -1,4 +1,4 @@
-// Controlli del modulo dell'editor, nello stile scuro/chiaro del tema della dashboard.
+// Form controls of the editor, in the dark/light style of the dashboard theme.
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
@@ -44,7 +44,7 @@ export function TextField({
   onChange: (v: string) => void;
   ct: ControlTheme;
   placeholder?: string;
-  /** Testo nascosto (URL con credenziali): si vede solo tenendo premuto l'occhio. */
+  /** Hidden text (URL with credentials): visible only while the eye is held down. */
   secret?: boolean;
   multiline?: boolean;
 }) {
@@ -73,7 +73,7 @@ export function TextField({
   );
 }
 
-/** Numero modificabile come testo: il valore cambia solo quando il testo è un numero valido. */
+/** Number edited as text: the value changes only when the text is a valid number. */
 export function NumberField({
   value,
   onChange,
@@ -112,7 +112,7 @@ export function BoolField({ value, onChange, ct }: { value: boolean; onChange: (
   return <Switch value={value} onValueChange={onChange} trackColor={{ true: ct.accent }} thumbColor={value ? '#FFFFFF' : undefined} />;
 }
 
-/** Pochi valori: pulsanti affiancati; tanti: elenco a comparsa. */
+/** Few values: buttons side by side; many: a drop-down list. */
 export function ChoiceField({ value, options, onChange, ct, title }: { value: unknown; options: Option[]; onChange: (v: Option['value']) => void; ct: ControlTheme; title: string }) {
   const [open, setOpen] = useState(false);
   if (options.length <= 4) {
@@ -187,22 +187,22 @@ export function ColorField({ value, onChange, ct, gradients }: { value: unknown;
         ring(hex === c.toUpperCase(), <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: c }} />, c, () => onChange(cssToRgba(c))),
       )}
       {gradients && GRADIENTS.map((g, i) => ring(current === g, <GradientSwatch stops={stops[i]!} size={size} />, g, () => onChange(g)))}
-      {/* Un colore personalizzato fuori tavolozza resta visibile e selezionato. */}
+      {/* A custom color outside the palette stays visible and selected. */}
       {hex && !palette(ct.theme).some((c) => c.toUpperCase() === hex) &&
         ring(true, <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: hex }} />, 'custom', () => {})}
     </View>
   );
 }
 
-/** Scelta del device del widget (solo se la dashboard ne ha più di uno). */
+/** Choice of the widget's device (only if the dashboard has more than one). */
 export function DeviceField({ deviceId, devices, onChange, ct }: { deviceId: number; devices: Device[]; onChange: (id: number) => void; ct: ControlTheme }) {
   if (devices.length <= 1) return null;
   return <ChoiceField title={te.device} value={deviceId} options={devices.map((d) => ({ value: d.id, label: d.name }))} onChange={(v) => onChange(v as number)} ct={ct} />;
 }
 
 /**
- * Pulsante con il pin attuale che apre il selettore (PinPicker). Sotto, se il pin è già usato da altri widget,
- * l'avviso con i loro nomi. `busy` = pin di altre posizioni dello stesso widget (non selezionabili).
+ * Button with the current pin that opens the picker (PinPicker). Below it, if other widgets already use the
+ * pin, a notice with their names. `busy` = pins of other positions of the same widget (not selectable).
  */
 export function PinButton({
   pinType,
@@ -222,9 +222,9 @@ export function PinButton({
   busy?: Set<string>;
   onChange: (v: { pinType: PinType | null; pin: number }) => void;
   ct: ControlTheme;
-  /** Colore del pin (posizioni del Joystick / RGB). */
+  /** Pin color (Joystick / RGB positions). */
   color?: string;
-  /** Nome della posizione mostrato prima del pin (X, Y, R, G, B, /pin0/…). */
+  /** Name of the position shown before the pin (X, Y, R, G, B, /pin0/…). */
   prefix?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -264,7 +264,7 @@ export function PinButton({
   );
 }
 
-/** Device e pin di un widget a un pin. "Nessuno" = pin -1 senza pinType. */
+/** Device and pin of a single-pin widget. "None" = pin -1 without pinType. */
 export function PinField({
   deviceId,
   pinType,
@@ -279,9 +279,9 @@ export function PinField({
   pinType: PinType | undefined;
   pin: number | undefined;
   devices: Device[];
-  /** Pin selezionabili per il device scelto. */
+  /** Pins selectable for the chosen device. */
   pins: BoardPin[];
-  /** Pin usati dagli altri widget dello stesso device. */
+  /** Pins used by the other widgets of the same device. */
   used: Map<string, string[]>;
   onChange: (v: { deviceId: number; pinType: PinType | null; pin: number }) => void;
   ct: ControlTheme;

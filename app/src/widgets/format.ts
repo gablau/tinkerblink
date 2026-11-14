@@ -1,13 +1,13 @@
-// Formattazione dei valori dei widget (Value Display, Labeled Value, formati "#.##" e "/pin/",
-// orari). La mappatura degli intervalli (rangeMappingOn) non è ancora implementata: nei progetti
-// provati finora nessun widget la usa.
+// Formatting of widget values (Value Display, Labeled Value, "#.##" and "/pin/" formats,
+// times). Range mapping (rangeMappingOn) is not implemented yet: no widget in the projects
+// tested so far uses it.
 
-/** Intero (segno opzionale, solo cifre). */
+/** Integer (optional sign, digits only). */
 export function parseLong(s: string): number | null {
   return /^[+-]?\d+$/.test(s.trim()) ? Number(s) : null;
 }
 
-/** Numero decimale (accetta anche la virgola come separatore). */
+/** Decimal number (a comma is accepted as separator too). */
 export function parseFloatValue(s: string): number | null {
   const t = s.trim().replace(',', '.');
   if (t === '' || !/^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(t)) return null;
@@ -15,26 +15,26 @@ export function parseFloatValue(s: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-/** Arrotondamento half-up (0,5 verso l'alto), senza separatore delle migliaia. */
+/** Half-up rounding (0.5 goes up), no thousands separator. */
 function roundHalfUp(n: number, digits: number): number {
   const f = 10 ** digits;
-  // toPrecision corregge gli errori di rappresentazione (1.005 * 100 = 100.49999…).
+  // toPrecision fixes representation errors (1.005 * 100 = 100.49999…).
   const scaled = Number((Math.abs(n) * f).toPrecision(15));
   return (Math.sign(n) * Math.round(scaled)) / f;
 }
 
-/** Pattern "#.##": al massimo `maxDigits` decimali, senza zeri finali. */
+/** "#.##" pattern: at most `maxDigits` decimals, no trailing zeros. */
 export function formatMaxDigits(n: number, maxDigits = 2): string {
   const r = roundHalfUp(n, maxDigits);
   return String(r === 0 ? 0 : r);
 }
 
-/** Esattamente `digits` decimali. */
+/** Exactly `digits` decimals. */
 export function formatFixedDigits(n: number, digits: number): string {
   return roundHalfUp(n, digits).toFixed(digits);
 }
 
-/** Testo del Value Display: interi così come sono, decimali con "#.##", altrimenti il testo. */
+/** Value Display text: integers as they are, decimals with "#.##", anything else as text. */
 export function formatValueDisplay(raw: string | undefined): { text: string; number?: number } {
   if (raw === undefined || raw === '') return { text: '' };
   const asLong = parseLong(raw);
@@ -47,8 +47,8 @@ export function formatValueDisplay(raw: string | undefined): { text: string; num
 const PIN_PATTERN = /\/pin\.?#*\//i;
 
 /**
- * Testo del Labeled Value. Formato di default "/pin/".
- * "/pin/" = valore così com'è; "/pin./" = 0 decimali; "/pin.#/" = 1 decimale fisso; "/pin.##/" = 2…
+ * Labeled Value text. Default format "/pin/".
+ * "/pin/" = value as is; "/pin./" = 0 decimals; "/pin.#/" = 1 fixed decimal; "/pin.##/" = 2…
  */
 export function formatLabeled(raw: string | undefined, formatting: string | undefined): { text: string; number?: number } {
   const fmt = formatting && formatting.length > 0 ? formatting : '/pin/';
@@ -60,7 +60,7 @@ export function formatLabeled(raw: string | undefined, formatting: string | unde
 
   const token = match[0];
   const dot = token.indexOf('.');
-  const digits = dot < 0 ? null : token.length - dot - 2; // numero di "#" dopo il punto
+  const digits = dot < 0 ? null : token.length - dot - 2; // number of "#" after the dot
   let formatted: string;
   const asLong = parseLong(raw);
   const asFloat = asLong === null ? parseFloatValue(raw) : null;
@@ -75,18 +75,18 @@ export function formatLabeled(raw: string | undefined, formatting: string | unde
   return { text: fmt.replace(PIN_PATTERN, formatted), number };
 }
 
-/** Testi usati dalla formattazione di orari e giorni (dalla lingua dell'app, vedi src/i18n.ts). */
+/** Texts used to format times and days (in the app language, see src/i18n.ts). */
 export interface TimeTexts {
   everyday: string;
   weekdays: string;
   weekends: string;
   sunrise: string;
   sunset: string;
-  /** Lunedì … domenica. */
+  /** Monday … Sunday. */
   days: string[];
 }
 
-/** "18000" → "05:00"; "sr"/"ss" → alba/tramonto. */
+/** "18000" → "05:00"; "sr"/"ss" → sunrise/sunset. */
 export function formatTimeOfDay(raw: string | undefined, format: string, texts: TimeTexts): string {
   if (raw === 'sr') return texts.sunrise;
   if (raw === 'ss') return texts.sunset;
@@ -104,7 +104,7 @@ export function formatTimeOfDay(raw: string | undefined, format: string, texts: 
   return /ss/.test(format) ? `${hh}:${mm}:${String(sec).padStart(2, '0')}` : `${hh}:${mm}`;
 }
 
-/** Giorni del Time Input (1 = lunedì … 7 = domenica). */
+/** Time Input days (1 = Monday … 7 = Sunday). */
 export function formatDays(days: number[], texts: TimeTexts): string {
   const set = [...new Set(days)].filter((d) => d >= 1 && d <= 7).sort();
   if (set.length === 0 || set.length === 7) return texts.everyday;

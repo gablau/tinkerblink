@@ -1,4 +1,4 @@
-// Sul web non ci sono sensori: tutto risulta non disponibile.
+// There are no sensors on the web: everything is reported as unavailable.
 import { NativeModule, registerWebModule } from 'expo';
 import type { SensorsEvents } from './Sensors.types';
 

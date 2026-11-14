@@ -1,4 +1,4 @@
-// Login. Se ci sono credenziali salvate (solo Android), entra da solo.
+// Login. With saved credentials (Android only) it logs in by itself.
 import { Link, Redirect } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useRef, useState } from 'react';
@@ -21,7 +21,7 @@ import { FONT } from '@/ui/fonts';
 import { useSession } from '@/session/SessionContext';
 import { usePalette } from '@/ui/theme';
 
-/** Oltre questo tempo, se l'accesso automatico non ha ancora risposto, si mostra il modulo di login. */
+/** After this time, if the automatic login has not answered yet, the login form is shown. */
 const SPLASH_PATIENCE_MS = 8000;
 
 export default function LoginScreen() {
@@ -32,7 +32,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(true);
   const [loaded, setLoaded] = useState(false);
-  /** null finché non si sa se ci sono credenziali salvate; true = accesso automatico in corso. */
+  /** null until we know whether credentials are saved; true = automatic login in progress. */
   const [autoLogin, setAutoLogin] = useState<boolean | null>(null);
   const autoTried = useRef(false);
 
@@ -51,10 +51,10 @@ export default function LoginScreen() {
     });
   }, [login]);
 
-  // Durante l'accesso automatico si mostra una copia dello splash (SplashView) al posto del modulo: si passa dallo
-  // splash direttamente ai progetti. Lo splash nativo si chiude appena c'è la copia, che ha lo stesso aspetto (nella
-  // dev build quello nativo sparisce già prima, durante il caricamento del JavaScript da Metro). Se il server non
-  // risponde entro SPLASH_PATIENCE_MS si mostra comunque il modulo, con la rotellina.
+  // During the automatic login a copy of the splash (SplashView) replaces the form: the app goes from the splash
+  // straight to the projects. The native splash closes as soon as the copy is there, and they look the same (in the
+  // dev build the native one disappears earlier, while Metro loads the JavaScript). If the server does not answer
+  // within SPLASH_PATIENCE_MS the form is shown anyway, with the spinner.
   const waiting = autoLogin === null || (autoLogin && (status === 'idle' || status === 'connecting'));
   const [patient, setPatient] = useState(true);
   useEffect(() => {

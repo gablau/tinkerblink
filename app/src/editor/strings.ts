@@ -1,4 +1,4 @@
-// Testi dell'editor delle dashboard (it/en secondo la lingua del telefono). Tenuti qui per non appesantire i18n.ts.
+// Texts of the dashboard editor (it/en following the phone language). Kept here to keep i18n.ts small.
 import { language } from '@/i18n';
 
 const en = {

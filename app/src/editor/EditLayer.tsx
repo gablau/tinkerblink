@@ -1,13 +1,14 @@
-// Livello di modifica sopra la griglia della dashboard (fase 2 dell'editor: layout).
-// - Tocco su un widget: lo seleziona (bordo pieno, maniglia nell'angolo, pulsante delle impostazioni).
-// - Widget selezionato: trascinandolo si sposta, trascinando la maniglia si ridimensiona.
-// - Si può rilasciare anche sopra altri widget: quelli che occupano il posto scendono (reflow, a cascata) e
-//   durante il trascinamento la griglia mostra già il risultato (onPreview); un riquadro evidenziato indica dove
-//   finirà il widget. Rosso solo se si esce dalle 8 colonne.
-// - Al rilascio si chiama onLayout con la nuova posizione e i widget spinti (salvataggio con UPDATE_WIDGET).
-// - Con il dito vicino al bordo alto o basso la dashboard scorre da sola (autoScroll.ts) e il widget la segue.
-// Le posizioni occupate non vengono rifiutate: per fare spazio non serve spostare un widget
-// alla volta.
+// Edit layer on top of the dashboard grid (editor phase 2: layout).
+// - Tapping a widget selects it (solid border, corner handle, settings button).
+// - Selected widget: dragging it moves it, dragging the handle resizes it.
+// - It can also be dropped over other widgets: the ones in the way move down (cascading reflow), and
+//   while dragging the grid already shows the result (onPreview); a highlighted box shows where the widget
+//   will land. It turns red only when it goes outside the 8 columns.
+// - On release onLayout is called with the new position and the pushed widgets (saved with UPDATE_WIDGET).
+// - With the finger near the top or bottom edge the dashboard scrolls by itself (autoScroll.ts) and the widget
+//   follows it.
+// Occupied positions are not rejected: making room does not require moving one widget
+// at a time.
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
 import { Animated, PanResponder, Pressable, StyleSheet, View } from 'react-native';
@@ -25,24 +26,24 @@ const INVALID = '#D3435C';
 export type Moves = Map<number, Rect>;
 
 interface Props {
-  /** Widget della scheda come vanno mostrati (con l'anteprima della spinta). */
+  /** Widgets of the tab as they should be shown (with the push preview). */
   widgets: Widget[];
   cellW: number;
   cellH: number;
-  /** Prima riga visibile (1 con le schede: la riga 0 è del widget Tabs). */
+  /** First visible row (1 with tabs: row 0 belongs to the Tabs widget). */
   rowOffset: number;
   hasTabs: boolean;
-  /** Tutti i widget della dashboard senza anteprima: base dei calcoli (non cambia durante il gesto). */
+  /** All widgets of the dashboard without preview: base of the calculations (unchanged during the gesture). */
   allWidgets: Widget[];
   theme: DashboardTheme;
   selectedId: number | null;
   onSelect: (id: number | null) => void;
   onSettings: (w: Widget) => void;
   onLayout: (w: Widget, rect: Rect, moves: Moves) => void;
-  /** Anteprima durante il gesto: nuove posizioni dei widget spinti (null = nessuna). */
+  /** Preview during the gesture: new positions of the pushed widgets (null = none). */
   onPreview: (moves: Moves | null) => void;
   lockScroll: (locked: boolean) => void;
-  /** Scorrimento automatico vicino ai bordi durante il gesto. */
+  /** Automatic scrolling near the edges during the gesture. */
   scroller: AutoScroller;
 }
 
@@ -75,7 +76,7 @@ export function EditLayer(props: Props) {
   );
 }
 
-/** Rettangolo di arrivo sulla griglia per uno spostamento o un ridimensionamento di (dx, dy) pixel. */
+/** Target rectangle on the grid for a move or a resize by (dx, dy) pixels. */
 function targetOf(
   l: { widget: Widget; limits: { min: [number, number]; max: [number, number] }; cellW: number; cellH: number },
   g: { mode: 'move' | 'resize'; dx: number; dy: number },
@@ -117,13 +118,13 @@ function SelectedBox({
   const limits = sizeLimits(widget);
   const others = useMemo(() => sameGrid(allWidgets, widget, hasTabs), [allWidgets, widget, hasTabs]);
 
-  // PanResponder (con il suo dx/dy interno) ricreato solo quando cambiano widget, griglia o callback: durante
-  // il gesto cambiano soltanto lo stato `gesture` e l'anteprima, che non toccano queste dipendenze.
+  // PanResponder (with its internal dx/dy) is recreated only when widgets, grid or callbacks change: during
+  // the gesture only the `gesture` state and the preview change, and they are not among these dependencies.
   const responders = useMemo(() => {
     const target = (mode: 'move' | 'resize', dx: number, dy: number) =>
       targetOf({ widget, limits: sizeLimits(widget), cellW, cellH }, { mode, dx, dy });
     const make = (mode: 'move' | 'resize') => {
-      // Ultimo spostamento del dito sullo schermo; lo scorrimento automatico si somma in verticale.
+      // Last movement of the finger on the screen; automatic scrolling is added vertically.
       let fingerDx = 0;
       let fingerDy = 0;
       let stopTicks: (() => void) | null = null;
@@ -131,7 +132,7 @@ function SelectedBox({
         const dy = fingerDy + scroller.offset();
         if (mode === 'move') move.setValue({ x: fingerDx, y: dy });
         setGesture({ mode, dx: fingerDx, dy });
-        // Anteprima della spinta (la griglia la applica solo se le posizioni cambiano davvero).
+        // Push preview (the grid applies it only if the positions really change).
         const t = target(mode, fingerDx, dy);
         onPreview(inBounds(t, rowOffset) && !sameRect(t, widget) ? reflow(others, t) : null);
       };
@@ -182,7 +183,7 @@ function SelectedBox({
 
   return (
     <>
-      {/* Dove finirà il widget al rilascio. */}
+      {/* Where the widget will land on release. */}
       {target && !sameRect(target, widget) && (
         <View
           pointerEvents="none"

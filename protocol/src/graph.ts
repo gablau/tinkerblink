@@ -1,15 +1,15 @@
-// Dati storici dei SuperChart (GET_ENHANCED_GRAPH_DATA, comando 60).
+// SuperChart history (GET_ENHANCED_GRAPH_DATA, command 60).
 //
-// Richiesta: `<dashId>[-<deviceId>]\0<widgetId>\0<period>[\0<page>]` (MobileGetEnhancedGraphDataLogic).
-// Pagina N = salta N × punti del periodo.
+// Request: `<dashId>[-<deviceId>]\0<widgetId>\0<period>[\0<page>]` (MobileGetEnhancedGraphDataLogic).
+// Page N = skip N × points of the period.
 //
-// Risposta: messaggio binario compresso zlib (DeflaterOutputStream, ByteUtils.compress(dashId, data)):
+// Reply: binary message compressed with zlib (DeflaterOutputStream, ByteUtils.compress(dashId, data)):
 //   int32 dashId
-//   per ogni datastream del widget, nell'ordine del widget:
-//     int32 numero di record
-//     record da 16 byte: float64 valore + int64 timestamp in ms (big-endian)
+//   for each datastream of the widget, in the widget order:
+//     int32 number of records
+//     16-byte records: float64 value + int64 timestamp in ms (big-endian)
 
-/** Periodi del server (GraphPeriod.java): punti e granularità. */
+/** Server periods (GraphPeriod.java): points and granularity. */
 export const GRAPH_PERIODS = {
   LIVE: { points: 60, granularity: 'MINUTE' },
   FIFTEEN_MINUTES: { points: 15, granularity: 'MINUTE' },
@@ -45,7 +45,7 @@ export interface GraphPoint {
 
 export interface GraphData {
   dashId: number;
-  /** Una serie per datastream, nell'ordine di `dataStreams` del widget. */
+  /** One series per datastream, in the order of the widget `dataStreams`. */
   streams: GraphPoint[][];
 }
 
@@ -69,7 +69,7 @@ export function parseGraphData(raw: Uint8Array): GraphData {
     const points: GraphPoint[] = new Array(count);
     for (let i = 0; i < count; i++) {
       const value = view.getFloat64(off);
-      // int64 letto come due uint32: i timestamp in ms stanno ben sotto 2^53 e si evita BigInt.
+      // int64 read as two uint32: timestamps in ms are well below 2^53, and BigInt is avoided.
       const ts = view.getUint32(off + 8) * 2 ** 32 + view.getUint32(off + 12);
       points[i] = { ts, value };
       off += RECORD_SIZE;

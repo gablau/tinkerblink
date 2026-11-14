@@ -1,14 +1,14 @@
-// Table, Music Player e WebPage Button (modelli Table, Player e LinkButton del server,
+// Table, Music Player and WebPage Button (server models Table, Player and LinkButton,
 // cc.blynk.server.core.model.widgets).
 //
-// - Table: righe con icona di selezione, nome e valore, nell'ordine delle colonne del widget (`columns`); la riga
-//   corrente ("pick" dal firmware) è evidenziata. Con isClickableRows un tocco alterna la selezione e invia
-//   "select\0id" / "deselect\0id". I comandi del firmware li applica il LiveStore. Il riordino trascinando le
-//   righe (isReoderingAllowed, comando "order") non è ancora gestito.
-// - Music Player: titolo centrato e tre pulsanti nel colore del widget; invia "prev", "play" / "stop", "next".
-//   Lo stato play/stop viene dall'ultimo valore del pin o dalla proprietà isOnPlay.
-// - WebPage Button: pulsante come lo Styled Button con il titolo dentro; tenendolo premuto prende i colori dello
-//   stato "on", al rilascio apre `url` nel browser. L'URL non si mostra.
+// - Table: rows with a selection icon, name and value, in the order of the widget columns (`columns`); the current
+//   row ("pick" from the firmware) is highlighted. With isClickableRows a tap toggles the selection and sends
+//   "select\0id" / "deselect\0id". The LiveStore applies the firmware commands. Reordering rows by dragging
+//   (isReoderingAllowed, "order" command) is not handled yet.
+// - Music Player: centered title and three buttons in the widget color; sends "prev", "play" / "stop", "next".
+//   The play/stop state comes from the last pin value or from the isOnPlay property.
+// - WebPage Button: a button like the Styled Button with the title inside; while pressed it takes the "on"
+//   colors, on release it opens `url` in the browser. The URL is never shown.
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { TableRow } from '@/session/liveStore';

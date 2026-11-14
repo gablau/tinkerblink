@@ -1,6 +1,6 @@
-// Regole del layout della griglia (fase 2 dell'editor):
-// griglia larga 8 celle, nessuna sovrapposizione tra widget della stessa scheda, dimensioni
-// minime e massime per tipo. Funzioni pure.
+// Grid layout rules (editor phase 2):
+// grid 8 cells wide, no overlap between widgets of the same tab, minimum and maximum
+// sizes per type. Pure functions.
 import type { Widget } from '@/model/profile';
 
 export const GRID_COLUMNS = 8;
@@ -12,7 +12,7 @@ export interface Rect {
   height: number;
 }
 
-/** Dimensione di default: per quasi tutti i tipi è anche la minima. */
+/** Default size: for almost every type it is also the minimum. */
 const DEFAULT_SIZE: Record<string, [number, number]> = {
   BUTTON: [2, 2],
   SLIDER: [4, 1],
@@ -69,7 +69,7 @@ const DEFAULT_SIZE: Record<string, [number, number]> = {
   TEXT: [4, 2],
 };
 
-/** Minime diverse dalla dimensione di default. */
+/** Minimum sizes different from the default size. */
 const MIN_SIZE: Record<string, [number, number]> = {
   TWO_AXIS_JOYSTICK: [4, 3],
   SWITCH: [2, 1],
@@ -85,7 +85,7 @@ const MIN_SIZE: Record<string, [number, number]> = {
   TEXT: [2, 1],
 };
 
-/** Massime diverse da 8×9. */
+/** Maximum sizes different from 8×9. */
 const MAX_SIZE: Record<string, [number, number]> = {
   TIMER: [4, 1],
   SWITCH: [8, 4],
@@ -100,7 +100,7 @@ export function defaultSize(type: string): [number, number] {
   return DEFAULT_SIZE[type] ?? [2, 2];
 }
 
-/** Dimensioni ammesse; un widget già più piccolo della minima (profili vecchi) può restare com'è. */
+/** Allowed sizes; a widget already smaller than the minimum (old profiles) can stay as it is. */
 export function sizeLimits(w: Widget): { min: [number, number]; max: [number, number] } {
   const min = MIN_SIZE[w.type] ?? defaultSize(w.type);
   const max = MAX_SIZE[w.type] ?? [8, 9];
@@ -111,27 +111,27 @@ export function overlaps(a: Rect, b: Rect): boolean {
   return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 }
 
-/** Widget che condividono la griglia con `w`: stessa scheda (se ci sono schede), escluso il widget Tabs. */
+/** Widgets that share the grid with `w`: same tab (if there are tabs), Tabs widget excluded. */
 export function sameGrid(widgets: Widget[], w: Widget, hasTabs: boolean, tabId = w.tabId ?? 0): Widget[] {
   return widgets.filter((o) => o.id !== w.id && o.type !== 'TABS' && (!hasTabs || (o.tabId ?? 0) === tabId));
 }
 
-/** La posizione è valida: dentro le 8 colonne, sotto la riga minima (1 con le schede) e senza sovrapposizioni. */
+/** The position is valid: inside the 8 columns, below the minimum row (1 with tabs) and without overlaps. */
 export function canPlace(rect: Rect, others: Widget[], minRow: number): boolean {
   if (rect.x < 0 || rect.y < minRow || rect.width < 1 || rect.height < 1 || rect.x + rect.width > GRID_COLUMNS) return false;
   return !others.some((o) => overlaps(rect, o));
 }
 
-/** Dentro la griglia: 8 colonne, sotto la riga minima, dimensioni positive (le sovrapposizioni le risolve reflow). */
+/** Inside the grid: 8 columns, below the minimum row, positive sizes (overlaps are solved by reflow). */
 export function inBounds(rect: Rect, minRow: number): boolean {
   return rect.x >= 0 && rect.y >= minRow && rect.width >= 1 && rect.height >= 1 && rect.x + rect.width <= GRID_COLUMNS;
 }
 
 /**
- * Spinta verso il basso (come nelle griglie "a spinta"): il widget spostato occupa `placed` e gli altri widget
- * della stessa griglia che si sovrappongono scendono quanto basta, a cascata, in ordine di riga. Gli spazi vuoti
- * restano dove sono (niente compattazione verso l'alto: le righe vuote messe apposta non si perdono).
- * Restituisce le nuove posizioni dei soli widget che si spostano.
+ * Push down (as in "push" grids): the moved widget takes `placed` and the other widgets of the same grid
+ * that overlap move down just enough, in a cascade, in row order. Empty spaces
+ * stay where they are (no upward compaction: rows left empty on purpose are not lost).
+ * Returns the new positions of the widgets that move, and only those.
  */
 export function reflow(others: Widget[], placed: Rect): Map<number, Rect> {
   const occupied: Rect[] = [placed];
@@ -150,7 +150,7 @@ export function reflow(others: Widget[], placed: Rect): Map<number, Rect> {
   return moved;
 }
 
-/** Primo posto libero (per righe, da sinistra) per un widget di quelle dimensioni. */
+/** First free spot (by rows, from the left) for a widget of that size. */
 export function findFreeSpot(width: number, height: number, others: Widget[], minRow: number): Rect {
   const w = Math.min(width, GRID_COLUMNS);
   const bottom = others.reduce((m, o) => Math.max(m, o.y + o.height), minRow);

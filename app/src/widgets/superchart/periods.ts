@@ -1,17 +1,17 @@
-// Periodi del SuperChart: etichette e formati delle date mostrati nel widget.
+// SuperChart periods: labels and date formats shown in the widget.
 //
-// Attenzione ai nomi: nel profilo e nelle richieste al server si usano i nomi del SERVER (GraphPeriod), che
-// non sono intuitivi. Per esempio il server chiama "DAY" il giorno al minuto (1440 punti) e "N_DAY" il
-// giorno orario (24 punti). Qui tutto è indicizzato con i nomi del server.
+// Mind the names: the profile and the server requests use the SERVER names (GraphPeriod), which are not
+// intuitive. For example the server calls "DAY" the day by minute (1440 points) and "N_DAY" the day by
+// hour (24 points). Everything here is keyed by the server names.
 import { GRAPH_PERIODS, type GraphPeriod } from '@tinkerblink/protocol';
 import { language, t } from '@/i18n';
 
 const GRANULARITY_MS = { MINUTE: 60_000, HOURLY: 3_600_000, DAILY: 86_400_000 } as const;
 
 /**
- * Formati delle date (pattern in stile LDML: HH:mm, MMM d…, sempre a 24 ore):
- * - axis: etichette dell'asse X;
- * - full: ora del punto selezionato col dito.
+ * Date formats (LDML-style patterns: HH:mm, MMM d…, always 24-hour):
+ * - axis: X axis labels;
+ * - full: time of the point selected with the finger.
  */
 interface PeriodInfo {
   label: string;
@@ -49,7 +49,7 @@ const INFO: Record<GraphPeriod, PeriodInfo> = {
   ALL: { label: 'all', axis: DATE, full: DATE },
 };
 
-/** Periodi di default di un SuperChart nuovo (Superchart.java del server). */
+/** Default periods of a new SuperChart (server Superchart.java). */
 export const DEFAULT_PERIODS: GraphPeriod[] = ['LIVE', 'ONE_HOUR', 'SIX_HOURS', 'N_DAY', 'N_WEEK', 'N_MONTH', 'N_THREE_MONTHS'];
 
 const ORDER = Object.keys(INFO) as GraphPeriod[];
@@ -58,7 +58,7 @@ export function isGraphPeriod(p: unknown): p is GraphPeriod {
   return typeof p === 'string' && p in INFO;
 }
 
-/** Periodi selezionabili del widget (selectedPeriods di Superchart.java del server), dal più breve al più lungo. */
+/** Selectable periods of the widget (selectedPeriods of the server Superchart.java), shortest first. */
 export function selectablePeriods(selected: unknown): GraphPeriod[] {
   const list = Array.isArray(selected) ? selected.filter(isGraphPeriod) : [];
   return (list.length > 0 ? list : DEFAULT_PERIODS).slice().sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b));
@@ -68,26 +68,26 @@ export function periodLabel(p: GraphPeriod): string {
   return INFO[p].label;
 }
 
-/** Larghezza della finestra di un periodo storico, in ms (punti × granularità). */
+/** Window width of a history period, in ms (points × granularity). */
 export function periodSpanMs(p: GraphPeriod): number {
   const { points, granularity } = GRAPH_PERIODS[p];
   return points * GRANULARITY_MS[granularity];
 }
 
-/** Durata di un punto (ms). Serve per riconoscere i buchi nei dati e per la larghezza delle barre. */
+/** Duration of one point (ms). Used to detect gaps in the data and for the bar width. */
 export function periodStepMs(p: GraphPeriod): number {
   return p === 'LIVE' ? 1000 : GRANULARITY_MS[GRAPH_PERIODS[p].granularity];
 }
 
-/** Numero di etichette dell'asse X: 5, oppure 7 per le settimane. */
+/** Number of X axis labels: 5, or 7 for weeks. */
 export function xLabelCount(p: GraphPeriod): number {
   return p === 'WEEK' || p === 'N_WEEK' ? 7 : 5;
 }
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
-/** Formatta un timestamp con i pochi token usati sopra, con i nomi di mesi e giorni della lingua dell'app. */
-/** In italiano il giorno va prima del mese: "01 ott", "01 ott 2026". */
+/** Formats a timestamp with the few tokens used above, with month and day names in the app language. */
+/** In Italian the day comes before the month: "01 ott", "01 ott 2026". */
 function localize(pattern: string): string {
   if (language !== 'it') return pattern;
   return pattern.replace('MMM dd, yyyy', 'dd MMM yyyy').replace('MMM dd', 'dd MMM');
@@ -96,7 +96,7 @@ function localize(pattern: string): string {
 function format(ts: number, raw: string): string {
   const pattern = localize(raw);
   const d = new Date(ts);
-  // getDay(): 0 = domenica; t.days parte dal lunedì.
+  // getDay(): 0 = Sunday; t.days starts from Monday.
   const weekday = t.days[(d.getDay() + 6) % 7]!;
   return pattern.replace(/yyyy|MMM|EEE|HH|mm|ss|dd/g, (tok) => {
     switch (tok) {
@@ -123,8 +123,8 @@ export function formatAxisTime(ts: number, p: GraphPeriod): string {
 }
 
 /**
- * Ora del punto selezionato col dito: se il
- * formato del periodo non ha la data e il punto non è di oggi, si aggiungono giorno e mese. Nel LIVE mai.
+ * Time of the point selected with the finger: if the
+ * period format has no date and the point is not from today, day and month are added. Never in LIVE.
  */
 export function formatFullTime(ts: number, p: GraphPeriod): string {
   const pattern = INFO[p].full;

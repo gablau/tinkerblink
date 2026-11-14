@@ -1,5 +1,5 @@
-// Collega il SessionManager a React: stato osservato con useSyncExternalStore e
-// pausa/ripresa della connessione in base allo stato dell'app (primo piano / background).
+// Connects the SessionManager to React: state observed with useSyncExternalStore, and the connection
+// paused/resumed following the app state (foreground / background).
 import { createContext, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 import type { DashSettings, GraphData, GraphPeriod } from '@tinkerblink/protocol';
@@ -29,7 +29,7 @@ interface SessionValue extends SessionState {
   createDevice(dashId: number, d: NewDevice): Promise<Device>;
   updateDevice(dashId: number, device: Device): Promise<void>;
   deleteDevice(dashId: number, deviceId: number): Promise<void>;
-  /** Avviso temporaneo in basso (NoticeToast). */
+  /** Temporary notice at the bottom (NoticeToast). */
   showNotice(text: string): void;
 }
 

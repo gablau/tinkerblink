@@ -1,17 +1,17 @@
-// Importa le definizioni delle schede dal repo gablau/tinkerblink-boards (fork di blynkkk/boards, licenza MIT)
-// in app/src/editor/boards/data/ e rigenera l'indice app/src/editor/boards/index.ts.
-// I JSON si salvano minificati, con gli spazi del nome del file sostituiti da "_"; la cartella debug/ del repo
-// (schede di prova) non si importa.
+// Imports the board definitions from the gablau/tinkerblink-boards repo (fork of blynkkk/boards, MIT license)
+// into app/src/editor/boards/data/ and regenerates the index app/src/editor/boards/index.ts.
+// The JSON files are saved minified, with spaces in file names replaced by "_"; the debug/ folder of the repo
+// (test boards) is not imported.
 //
-// Con il sorgente del server rigenera anche l'elenco dei modelli in app/src/project/boardTypes.ts (il blocco tra
-// "// <boards>" e "// </boards>"), che deve coincidere con l'enum BoardType: il server trasforma ogni nome che
-// non conosce in "Generic Board". Segnala le schede con i pin ma senza nome nell'enum (non selezionabili) e i
-// nomi dell'enum senza pin (usano i pin della scheda generica).
+// Given the server source it also regenerates the board list in app/src/project/boardTypes.ts (the block between
+// "// <boards>" and "// </boards>"), which must match the BoardType enum: the server turns every name it does
+// not know into "Generic Board". It reports boards with pins but no enum entry (not selectable) and enum
+// names without pins (they use the pins of the generic board).
 //
-// Uso:
+// Usage:
 //   git clone https://github.com/gablau/tinkerblink-boards
 //   git clone https://github.com/gablau/blynk-server
-//   node app/scripts/import-boards.js <clone delle schede> [<clone del server oppure BoardType.java>]
+//   node app/scripts/import-boards.js <boards clone> [<server clone or BoardType.java>]
 const fs = require('fs');
 const path = require('path');
 
@@ -20,8 +20,8 @@ const ENUM_PATH = 'server/core/src/main/java/cc/blynk/server/core/model/device/B
 const [src, server] = process.argv.slice(2);
 if (!src || !fs.existsSync(path.join(src, 'LICENSE'))) {
   console.error(
-    'Uso: node app/scripts/import-boards.js <clone di https://github.com/gablau/tinkerblink-boards> ' +
-      '[<clone di https://github.com/gablau/blynk-server oppure BoardType.java>]',
+    'Usage: node app/scripts/import-boards.js <clone of https://github.com/gablau/tinkerblink-boards> ' +
+      '[<clone of https://github.com/gablau/blynk-server or BoardType.java>]',
   );
   process.exit(1);
 }
@@ -29,7 +29,7 @@ const appDir = path.join(__dirname, '..');
 const boardsDir = path.join(appDir, 'src', 'editor', 'boards');
 const dataDir = path.join(boardsDir, 'data');
 
-// ——— Pin delle schede ———
+// ——— Board pins ———
 
 fs.rmSync(dataDir, { recursive: true, force: true });
 fs.mkdirSync(dataDir, { recursive: true });
@@ -48,8 +48,8 @@ for (const file of fs.readdirSync(src).filter((f) => f.endsWith('.json')).sort()
 fs.writeFileSync(
   path.join(boardsDir, 'index.ts'),
   [
-    '// Indice delle definizioni delle schede Blynk (licenza MIT, vedi data/LICENSE).',
-    '// Chiave = nome della scheda come nel campo boardType dei device.',
+    '// Index of the Blynk board definitions (MIT license, see data/LICENSE).',
+    '// Key = board name as in the boardType field of the devices.',
     "import type { BoardJson } from './types';",
     '',
     'export const BOARD_FILES: Record<string, BoardJson> = {',
@@ -58,22 +58,22 @@ fs.writeFileSync(
     '',
   ].join('\n'),
 );
-console.log(`${entries.length} schede importate da ${src}`);
+console.log(`${entries.length} boards imported from ${src}`);
 
-// ——— Modelli del server ———
+// ——— Server board list ———
 
 if (!server) {
-  console.log('Server non indicato: elenco dei modelli in boardTypes.ts non aggiornato.');
+  console.log('No server given: the board list in boardTypes.ts was not updated.');
   process.exit(0);
 }
 const enumFile = fs.statSync(server).isDirectory() ? path.join(server, ENUM_PATH) : server;
 const labels = [...fs.readFileSync(enumFile, 'utf8').matchAll(/^\s+\w+\("([^"]+)"\)\s*[,;]/gm)].map((m) => m[1]);
 if (!labels.includes('Generic Board')) {
-  console.error(`Enum BoardType non riconosciuto in ${enumFile}`);
+  console.error(`BoardType enum not recognized in ${enumFile}`);
   process.exit(1);
 }
 
-/** Etichette tra apici, a capo prima dei 115 caratteri, come il resto del codice. */
+/** Labels in single quotes, wrapped before 115 characters like the rest of the code. */
 function wrap(items, indent) {
   const lines = [];
   let line = indent;
@@ -94,21 +94,21 @@ const text = fs.readFileSync(typesFile, 'utf8');
 const start = text.indexOf('// <boards>\n');
 const end = text.indexOf('// </boards>');
 if (start < 0 || end < start) {
-  console.error(`Marcatori "// <boards>" e "// </boards>" non trovati in ${typesFile}`);
+  console.error(`Markers "// <boards>" and "// </boards>" not found in ${typesFile}`);
   process.exit(1);
 }
 const block = [
   '// <boards>',
-  `// Generato da app/scripts/import-boards.js dall'enum BoardType del server (${labels.length} modelli): non modificare.`,
+  `// Generated by app/scripts/import-boards.js from the server BoardType enum (${labels.length} boards): do not edit.`,
   'const SERVER_BOARD_TYPES = [',
   ...wrap(labels, '  '),
   '];',
   '',
 ].join('\n');
 fs.writeFileSync(typesFile, text.slice(0, start) + block + text.slice(end));
-console.log(`${labels.length} modelli del server scritti in ${path.relative(path.join(appDir, '..'), typesFile)}`);
+console.log(`${labels.length} server boards written to ${path.relative(path.join(appDir, '..'), typesFile)}`);
 
 const noEnum = names.filter((n) => !labels.includes(n));
 const noPins = labels.filter((l) => !names.includes(l));
-if (noEnum.length) console.log(`Schede con i pin ma assenti dall'enum (non selezionabili): ${noEnum.join(', ')}`);
-if (noPins.length) console.log(`Modelli dell'enum senza pin (usano la scheda generica): ${noPins.join(', ')}`);
+if (noEnum.length) console.log(`Boards with pins but missing from the enum (not selectable): ${noEnum.join(', ')}`);
+if (noPins.length) console.log(`Enum boards without pins (they use the generic board): ${noPins.join(', ')}`);

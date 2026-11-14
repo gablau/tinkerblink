@@ -1,13 +1,13 @@
-// Widget dei sensori del telefono (Light, Proximity, Barometer, Humidity, Temperature, Accelerometer,
-// Gravity, GPS Stream, GPS Trigger). Leggono e inviano i valori i worker in src/sensors.
+// Phone sensor widgets (Light, Proximity, Barometer, Humidity, Temperature, Accelerometer,
+// Gravity, GPS Stream, GPS Trigger). The workers in src/sensors read and send the values.
 //
-// - Light, Proximity, Barometer, Humidity, Temperature: titolo e valore nel colore del widget, con l'unità
-//   ("%slx", "Near"/"Far", "%smbar", "%s%", "%s°C" / "%s°F"); "--" finché non arriva un valore (o se il
-//   telefono non ha il sensore).
-// - Accelerometer, Gravity: titolo e icona nel colore del widget (nessun valore mostrato).
-// - GPS Stream: latitudine e longitudine con 5 decimali (dal pin, aggiornato dal server); grigio se il pin
-//   non c'è o manca il permesso di posizione.
-// - GPS Trigger: icona di ingresso o di uscita a seconda di triggerOnEnter, grigia come sopra.
+// - Light, Proximity, Barometer, Humidity, Temperature: title and value in the widget color, with the unit
+//   ("%slx", "Near"/"Far", "%smbar", "%s%", "%s°C" / "%s°F"); "--" until a value arrives (or if the
+//   phone has no such sensor).
+// - Accelerometer, Gravity: title and icon in the widget color (no value shown).
+// - GPS Stream: latitude and longitude with 5 decimals (from the pin, updated by the server); grey if there
+//   is no pin or the location permission is missing.
+// - GPS Trigger: enter or exit icon depending on triggerOnEnter, grey as above.
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StyleSheet, Text } from 'react-native';
 import { t } from '@/i18n';

@@ -1,10 +1,10 @@
-// Framing dei messaggi app ↔ server. Solo Uint8Array/DataView: niente Buffer, così gira anche in React Native.
+// App ↔ server message framing. Only Uint8Array/DataView, no Buffer, so it also runs in React Native.
 //
-// TCP (MobileMessageDecoder/Encoder):  [comando u8][msgId u16][lunghezza o codice u32][body]
-// WebSocket /dashws (WSMessageDecoder/Encoder), un messaggio per frame binario:
-//                                      [comando u8][msgId u16][body]          (la lunghezza è quella del frame)
-//                                      [0][msgId u16][codice u32]             per RESPONSE
-// Tutto big-endian. Per RESPONSE (comando 0) il campo u32 è il codice di stato e non c'è body.
+// TCP (MobileMessageDecoder/Encoder):  [command u8][msgId u16][length or code u32][body]
+// WebSocket /dashws (WSMessageDecoder/Encoder), one message per binary frame:
+//                                      [command u8][msgId u16][body]          (the length is the frame length)
+//                                      [0][msgId u16][code u32]               for RESPONSE
+// All big-endian. For RESPONSE (command 0) the u32 field is the status code and there is no body.
 
 import { strFromU8, strToU8 } from 'fflate';
 import { BINARY_RESPONSE_COMMANDS, Command } from './commands.ts';
@@ -12,20 +12,20 @@ import { BINARY_RESPONSE_COMMANDS, Command } from './commands.ts';
 export const APP_HEADER_SIZE = 7;
 export const WS_HEADER_SIZE = 3;
 export const BODY_SEPARATOR = '\0';
-/** Limite difensivo in ricezione: un body più lungo indica un frame corrotto. */
+/** Defensive limit on receive: a longer body means a corrupted frame. */
 export const MAX_BODY_SIZE = 10 * 1024 * 1024;
 
-// UTF-8 con fflate invece di TextEncoder/TextDecoder: TextDecoder non è garantito su Hermes.
+// UTF-8 with fflate instead of TextEncoder/TextDecoder: TextDecoder is not guaranteed on Hermes.
 
 export type Message =
   | { kind: 'response'; command: 0; msgId: number; code: number }
   | { kind: 'text'; command: number; msgId: number; body: string }
   | { kind: 'binary'; command: number; msgId: number; body: Uint8Array };
 
-/** Codifica/decodifica dei messaggi per un tipo di trasporto. */
+/** Message encoding/decoding for one kind of transport. */
 export interface Codec {
   encode(command: number, msgId: number, body?: string): Uint8Array;
-  /** Riceve i byte arrivati dal trasporto (chunk TCP o frame WebSocket) e restituisce i messaggi completi. */
+  /** Takes the bytes received by the transport (TCP chunk or WebSocket frame) and returns the complete messages. */
   push(chunk: Uint8Array): Message[];
 }
 
@@ -43,7 +43,7 @@ export function splitBody(body: string): string[] {
   return body.split(BODY_SEPARATOR);
 }
 
-/** Retrocompatibilità: codifica TCP. */
+/** Backward compatibility: TCP encoding. */
 export function encodeMessage(command: number, msgId: number, body = ''): Uint8Array {
   return new TcpCodec().encode(command, msgId, body);
 }
@@ -54,7 +54,7 @@ function toMessage(command: number, msgId: number, body: Uint8Array): Message {
     : { kind: 'text', command, msgId, body: strFromU8(body) };
 }
 
-/** Header da 7 byte su stream TCP: accumula i chunk ed emette i messaggi completi. */
+/** 7-byte header on a TCP stream: buffers the chunks and emits the complete messages. */
 export class TcpCodec implements Codec {
   private buf: Uint8Array = new Uint8Array(0);
 
@@ -97,7 +97,7 @@ export class TcpCodec implements Codec {
   }
 }
 
-/** Header da 3 byte, un messaggio per frame WebSocket binario. */
+/** 3-byte header, one message per binary WebSocket frame. */
 export class WsCodec implements Codec {
   encode(command: number, msgId: number, body = ''): Uint8Array {
     const payload = strToU8(body);
@@ -125,7 +125,7 @@ export class WsCodec implements Codec {
   }
 }
 
-/** Retrocompatibilità: il decoder TCP si chiamava FrameDecoder. */
+/** Backward compatibility: the TCP decoder used to be called FrameDecoder. */
 export { TcpCodec as FrameDecoder };
 
 function concat(a: Uint8Array, b: Uint8Array): Uint8Array {

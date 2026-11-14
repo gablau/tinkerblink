@@ -2,8 +2,8 @@ import { sha256 } from '@noble/hashes/sha2.js';
 import { strToU8 } from 'fflate';
 
 /**
- * Hash della password come lo calcolano app e server (SHA256Util):
- * Base64( SHA-256( password || SHA-256(email in minuscolo) ) )
+ * Password hash as computed by apps and server (SHA256Util):
+ * Base64( SHA-256( password || SHA-256(lower-case email) ) )
  */
 export function passwordHash(password: string, email: string): string {
   const salt = sha256(strToU8(email.toLowerCase()));
@@ -16,7 +16,7 @@ export function passwordHash(password: string, email: string): string {
 
 const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
-/** Base64 standard con padding, senza dipendere da btoa/Buffer. */
+/** Standard Base64 with padding, without depending on btoa/Buffer. */
 function toBase64(bytes: Uint8Array): string {
   let out = '';
   for (let i = 0; i < bytes.length; i += 3) {

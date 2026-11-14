@@ -1,5 +1,5 @@
-// Font dell'app: Barlow, un font libero (OFL, Google Fonts) in stile DIN. Per il Terminal il monospace
-// di sistema.
+// App fonts: Barlow, a free DIN-style font (OFL, Google Fonts). The Terminal uses the system
+// monospace font.
 import {
   Barlow_300Light,
   Barlow_400Regular,
@@ -10,18 +10,18 @@ import {
 import { VT323_400Regular } from '@expo-google-fonts/vt323';
 
 export const FONT = {
-  /** Valori ed etichette dei widget. */
+  /** Widget values and labels. */
   light: 'Barlow_300Light',
   regular: 'Barlow_400Regular',
-  /** Titoli delle schede. */
+  /** Tab titles. */
   medium: 'Barlow_500Medium',
   semibold: 'Barlow_600SemiBold',
   mono: 'monospace',
-  /** LCD: VT323 (OFL), stile display a pixel. */
+  /** LCD: VT323 (OFL), pixel display style. */
   lcd: 'VT323_400Regular',
 } as const;
 
-/** Carica i font; restituisce true quando sono pronti (o se il caricamento è fallito: si usa quello di sistema). */
+/** Loads the fonts; returns true when they are ready (or when loading failed: the system font is used). */
 export function useAppFonts(): boolean {
   const [loaded, error] = useFonts({ Barlow_300Light, Barlow_400Regular, Barlow_500Medium, Barlow_600SemiBold, VT323_400Regular });
   return loaded || error !== null;

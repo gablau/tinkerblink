@@ -1,5 +1,5 @@
-// Modello del profilo restituito da LOAD_PROFILE_GZIPPED. Solo i campi che l'app usa: il JSON ricevuto
-// resta intatto (serve all'editor per il round-trip: i campi sconosciuti non si perdono).
+// Model of the profile returned by LOAD_PROFILE_GZIPPED. Only the fields the app uses: the received JSON
+// is kept intact (the editor needs the round-trip, so unknown fields are not lost).
 
 export type PinType = 'VIRTUAL' | 'DIGITAL' | 'ANALOG';
 
@@ -29,10 +29,10 @@ export interface Device {
   boardType?: string;
   connectionType?: string;
   status?: 'ONLINE' | 'OFFLINE';
-  /** Ultima connessione / disconnessione (ms); assenti se il device non è mai stato online. */
+  /** Last connection / disconnection (ms); missing if the device has never been online. */
   connectTime?: number;
   disconnectTime?: number;
-  /** Token del device per l'API HTTP: lo usa il GPS in background e si mostra solo nelle impostazioni del progetto (mai nei log). */
+  /** Device token for the HTTP API: used by the background GPS, shown only in the project settings (never logged). */
   token?: string;
   [key: string]: unknown;
 }
@@ -54,20 +54,20 @@ export interface Dashboard {
   widgets: Widget[];
   devices?: Device[];
   /**
-   * Progetto di un altro utente assegnato dall'amministratore (server nuovo, docs/APP-CLIENT.md del fork):
-   * mai modificabile; con control false anche i comandi ai device sono vietati (il server risponde NOT_ALLOWED).
+   * Another user's project assigned by the administrator (newer server, docs/APP-CLIENT.md of the fork):
+   * never editable; with control false, device commands are forbidden too (the server replies NOT_ALLOWED).
    */
   assigned?: { owner: string; control: boolean };
 }
 
-/** Si possono mandare comandi ai device? Falso solo per i progetti assegnati in sola lettura. */
+/** Can commands be sent to the devices? False only for read-only assigned projects. */
 export function canControl(dash: Dashboard): boolean {
   return dash.assigned ? dash.assigned.control === true : true;
 }
 
 export interface Profile {
   dashBoards: Dashboard[];
-  /** "<dashId>-<deviceId>-v<pin>" → ultimo valore dei pin senza widget dedicato. */
+  /** "<dashId>-<deviceId>-v<pin>" → last value of the pins without a dedicated widget. */
   pinsStorage?: Record<string, string>;
 }
 
@@ -78,12 +78,12 @@ export interface TabsWidget extends Widget {
 
 const PIN_LETTER: Record<PinType, string> = { VIRTUAL: 'v', DIGITAL: 'd', ANALOG: 'a' };
 
-/** Chiave di un pin, nello stesso formato di `pinsStorage`: "<dashId>-<deviceId>-v<pin>". */
+/** Key of a pin, in the same format as `pinsStorage`: "<dashId>-<deviceId>-v<pin>". */
 export function pinKey(dashId: number, deviceId: number, pinType: PinType, pin: number): string {
   return `${dashId}-${deviceId}-${PIN_LETTER[pinType]}${pin}`;
 }
 
-/** Chiave del pin di un widget, oppure null se il widget non ha un pin. */
+/** Key of a widget's pin, or null if the widget has no pin. */
 export function widgetPinKey(dashId: number, w: Widget): string | null {
   if (w.pin === undefined || w.pin < 0 || !w.pinType) return null;
   return pinKey(dashId, w.deviceId ?? 0, w.pinType, w.pin);
@@ -93,7 +93,7 @@ export function deviceKey(dashId: number, deviceId: number): string {
   return `${dashId}-${deviceId}`;
 }
 
-/** Colore Blynk (int ARGB con segno, oppure "#RRGGBB" da setProperty) → colore CSS. */
+/** Blynk color (signed ARGB int, or "#RRGGBB" from setProperty) → CSS color. */
 export function toCssColor(color: unknown, fallback = '#23C48E'): string {
   if (typeof color === 'string' && color.startsWith('#')) return color;
   if (typeof color !== 'number') return fallback;

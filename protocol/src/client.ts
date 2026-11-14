@@ -6,15 +6,15 @@ import { passwordHash } from './hash.ts';
 import type { Transport } from './transport.ts';
 
 /**
- * Sistema, versione e nome dell'app inviati nel LOGIN (MobileLoginHandler). Il server cerca l'utente per
- * email + nome dell'app (AppNameUtil.BLYNK = "Blynk"); il sistema serve alle notifiche push (OsType);
- * la versione (x.y.z) la legge solo Version.isOutdated().
+ * OS, version and app name sent with LOGIN (MobileLoginHandler). The server looks the user up by
+ * email + app name (AppNameUtil.BLYNK = "Blynk"); the OS is used for push notifications (OsType);
+ * the version (x.y.z) is only read by Version.isOutdated().
  */
 export const CLIENT_OS = 'Android';
 export const CLIENT_VERSION = '0.1.0';
 export const APP_NAME = 'Blynk';
 
-/** Comandi che non modificano nulla sul server. In modalità readOnly sono gli unici ammessi. */
+/** Commands that change nothing on the server. In readOnly mode they are the only ones allowed. */
 const READ_ONLY_COMMANDS: ReadonlySet<number> = new Set([
   Command.LOGIN,
   Command.PING,
@@ -28,9 +28,9 @@ const READ_ONLY_COMMANDS: ReadonlySet<number> = new Set([
 ]);
 
 /**
- * Comandi dell'editor: in sola lettura sono ammessi solo sulle dashboard di `editableDashIds` (il dashId è
- * il primo campo del body). DEACTIVATE_DASHBOARD con body vuoto fermerebbe tutte le dashboard: dashId 0,
- * quindi bloccato.
+ * Editor commands: in read-only mode they are allowed only on the dashboards in `editableDashIds` (the dashId
+ * is the first field of the body). DEACTIVATE_DASHBOARD with an empty body would stop every dashboard: no
+ * dashId, so it is blocked.
  */
 const EDIT_COMMANDS: ReadonlySet<number> = new Set([
   Command.CREATE_WIDGET,
@@ -45,7 +45,7 @@ const EDIT_COMMANDS: ReadonlySet<number> = new Set([
   Command.DELETE_DEVICE,
 ]);
 
-/** Impostazioni di un progetto (DashboardSettings del server): quelle che UPDATE_PROJECT_SETTINGS sostituisce. */
+/** Project settings (server DashboardSettings): the ones UPDATE_PROJECT_SETTINGS replaces. */
 export interface DashSettings {
   name: string;
   isShared: boolean;
@@ -68,20 +68,20 @@ export class ProtocolError extends Error {
 }
 
 export interface ClientOptions {
-  /** Blocca l'invio di comandi che scrivono sul server. */
+  /** Blocks commands that write to the server. */
   readOnly?: boolean;
   /**
-   * In sola lettura permette comunque le scritture sui pin (comando HARDWARE): è quello che serve
-   * all'app per comandare i device senza poter modificare i progetti.
+   * In read-only mode, still allows pin writes (HARDWARE command): what the app needs to control the
+   * devices without being able to change the projects.
    */
   allowHardwareWrites?: boolean;
   /**
-   * In sola lettura permette comunque i comandi dell'editor (widget, impostazioni, device, play/stop,
-   * eliminazione del progetto), ma solo su queste dashboard: il dashId è il primo campo del body.
-   * Vuoto = nessuna modifica. Si allarga con allowEditing().
+   * In read-only mode, still allows the editor commands (widgets, settings, devices, play/stop, project
+   * deletion), but only on these dashboards: the dashId is the first field of the body.
+   * Empty = no changes. Extended with allowEditing().
    */
   editableDashIds?: readonly number[];
-  /** In sola lettura permette CREATE_DASH; la dashboard creata diventa modificabile. */
+  /** In read-only mode, allows CREATE_DASH; the created dashboard becomes editable. */
   allowCreateDash?: boolean;
   requestTimeoutMs?: number;
   pingIntervalMs?: number;
@@ -126,7 +126,7 @@ export class LegacyClient {
     transport.onClose((err) => this.handleClosed(err));
   }
 
-  /** Chiusura della connessione (dal trasporto o per ping senza risposta): notificata una volta sola. */
+  /** Connection closed (by the transport or after an unanswered ping): notified only once. */
   private handleClosed(err?: Error): void {
     if (this.closed) return;
     this.closed = true;
@@ -139,12 +139,12 @@ export class LegacyClient {
     for (const l of this.disconnectListeners) l(err);
   }
 
-  /** Messaggi non richiesti dal client (aggiornamenti hardware, notifiche di stato...). */
+  /** Messages the client did not ask for (hardware updates, status notifications...). */
   onMessage(listener: (m: Message) => void): void {
     this.listeners.push(listener);
   }
 
-  /** Chiamato quando la connessione si chiude (dal server, dalla rete o con close()). */
+  /** Called when the connection closes (by the server, the network or close()). */
   onDisconnect(listener: (error?: Error) => void): void {
     this.disconnectListeners.push(listener);
   }
@@ -161,15 +161,15 @@ export class LegacyClient {
   }
 
   /**
-   * Chiede al server di inviare lo stato corrente di una dashboard (MobileSyncLogic): risponde OK e poi
-   * manda un APP_SYNC (msgId SYNC_MESSAGE_ID) per ogni widget, ai listener di onMessage. È l'unico modo
-   * per avere la cronologia dei Terminal, che il server tiene solo in memoria (Terminal.lastCommands).
+   * Asks the server for the current state of a dashboard (MobileSyncLogic): it replies OK and then sends
+   * one APP_SYNC (msgId SYNC_MESSAGE_ID) per widget to the onMessage listeners. It is the only way to get
+   * the Terminal history, which the server keeps only in memory (Terminal.lastCommands).
    */
   async syncDashboard(dashId: number, deviceId?: number): Promise<void> {
     await this.expectOk(Command.APP_SYNC, deviceId === undefined ? String(dashId) : `${dashId}-${deviceId}`);
   }
 
-  /** Profilo completo (tutte le dashboard), già decompresso e parsato. */
+  /** Whole profile (all dashboards), decompressed and parsed. */
   async loadProfile(): Promise<unknown> {
     const reply = await this.request(Command.LOAD_PROFILE_GZIPPED, '');
     if (reply.kind === 'response') throw new ProtocolError(Command.LOAD_PROFILE_GZIPPED, reply.code);
@@ -178,9 +178,9 @@ export class LegacyClient {
   }
 
   /**
-   * Dati storici di un SuperChart (GET_ENHANCED_GRAPH_DATA). Restituisce una serie per ogni datastream
-   * del widget, nello stesso ordine; `null` se il server risponde NO_DATA.
-   * `deviceId` serve solo quando il grafico segue un Device Selector o un Device Tiles.
+   * SuperChart history (GET_ENHANCED_GRAPH_DATA). Returns one series per datastream of the widget, in the
+   * same order; `null` when the server replies NO_DATA.
+   * `deviceId` is only needed when the chart follows a Device Selector or Device Tiles.
    */
   async getGraphData(req: {
     dashId: number;
@@ -206,7 +206,7 @@ export class LegacyClient {
     this.transport.close();
   }
 
-  /** Invia un comando e attende il messaggio con lo stesso msgId. */
+  /** Sends a command and waits for the message with the same msgId. */
   request(command: number, body = ''): Promise<Message> {
     if (!this.isAllowed(command, body)) {
       return Promise.reject(new Error(`Comando ${commandName(command)} bloccato: client in sola lettura`));
@@ -223,9 +223,9 @@ export class LegacyClient {
   }
 
   /**
-   * Invia un comando senza attendere risposta. Serve per HARDWARE: il server non risponde se va a buon
-   * fine e manda solo un RESPONSE di errore (per esempio DEVICE_NOT_IN_NETWORK = 7 con il device
-   * offline), che arriva ai listener di onMessage con lo stesso msgId restituito qui.
+   * Sends a command without waiting for a reply. Used for HARDWARE: the server does not reply on success
+   * and only sends an error RESPONSE (for example DEVICE_NOT_IN_NETWORK = 7 with the device offline),
+   * which reaches the onMessage listeners with the same msgId returned here.
    */
   send(command: number, body = ''): number {
     if (!this.isAllowed(command, body)) throw new Error(`Comando ${commandName(command)} bloccato: client in sola lettura`);
@@ -235,41 +235,41 @@ export class LegacyClient {
   }
 
   /**
-   * Scrive un pin di un device: body "<dashId>-<deviceId>\0vw\0<pin>\0<v1>[\0<v2>…]" (MobileHardwareLogic).
-   * Il server lo inoltra al device, aggiorna il valore salvato e lo rimanda alle altre app dello stesso
-   * account come APP_SYNC.
+   * Writes a device pin: body "<dashId>-<deviceId>\0vw\0<pin>\0<v1>[\0<v2>…]" (MobileHardwareLogic).
+   * The server forwards it to the device, updates the stored value and sends it to the other apps of the
+   * same account as APP_SYNC.
    */
   writePin(dashId: number, deviceId: number, pin: number, values: (string | number)[], pinType: 'v' | 'd' | 'a' = 'v'): number {
     return this.send(Command.HARDWARE, joinBody(`${dashId}-${deviceId}`, `${pinType}w`, pin, ...values));
   }
 
   /**
-   * Modifica un widget esistente (UPDATE_WIDGET, MobileUpdateWidgetLogic): body "<dashId>\0<json>".
-   * Va inviato il JSON completo del widget (stesso id e stesso tipo): il server sostituisce il widget e
-   * conserva solo il valore corrente. Si parte quindi dal JSON del profilo e si cambiano solo i campi
-   * toccati, così non si perdono i campi che il client non conosce.
+   * Updates an existing widget (UPDATE_WIDGET, MobileUpdateWidgetLogic): body "<dashId>\0<json>".
+   * Send the complete widget JSON (same id and type): the server replaces the widget and keeps only the
+   * current value. So start from the profile JSON and change only the edited fields, to avoid losing
+   * fields the client does not know.
    */
   async updateWidget(dashId: number, widget: { id: number; type: string }): Promise<void> {
     await this.expectOk(Command.UPDATE_WIDGET, joinBody(dashId, JSON.stringify(widget)));
   }
 
   /**
-   * Crea un widget (CREATE_WIDGET, MobileCreateWidgetLogic): body "<dashId>\0<json>". Il server rifiuta id già
-   * usati e scala l'Energy del widget (ENERGY_LIMIT se non basta).
+   * Creates a widget (CREATE_WIDGET, MobileCreateWidgetLogic): body "<dashId>\0<json>". The server rejects ids
+   * already in use and charges the widget Energy (ENERGY_LIMIT if there is not enough).
    */
   async createWidget(dashId: number, widget: { id: number; type: string }): Promise<void> {
     await this.expectOk(Command.CREATE_WIDGET, joinBody(dashId, JSON.stringify(widget)));
   }
 
   /**
-   * Elimina un widget (DELETE_WIDGET): body "<dashId>\0<widgetId>". L'Energy torna all'utente.
-   * Attenzione: eliminando il widget Tabs il server elimina anche i widget delle schede oltre la prima.
+   * Deletes a widget (DELETE_WIDGET): body "<dashId>\0<widgetId>". The Energy goes back to the user.
+   * Careful: deleting the Tabs widget also makes the server delete the widgets of every tab after the first.
    */
   async deleteWidget(dashId: number, widgetId: number): Promise<void> {
     await this.expectOk(Command.DELETE_WIDGET, joinBody(dashId, widgetId));
   }
 
-  /** Energy disponibile (GET_ENERGY, sola lettura). */
+  /** Available Energy (GET_ENERGY, read-only). */
   async getEnergy(): Promise<number> {
     const reply = await this.request(Command.GET_ENERGY, '');
     if (reply.kind === 'response') throw new ProtocolError(Command.GET_ENERGY, reply.code);
@@ -277,23 +277,23 @@ export class LegacyClient {
   }
 
   /**
-   * Crea un progetto (CREATE_DASH, MobileCreateDashLogic): body = JSON della dashboard. Il server rifiuta id
-   * già usati (NOT_ALLOWED) e il superamento del limite di progetti (QUOTA_LIMIT), e genera il token dei
-   * device presenti nel JSON: per leggerli si ricarica il profilo. Il progetto creato diventa modificabile.
+   * Creates a project (CREATE_DASH, MobileCreateDashLogic): body = dashboard JSON. The server rejects ids
+   * already in use (NOT_ALLOWED) and too many projects (QUOTA_LIMIT), and generates the tokens of the devices
+   * in the JSON: reload the profile to read them. The created project becomes editable.
    */
   async createDash(dash: { id: number; name: string }): Promise<void> {
     await this.expectOk(Command.CREATE_DASH, JSON.stringify(dash));
     this.editable.add(dash.id);
   }
 
-  /** Sostituisce le impostazioni di un progetto (UPDATE_PROJECT_SETTINGS): body "<dashId>\0<json>". */
+  /** Replaces the settings of a project (UPDATE_PROJECT_SETTINGS): body "<dashId>\0<json>". */
   async updateDashSettings(dashId: number, settings: DashSettings): Promise<void> {
     await this.expectOk(Command.UPDATE_PROJECT_SETTINGS, joinBody(dashId, JSON.stringify(settings)));
   }
 
   /**
-   * Elimina un progetto (DELETE_DASH): body = dashId. Il server cancella anche timer, token, connessioni
-   * dei device e tutto lo storico dei loro pin.
+   * Deletes a project (DELETE_DASH): body = dashId. The server also deletes timers, tokens, device
+   * connections and the whole history of their pins.
    */
   async deleteDash(dashId: number): Promise<void> {
     await this.expectOk(Command.DELETE_DASH, String(dashId));
@@ -301,8 +301,8 @@ export class LegacyClient {
   }
 
   /**
-   * Play (ACTIVATE_DASHBOARD): body = dashId. La dashboard si attiva comunque; se nessun device è connesso
-   * il server risponde DEVICE_NOT_IN_NETWORK (o OK con le notifiche spente): restituisce false in quel caso.
+   * Play (ACTIVATE_DASHBOARD): body = dashId. The dashboard is activated anyway; when no device is connected
+   * the server replies DEVICE_NOT_IN_NETWORK (or OK with notifications off): returns false in that case.
    */
   async activateDash(dashId: number): Promise<boolean> {
     const reply = await this.request(Command.ACTIVATE_DASHBOARD, String(dashId));
@@ -311,14 +311,14 @@ export class LegacyClient {
     throw new ProtocolError(Command.ACTIVATE_DASHBOARD, reply.code);
   }
 
-  /** Stop (DEACTIVATE_DASHBOARD): body = dashId (mai vuoto, che fermerebbe tutte le dashboard). */
+  /** Stop (DEACTIVATE_DASHBOARD): body = dashId (never empty, which would stop every dashboard). */
   async deactivateDash(dashId: number): Promise<void> {
     await this.expectOk(Command.DEACTIVATE_DASHBOARD, String(dashId));
   }
 
   /**
-   * Aggiunge un device (CREATE_DEVICE): body "<dashId>\0<json>"; servono id nuovo, nome (max 50) e boardType.
-   * Il server risponde con un CREATE_DEVICE che contiene il device con il token generato.
+   * Adds a device (CREATE_DEVICE): body "<dashId>\0<json>"; needs a new id, a name (max 50) and boardType.
+   * The server replies with a CREATE_DEVICE holding the device with its generated token.
    */
   async createDevice<T extends { id: number; name: string; boardType: string }>(dashId: number, device: T): Promise<T & { token?: string }> {
     const reply = await this.request(Command.CREATE_DEVICE, joinBody(dashId, JSON.stringify(device)));
@@ -327,24 +327,24 @@ export class LegacyClient {
     return JSON.parse(text) as T & { token?: string };
   }
 
-  /** Modifica un device esistente (UPDATE_DEVICE): nome, board, connessione, icona; il token non cambia. */
+  /** Updates an existing device (UPDATE_DEVICE): name, board, connection, icon; the token does not change. */
   async updateDevice(dashId: number, device: { id: number; name: string; boardType: string }): Promise<void> {
     await this.expectOk(Command.UPDATE_DEVICE, joinBody(dashId, JSON.stringify(device)));
   }
 
-  /** Elimina un device (DELETE_DEVICE): body "<dashId>\0<deviceId>". Cancella anche lo storico dei suoi pin. */
+  /** Deletes a device (DELETE_DEVICE): body "<dashId>\0<deviceId>". Also deletes the history of its pins. */
   async deleteDevice(dashId: number, deviceId: number): Promise<void> {
     await this.expectOk(Command.DELETE_DEVICE, joinBody(dashId, deviceId));
   }
 
-  /** Device di un progetto con stato e token (GET_DEVICES, sola lettura). */
+  /** Devices of a project with status and token (GET_DEVICES, read-only). */
   async getDevices(dashId: number): Promise<unknown[]> {
     const reply = await this.request(Command.GET_DEVICES, String(dashId));
     if (reply.kind === 'response') throw new ProtocolError(Command.GET_DEVICES, reply.code);
     return JSON.parse(reply.kind === 'binary' ? strFromU8(reply.body) : reply.body) as unknown[];
   }
 
-  /** Rende modificabile un'altra dashboard (per esempio un progetto creato da questa app in una sessione precedente). */
+  /** Makes another dashboard editable (for example a project created by this app in an earlier session). */
   allowEditing(dashId: number): void {
     this.editable.add(dashId);
   }
@@ -369,7 +369,7 @@ export class LegacyClient {
 
   private dispatch(m: Message): void {
     const p = this.pending.get(m.msgId);
-    // Le risposte hanno lo stesso msgId della richiesta; i messaggi spontanei del server usano msgId propri.
+    // Replies have the msgId of the request; messages the server sends on its own use their own msgId.
     if (p && (m.kind === 'response' || m.command === p.command)) {
       clearTimeout(p.timer);
       this.pending.delete(m.msgId);
@@ -388,8 +388,8 @@ export class LegacyClient {
   private startPing(): void {
     this.stopPing();
     this.pingTimer = setInterval(() => {
-      // Se un ping non riceve risposta la connessione è morta "in silenzio" (rete caduta senza chiusura
-      // del socket): si dichiara chiusa subito, così chi usa il client può riconnettersi.
+      // An unanswered ping means the connection died silently (network lost without the socket being
+      // closed): declare it closed right away, so that the client user can reconnect.
       this.request(Command.PING).catch(() => {
         if (this.pingTimer) this.handleClosed(new Error('Nessuna risposta al ping'));
         this.transport.close();

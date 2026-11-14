@@ -1,12 +1,12 @@
-// Joystick (modello TwoAxisJoystick del server):
-// - base circolare (colore 9 del tema, alfa 0,1, bordo alfa 0,2) e maniglia del 30% del lato nel colore del
-//   widget, con bordo grigio (colore 8);
-// - la posizione del dito (da −raggio a +raggio sui due assi, y verso l'alto) si porta in modo lineare
-//   nell'intervallo min-max di ciascun pin; split = un pin per asse, altrimenti "x\0y" sul primo pin;
-// - si invia durante il trascinamento al massimo una volta ogni `frequency` ms; con autoReturnOn al rilascio la
-//   maniglia torna al centro e si invia il valore centrale;
-// - accanto al titolo i valori x e y su due righe (colori dei pin delle impostazioni: verde e blu).
-// La rotazione degli assi in orizzontale (portraitLocked) non è gestita: l'app resta come in verticale.
+// Joystick (server model TwoAxisJoystick):
+// - circular base (theme color 9, alpha 0.1, border alpha 0.2) and a handle 30% of the side in the widget
+//   color, with a grey border (color 8);
+// - the finger position (from −radius to +radius on both axes, y pointing up) maps linearly onto the
+//   min-max range of each pin; split = one pin per axis, otherwise "x\0y" on the first pin;
+// - while dragging it sends at most once every `frequency` ms; with autoReturnOn the handle goes back to
+//   the center on release and the center value is sent;
+// - next to the title, the x and y values on two lines (pin colors of the settings: green and blue).
+// Axis rotation in landscape (portraitLocked) is not handled: the app behaves as in portrait.
 import { useState } from 'react';
 import { StyleSheet, Text, View, type GestureResponderEvent, type LayoutChangeEvent } from 'react-native';
 import { useScrollLock } from '@/components/scrollLock';
@@ -40,7 +40,7 @@ export function JoystickWidget({ dashId, widget, theme }: WidgetViewProps) {
   const center = (i: number) => Math.round((range(i).min + range(i).max) / 2);
   const stored = (i: number) => Number(split ? values[i]?.[0] : values[0]?.[i]);
   const [size, setSize] = useState({ w: 0, h: 0 });
-  // Posizione della maniglia (-1..1 su ogni asse) mentre si trascina; null = a riposo.
+  // Handle position (-1..1 on each axis) while dragging; null = at rest.
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const throttle = useThrottle(num(widget.frequency, 100));
   const color = widgetColor(widget.color, theme);
@@ -50,12 +50,12 @@ export function JoystickWidget({ dashId, widget, theme }: WidgetViewProps) {
   const handleR = Math.round(side * 0.3) / 2;
   const travel = Math.max(1, Math.min(size.w, size.h) / 2 - (handleR * 7) / 6);
 
-  /** Posizione -1..1 → valore del pin i (lineare in min-max, intero). */
+  /** Position -1..1 → value of pin i (linear in min-max, integer). */
   const toValue = (i: number, f: number) => {
     const { min, max } = range(i);
     return Math.round(min + ((f + 1) / 2) * (max - min));
   };
-  /** Valore del pin i → posizione -1..1 (per mostrare la maniglia a riposo dove dice il server). */
+  /** Value of pin i → position -1..1 (to show the handle at rest where the server says). */
   const toPos = (i: number, v: number) => {
     const { min, max } = range(i);
     return max === min || !Number.isFinite(v) ? 0 : ((v - min) / (max - min)) * 2 - 1;
@@ -71,7 +71,7 @@ export function JoystickWidget({ dashId, widget, theme }: WidgetViewProps) {
       writePin(dashId, deviceId, pins[0].pin, [vx, vy]);
     }
   };
-  /** Durante il trascinamento al massimo una scrittura ogni `frequency` ms; al rilascio sempre. */
+  /** While dragging, at most one write every `frequency` ms; always on release. */
   const send = (x: number, y: number, force: boolean) => (force ? writeNow(x, y) : throttle(() => writeNow(x, y)));
 
   const move = (e: GestureResponderEvent) => {

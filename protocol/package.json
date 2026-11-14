@@ -2,7 +2,7 @@
   "name": "@tinkerblink/protocol",
   "version": "0.1.0",
   "private": true,
-  "description": "Client TypeScript del protocollo app di Blynk Legacy (server 0.41.x). Portabile tra Node e React Native.",
+  "description": "TypeScript client for the Blynk Legacy app protocol (server 0.41.x). Portable across Node and React Native.",
   "type": "module",
   "main": "src/index.ts",
   "scripts": {

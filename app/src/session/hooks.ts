@@ -7,7 +7,7 @@ import { useSession } from './SessionContext';
 
 const EMPTY: Record<string, string> = {};
 
-/** Valore corrente del pin di un widget (aggiornato in tempo reale). */
+/** Current value of a widget's pin (updated live). */
 export function useWidgetValue(dashId: number, widget: Widget): string[] | undefined {
   const { store } = useSession();
   const key = widgetPinKey(dashId, widget);
@@ -15,7 +15,7 @@ export function useWidgetValue(dashId: number, widget: Widget): string[] | undef
   return useSyncExternalStore(subscribe, () => (key ? store.getValue(key) : undefined));
 }
 
-/** Proprietà impostate dal firmware con setProperty (label, color, labels…). */
+/** Properties set by the firmware with setProperty (label, color, labels…). */
 export function useWidgetProps(dashId: number, widget: Widget): Record<string, string> {
   const { store } = useSession();
   const key = widgetPinKey(dashId, widget);
@@ -32,7 +32,7 @@ export function useDeviceOnline(dashId: number, deviceId: number): boolean {
 
 const NO_LINES: string[] = [];
 
-/** Righe ricevute da un widget Terminal (cronologia tenuta dal LiveStore). */
+/** Lines received by a Terminal widget (history kept by the LiveStore). */
 export function useTerminalLog(dashId: number, widget: Widget): string[] {
   const { store } = useSession();
   const key = widgetPinKey(dashId, widget);
@@ -40,7 +40,7 @@ export function useTerminalLog(dashId: number, widget: Widget): string[] {
   return useSyncExternalStore(subscribe, () => (key ? store.getTerminalLog(key) : undefined)) ?? NO_LINES;
 }
 
-/** Punti di un widget Map (aggiornati in tempo reale; "clr" li cancella). */
+/** Points of a Map widget (updated live; "clr" clears them). */
 export function useMapPoints(dashId: number, widget: Widget): MapPoint[] {
   const { store } = useSession();
   const key = widgetPinKey(dashId, widget);
@@ -50,7 +50,7 @@ export function useMapPoints(dashId: number, widget: Widget): MapPoint[] {
 
 const NO_POINTS: MapPoint[] = [];
 
-/** Funzione per scrivere il pin di un widget (valori come stringhe). No-op se il widget non ha un pin. */
+/** Function that writes a widget's pin (values as strings). No-op if the widget has no pin. */
 export function useWritePin(dashId: number, widget: Widget): (values: (string | number)[]) => void {
   const { writePin } = useSession();
   return useCallback(
@@ -62,7 +62,7 @@ export function useWritePin(dashId: number, widget: Widget): (values: (string | 
   );
 }
 
-/** Stato completo di un device (online, orari di connessione e disconnessione). */
+/** Full status of a device (online, connection and disconnection times). */
 export function useDeviceState(dashId: number, deviceId: number): DeviceState {
   const { store } = useSession();
   const key = deviceKey(dashId, deviceId);
@@ -70,14 +70,14 @@ export function useDeviceState(dashId: number, deviceId: number): DeviceState {
   return useSyncExternalStore(subscribe, () => store.getDevice(key));
 }
 
-/** Numero di device offline di una dashboard (badge dell'intestazione). */
+/** Number of offline devices of a dashboard (header badge). */
 export function useOfflineCount(dashId: number, deviceIds: number[]): number {
   const { store } = useSession();
   useSyncExternalStore(store.subscribeDevices, store.getDevicesVersion);
   return deviceIds.filter((id) => !store.isDeviceOnline(deviceKey(dashId, id))).length;
 }
 
-/** Valori correnti di più pin (chiavi del LiveStore; null = pin non impostato), per i widget a più pin. */
+/** Current values of several pins (LiveStore keys; null = pin not set), for multi-pin widgets. */
 export function usePinValues(keys: (string | null)[]): (string[] | undefined)[] {
   const { store } = useSession();
   const joined = keys.join('|');
@@ -93,7 +93,7 @@ export function usePinValues(keys: (string | null)[]): (string[] | undefined)[] 
   return raw.split('|').map((v) => (v === '' ? undefined : v.split('\0')));
 }
 
-/** Comandi di un LCD in modalità avanzata dall'ultimo "clr" (chiave del suo pin). */
+/** Commands of an LCD in advanced mode since the last "clr" (key of its pin). */
 export function useLcdCommands(key: string | null): string[][] {
   const { store } = useSession();
   const subscribe = useCallback((cb: () => void) => (key ? store.subscribe(key, cb) : () => {}), [store, key]);
@@ -102,7 +102,7 @@ export function useLcdCommands(key: string | null): string[][] {
 
 const NO_COMMANDS: string[][] = [];
 
-/** Righe e riga corrente di un widget Table. */
+/** Rows and current row of a Table widget. */
 export function useTable(dashId: number, widget: Widget): TableState {
   const { store } = useSession();
   const key = widgetPinKey(dashId, widget);
@@ -112,7 +112,7 @@ export function useTable(dashId: number, widget: Widget): TableState {
 
 const NO_TABLE: TableState = { rows: [], current: -1 };
 
-/** Ultimo valore letto da un sensore del telefono per un widget (anche senza pin). */
+/** Last value read by a phone sensor for a widget (even without a pin). */
 export function useSensorValue(dashId: number, widget: Widget): string[] | undefined {
   const { sensors } = useSession();
   const key = sensorValueKey(dashId, widget.id);
@@ -120,7 +120,7 @@ export function useSensorValue(dashId: number, widget: Widget): string[] | undef
   return useSyncExternalStore(subscribe, () => sensors.getValue(key));
 }
 
-/** True se il GPS può funzionare anche in background (permesso "sempre" concesso). */
+/** True if the GPS can also work in the background ("always" permission granted). */
 export function useGpsPermission(): boolean {
   return useSyncExternalStore(gpsPermission.subscribe, gpsPermission.get);
 }

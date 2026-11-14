@@ -1,6 +1,6 @@
-// Impostazioni di un widget (fase 1 dell'editor). Si lavora su una bozza, copia del JSON del profilo: "Salva"
-// invia il widget completo con UPDATE_WIDGET (round-trip, i campi non toccati restano com'erano). Uscire
-// non salva: si salva solo con il pulsante; uscendo con modifiche si chiede conferma.
+// Settings of a widget (editor phase 1). The editor works on a draft, a copy of the profile JSON: "Save"
+// sends the complete widget with UPDATE_WIDGET (round-trip: untouched fields stay as they were). Leaving
+// does not save: only the button saves; leaving with unsaved changes asks for confirmation.
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Stack, useNavigation, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -51,7 +51,7 @@ export function WidgetEditor({ dash, widget }: { dash: Dashboard; widget: Widget
   const ct: ControlTheme = { theme, accent: theme.accent };
   const [draft, setDraft] = useState<Widget>(() => copy(widget));
   const [saving, setSaving] = useState(false);
-  // Bloccato mentre si trascina uno stream del SuperChart (vedi components/scrollLock.ts).
+  // Locked while a SuperChart stream is being dragged (see components/scrollLock.ts).
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const lockScroll = useCallback((locked: boolean) => setScrollEnabled(!locked), []);
   const [error, setError] = useState<string | null>(null);
@@ -106,7 +106,7 @@ export function WidgetEditor({ dash, widget }: { dash: Dashboard; widget: Widget
   const duplicate = () => runAction(() => createWidget(dash.id, duplicateOf(draft, dash)), te.addError);
 
   const askDelete = () => {
-    // Eliminando il Tabs il server elimina anche i widget delle schede dopo la prima.
+    // When the Tabs widget is deleted the server also deletes the widgets of the tabs after the first.
     const lost = widget.type === 'TABS' ? dash.widgets.filter((w) => w.type !== 'TABS' && (w.tabId ?? 0) > 0).length : 0;
     const message = lost > 0 ? te.deleteTabsConfirm(lost) : te.deleteConfirm;
     const run = () => void runAction(() => deleteWidget(dash.id, widget.id), te.deleteError);
@@ -274,7 +274,7 @@ export function WidgetEditor({ dash, widget }: { dash: Dashboard; widget: Widget
                     set({ tabId, x: widget.x, y: widget.y });
                     return;
                   }
-                  // Nella scheda di arrivo il widget va nel primo posto libero (riga 0 = barra delle schede).
+                  // In the target tab the widget goes in the first free spot (row 0 = tab bar).
                   const spot = findFreeSpot(draft.width, draft.height, sameGrid(dash.widgets, widget, true, tabId), 1);
                   set({ tabId, x: spot.x, y: spot.y });
                 }}

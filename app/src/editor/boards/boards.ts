@@ -1,6 +1,6 @@
-// Pin disponibili per scheda e per tipo di widget, dalle definizioni delle schede Blynk (licenza MIT, vedi
-// data/LICENSE). Nomi: chiavi del file della scheda per digitali e analogici ("gp2", "adc0"),
-// "V<n>" per i virtuali.
+// Pins available per board and per widget type, from the Blynk board definitions (MIT license, see
+// data/LICENSE). Names: keys of the board file for digital and analog pins ("gp2", "adc0"),
+// "V<n>" for virtual pins.
 import type { PinType } from '@/model/profile';
 import { BOARD_FILES } from './index';
 
@@ -14,7 +14,7 @@ export interface BoardPin {
 const GENERIC = 'Generic Board';
 const cache = new Map<string, BoardPin[]>();
 
-/** Pin di una scheda (ordinati per indice); schede sconosciute = Generic Board (BoardType del server). */
+/** Pins of a board (sorted by index); unknown boards = Generic Board (server BoardType). */
 export function boardPins(boardType: string | undefined): BoardPin[] {
   const key = boardType && BOARD_FILES[boardType] ? boardType : GENERIC;
   const cached = cache.get(key);
@@ -35,7 +35,7 @@ export function boardPins(boardType: string | undefined): BoardPin[] {
 
 type PinSupport = 'ALL' | 'VIRTUAL' | 'VIRTUAL_N_ANALOG' | 'VIRTUAL_N_PWM';
 
-/** Tipi di pin accettati da ogni widget; gli altri = tutti. */
+/** Pin types accepted by each widget; the others = all. */
 const SUPPORT: Record<string, PinSupport> = {
   SLIDER: 'VIRTUAL_N_PWM', VERTICAL_SLIDER: 'VIRTUAL_N_PWM', TWO_AXIS_JOYSTICK: 'VIRTUAL_N_PWM', RGB: 'VIRTUAL_N_PWM',
   STEP: 'VIRTUAL_N_PWM', VERTICAL_STEP: 'VIRTUAL_N_PWM',
@@ -48,7 +48,7 @@ const SUPPORT: Record<string, PinSupport> = {
   VERTICAL_LEVEL_DISPLAY: 'VIRTUAL_N_ANALOG',
 };
 
-/** Pin della scheda che il widget può usare. */
+/** Pins of the board that the widget can use. */
 export function pinsForWidget(widgetType: string, boardType: string | undefined): BoardPin[] {
   const pins = boardPins(boardType);
   switch (SUPPORT[widgetType] ?? 'ALL') {

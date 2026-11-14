@@ -1,6 +1,6 @@
-// Copia dello splash nativo disegnata dall'app: si mostra mentre è in corso l'accesso automatico, così con le
-// credenziali salvate non compare il modulo di login per un attimo. Stessi colori e stessa immagine dello splash
-// di app.json (expo-splash-screen), nella stessa misura (imageWidth 220), quindi il passaggio non si vede.
+// Copy of the native splash drawn by the app: shown while the automatic login runs, so that with saved
+// credentials the login form does not flash. Same colors and image as the splash in app.json
+// (expo-splash-screen), at the same size (imageWidth 220), so the transition is invisible.
 import { Image, StyleSheet, useColorScheme, View } from 'react-native';
 
 const LIGHT = { background: '#EEF2F0', image: require('../../assets/splash-icon.png') };

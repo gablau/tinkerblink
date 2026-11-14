@@ -1,19 +1,19 @@
-// Sensori del telefono (widget Accelerometer, Gravity, Light, Proximity, Barometer, Humidity, Temperature),
-// gestiti così:
+// Phone sensors (Accelerometer, Gravity, Light, Proximity, Barometer, Humidity, Temperature widgets),
+// handled like this:
 //
-// - un sensore Android resta registrato finché c'è almeno un widget del suo tipo in una dashboard attiva
-//   e la sessione è online (in background la connessione si chiude e i sensori si fermano);
-// - formati: Accelerometer e Gravity "x\0y\0z" (float), Proximity "1" vicino / "0" lontano (soglia: metà di
-//   maxRange), gli altri il valore intero; la Temperature si converte in °F se il widget non è in Celsius;
-// - il valore si scrive sul pin del widget (se c'è) con HARDWARE, al massimo ogni `frequency` ms
-//   (l'ultimo valore arrivato nell'intervallo si invia alla scadenza).
+// - an Android sensor stays registered while at least one widget of its type is in an active dashboard
+//   and the session is online (in the background the connection closes and the sensors stop);
+// - formats: Accelerometer and Gravity "x\0y\0z" (float), Proximity "1" near / "0" far (threshold: half of
+//   maxRange), the others the integer value; Temperature is converted to °F if the widget is not in Celsius;
+// - the value is written to the widget pin (if any) with HARDWARE, at most every `frequency` ms
+//   (the last value received in the interval is sent when it expires).
 //
-// I valori correnti, anche dei widget senza pin, si leggono con getValue / subscribe (useSensorValue).
+// Current values, also of widgets without a pin, are read with getValue / subscribe (useSensorValue).
 import { Platform } from 'react-native';
 import { canControl, type Dashboard, type Profile, type Widget } from '@/model/profile';
 import TinkerBlinkSensors, { type SensorEvent } from '../../modules/tinkerblink-sensors';
 
-/** Tipo del widget → costante di android.hardware.Sensor. */
+/** Widget type → android.hardware.Sensor constant. */
 export const SENSOR_TYPES: Record<string, number> = {
   ACCELEROMETER: 1,
   GRAVITY: 9,
@@ -25,7 +25,7 @@ export const SENSOR_TYPES: Record<string, number> = {
 };
 
 const DEFAULT_FREQUENCY_MS = 100;
-/** Oltre questo valore assoluto una lettura è considerata non valida (nessun sensore supportato ci arriva). */
+/** Readings above this absolute value are invalid (no supported sensor gets there). */
 const MAX_VALID = 1e7;
 
 type Write = (dashId: number, deviceId: number, pin: number, values: string[]) => void;
@@ -68,7 +68,7 @@ export class SensorsWorker {
 
   constructor(private readonly write: Write) {}
 
-  /** Sensori disponibili sul telefono (sul web nessuno). */
+  /** Sensors available on the phone (none on the web). */
   static isAvailable(widgetType: string): boolean {
     const type = SENSOR_TYPES[widgetType];
     if (type === undefined || Platform.OS !== 'android') return false;
@@ -79,7 +79,7 @@ export class SensorsWorker {
     }
   }
 
-  /** Registra i sensori delle dashboard attive del profilo; `null` li ferma tutti. */
+  /** Registers the sensors of the active dashboards of the profile; `null` stops them all. */
   update(profile: Profile | null): void {
     if (profile === this.profile) return;
     this.profile = profile;
@@ -121,7 +121,7 @@ export class SensorsWorker {
   };
 
   private onSensor = (e: SensorEvent): void => {
-    // Valori non validi (l'emulatore manda -1e30 per la temperatura appena registrato): non si inviano.
+    // Invalid values (the emulator sends -1e30 for the temperature right after registering): not sent.
     if (e.values.some((v) => !Number.isFinite(v) || Math.abs(v) > MAX_VALID)) return;
     for (const t of this.targets.get(e.type) ?? []) {
       const values = format(t.widget, e);

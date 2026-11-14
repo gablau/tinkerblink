@@ -1,7 +1,7 @@
-// Pin già usati nella dashboard: per ogni pin dello stesso device,
-// i widget che lo usano (widget a un pin, widget a più pin come LCD / Joystick / RGB, stream dei SuperChart).
-// "USED" = usato da un altro widget (si può scegliere comunque); "BUSY" = usato da un altro pin dello stesso
-// widget (non si può scegliere).
+// Pins already used in the dashboard: for each pin of the same device,
+// the widgets using it (single-pin widgets, multi-pin widgets such as LCD / Joystick / RGB, SuperChart streams).
+// "USED" = used by another widget (it can be chosen anyway); "BUSY" = used by another pin of the same
+// widget (it cannot be chosen).
 import type { Dashboard, PinType, Widget } from '@/model/profile';
 import { pinKeyOf } from './boards/boards';
 
@@ -13,7 +13,7 @@ interface PinRef {
 const valid = (p: PinRef | undefined): p is { pin: number; pinType: PinType } =>
   p !== undefined && typeof p.pin === 'number' && p.pin >= 0 && typeof p.pinType === 'string';
 
-/** Pin di un widget con il device a cui puntano. */
+/** Pins of a widget with the device they point to. */
 export function widgetPins(w: Widget): { deviceId: number; pin: number; pinType: PinType }[] {
   const out: { deviceId: number; pin: number; pinType: PinType }[] = [];
   const dev = w.deviceId ?? 0;
@@ -27,12 +27,12 @@ export function widgetPins(w: Widget): { deviceId: number; pin: number; pinType:
   return out;
 }
 
-/** "SEGMENTED_CONTROL" → "Segmented Control" (widget senza titolo). */
+/** "SEGMENTED_CONTROL" → "Segmented Control" (widgets without a title). */
 export function typeLabel(type: string): string {
   return type.toLowerCase().split('_').map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
 }
 
-/** Pin del device usati dagli altri widget: chiave "TIPO:indice" → titoli (o tipi) dei widget. */
+/** Device pins used by the other widgets: key "TYPE:index" → titles (or types) of the widgets. */
 export function usedPins(dash: Dashboard, widget: Widget, deviceId: number): Map<string, string[]> {
   const used = new Map<string, string[]>();
   for (const w of dash.widgets) {

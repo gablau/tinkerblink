@@ -1,4 +1,4 @@
-// Sceglie il componente giusto per il tipo di widget. I tipi non ancora implementati usano un segnaposto.
+// Picks the component for the widget type. Types not implemented yet use a placeholder.
 import { StyleSheet, Text } from 'react-native';
 import { ButtonWidget, MenuWidget, SegmentedWidget, StyledButtonWidget, TerminalWidget, TimeInputWidget } from './controls';
 import { FONT } from '@/ui/fonts';

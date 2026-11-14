@@ -1,15 +1,15 @@
-// Datastream e scale verticali del SuperChart (dataStreams di Superchart.java del server).
-// Funzioni pure, senza React.
+// SuperChart datastreams and vertical scales (dataStreams of the server Superchart.java).
+// Pure functions, no React.
 //
-// Ogni stream ha un intervallo di valori [lo, hi] che viene disegnato in una fascia [b0, b1] dell'altezza
-// del grafico (0 = in basso, 1 = in alto):
-// - overrideYAxis = true: un solo asse comune a tutti gli stream, arrotondato a valori "tondi";
-// - altrimenti ogni stream ha la sua scala, secondo yAxisScale:
-//   AUTO   = minimo e massimo dei dati, su tutta l'altezza;
-//   MINMAX = yAxisMin e yAxisMax fissi, su tutta l'altezza;
-//   HEIGHT = minimo e massimo dei dati, in una fascia che va da yAxisMin% a yAxisMax% dell'altezza;
-//   DELTA  = come AUTO, ma l'intervallo è largo almeno `delta`, centrato sui dati.
-// Gli stream BINARY valgono pin.min o pin.max a seconda che il valore superi la soglia `flip`.
+// Each stream has a value range [lo, hi] drawn in a band [b0, b1] of the chart
+// height (0 = bottom, 1 = top):
+// - overrideYAxis = true: one axis shared by all streams, rounded to "round" values;
+// - otherwise each stream has its own scale, according to yAxisScale:
+//   AUTO   = data min and max, over the whole height;
+//   MINMAX = fixed yAxisMin and yAxisMax, over the whole height;
+//   HEIGHT = data min and max, in a band from yAxisMin% to yAxisMax% of the height;
+//   DELTA  = like AUTO, but the range is at least `delta` wide, centered on the data.
+// BINARY streams are pin.min or pin.max depending on whether the value exceeds the `flip` threshold.
 import type { GraphPoint } from '@tinkerblink/protocol';
 import { pinKey, type PinType, type Widget } from '@/model/profile';
 
@@ -25,9 +25,9 @@ export interface ChartStream {
   yAxisMax: number;
   delta: number;
   showYAxis: boolean;
-  /** Il datastream ha un pin (senza pin il server non ha dati e l'asse non si mostra). */
+  /** The datastream has a pin (without a pin the server has no data and the axis is not shown). */
   hasPin: boolean;
-  /** Chiave del pin nel LiveStore, per gli aggiornamenti del periodo LIVE; null se non applicabile. */
+  /** Pin key in the LiveStore, for the LIVE period updates; null if not applicable. */
   pinKey: string | null;
   suffix: string;
   fractionDigits: number;
@@ -63,14 +63,14 @@ const GRAPH_TYPES: GraphType[] = ['LINE', 'FILLED_LINE', 'BAR', 'BINARY'];
 const SCALES: YAxisScale[] = ['AUTO', 'MINMAX', 'HEIGHT', 'DELTA'];
 const num = (v: unknown, fallback: number) => (typeof v === 'number' && Number.isFinite(v) ? v : fallback);
 
-/** Datastream del widget (campi di GraphDataStream del server), con i default e la correzione dei valori non validi. */
+/** Widget datastreams (fields of the server GraphDataStream), with defaults and invalid values fixed. */
 export function parseStreams(dashId: number, widget: Widget): ChartStream[] {
   const raw = Array.isArray(widget.dataStreams) ? (widget.dataStreams as RawStream[]) : [];
   return raw.map((s) => {
     const pin = s.pin ?? {};
     const hasPin = typeof pin.pin === 'number' && pin.pin >= 0 && !!pin.pinType;
     const targetId = num(s.targetId, 0);
-    // targetId < 100000 è un device; 100000-199999 un tag (niente LIVE); >= 200000 un Device Selector.
+    // targetId < 100000 is a device; 100000-199999 a tag (no LIVE); >= 200000 a Device Selector.
     const liveKey = hasPin && targetId < 100000 ? pinKey(dashId, targetId, pin.pinType!, pin.pin!) : null;
     const scale = SCALES.includes(s.yAxisScale as YAxisScale)
       ? (s.yAxisScale as YAxisScale)
@@ -100,7 +100,7 @@ export function parseStreams(dashId: number, widget: Widget): ChartStream[] {
   });
 }
 
-/** Valore disegnato: per i BINARY è pin.min oppure pin.max. */
+/** Drawn value: for BINARY streams it is pin.min or pin.max. */
 export function plotValue(s: ChartStream, v: number): number {
   if (s.graphType !== 'BINARY') return v;
   return v > s.flip ? s.pinMax : s.pinMin;
@@ -109,24 +109,24 @@ export function plotValue(s: ChartStream, v: number): number {
 export interface StreamScale {
   lo: number;
   hi: number;
-  /** Fascia verticale (0 = basso, 1 = alto). */
+  /** Vertical band (0 = bottom, 1 = top). */
   b0: number;
   b1: number;
   binary: boolean;
   hasData: boolean;
-  /** Ha un asse Y proprio da disegnare, e da che lato. */
+  /** Whether it has its own Y axis to draw, and on which side. */
   axis: 'left' | 'right' | null;
-  /** Decimali delle etichette dell'asse: quelli impostati nel datastream (maximumFractionDigits). */
+  /** Decimals of the axis labels: those set in the datastream (maximumFractionDigits). */
   axisDecimals: number;
 }
 
 export interface ChartScales {
   streams: StreamScale[];
-  /** Con overrideYAxis: intervallo comune e decimali dell'asse unico (a sinistra). */
+  /** With overrideYAxis: shared range and decimals of the single axis (on the left). */
   shared: { lo: number; hi: number; decimals: number } | null;
 }
 
-/** Arrotondamenti "tondi" dell'asse comune. */
+/** "Round" steps of the shared axis. */
 function roundUnit(abs: number, up: boolean): number {
   if (up) return abs < 1 ? 1 : abs < 5 ? 5 : 10;
   return abs > 5 ? 5 : 0;
@@ -149,12 +149,12 @@ export function niceRound(value: number, up: boolean): number {
   return negative ? -r : r;
 }
 
-/** Numero di etichette dell'asse Y in base all'altezza del widget in celle. */
+/** Number of Y axis labels based on the widget height in cells. */
 export function yLabelCount(widgetHeight: number): number {
   return (widgetHeight - 3) * 2 + 5;
 }
 
-/** Uno stream si disegna solo con almeno 2 punti (1 basta per le barre). */
+/** A stream is drawn only with at least 2 points (1 is enough for bars). */
 export function hasValues(s: ChartStream, points: GraphPoint[] | undefined): boolean {
   const n = points?.length ?? 0;
   return n > 1 || (n === 1 && s.graphType === 'BAR');
@@ -180,7 +180,7 @@ export function computeScales(
   const withData = streams.map((s, i) => hasValues(s, data[i]));
 
   if (overrideYAxis) {
-    // Asse comune: minimo e massimo di tutti gli stream visibili con dati.
+    // Shared axis: min and max of all visible streams with data.
     let lo = Infinity;
     let hi = -Infinity;
     streams.forEach((s, i) => {
@@ -202,7 +202,7 @@ export function computeScales(
         hi = niceRound(hi, true);
       }
     }
-    // Asse comune: i decimali più alti tra gli stream visibili.
+    // Shared axis: the highest decimals among the visible streams.
     const decimals = Math.max(0, ...streams.filter((_, i) => visible[i] && withData[i]).map((s) => s.fractionDigits));
     return {
       shared: { lo, hi, decimals },
@@ -248,8 +248,8 @@ export function computeScales(
     };
   });
 
-  // Lato degli assi: con 2 assi uno a sinistra e uno a destra; con un numero
-  // pari maggiore di 2 i primi due a sinistra e gli altri a destra; con un numero dispari tutti a sinistra.
+  // Axis sides: with 2 axes one left and one right; with an even number
+  // above 2 the first two on the left and the others on the right; with an odd number all on the left.
   const withAxis = streams.map((s, i) => s.showYAxis && s.hasPin && withData[i]!);
   const count = withAxis.filter(Boolean).length;
   let side: 'left' | 'right' = 'left';
@@ -264,26 +264,26 @@ export function computeScales(
   return { shared: null, streams: scales };
 }
 
-/** Valore → posizione verticale nella fascia dello stream (0 = basso, 1 = alto). */
+/** Value → vertical position in the stream band (0 = bottom, 1 = top). */
 export function toFrac(sc: StreamScale, v: number): number {
   const span = sc.hi - sc.lo;
   if (span === 0) return sc.b0;
   return sc.b0 + ((v - sc.lo) / span) * (sc.b1 - sc.b0);
 }
 
-/** Posizione verticale → valore (inverso di toFrac). */
+/** Vertical position → value (inverse of toFrac). */
 export function fromFrac(sc: StreamScale, f: number): number {
   const band = sc.b1 - sc.b0;
   if (band === 0) return sc.lo;
   return sc.lo + ((f - sc.b0) / band) * (sc.hi - sc.lo);
 }
 
-/** Numero con un numero fisso di decimali. */
+/** Number with a fixed number of decimals. */
 export function formatFixed(v: number, decimals: number): string {
   return v.toFixed(Math.max(0, Math.min(10, decimals)));
 }
 
-/** Valore del punto selezionato: decimali dello stream più il suffisso; low/high per i BINARY. */
+/** Value of the selected point: stream decimals plus the suffix; low/high for BINARY streams. */
 export function formatStreamValue(s: ChartStream, v: number): string {
   if (s.graphType === 'BINARY') return plotValue(s, v) === s.pinMin ? s.low || 'OFF' : s.high || 'ON';
   return `${formatFixed(v, s.fractionDigits)}${s.suffix}`;

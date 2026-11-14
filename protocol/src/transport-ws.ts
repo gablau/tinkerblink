@@ -1,9 +1,9 @@
 import type { Transport } from './transport.ts';
 
 /**
- * Trasporto su WebSocket standard (`globalThis.WebSocket`): funziona in React Native e in Node 22+.
- * URL tipico: `wss://<host>/dashws` (dietro un proxy sulla 443) oppure `wss://<host>:9443/dashws`.
- * La verifica del certificato è quella della piattaforma: qui non si può disattivare.
+ * Transport over standard WebSocket (`globalThis.WebSocket`): works in React Native and Node 22+.
+ * Typical URL: `wss://<host>/dashws` (behind a proxy on 443) or `wss://<host>:9443/dashws`.
+ * Certificate validation is the platform's: it cannot be disabled here.
  */
 export class WebSocketTransport implements Transport {
   readonly framing = 'ws' as const;
@@ -25,7 +25,7 @@ export class WebSocketTransport implements Transport {
         resolve();
       };
       ws.onmessage = (ev: MessageEvent) => {
-        if (!(ev.data instanceof ArrayBuffer)) return; // il server usa solo frame binari
+        if (!(ev.data instanceof ArrayBuffer)) return; // the server only uses binary frames
         const bytes = new Uint8Array(ev.data);
         for (const l of this.dataListeners) l(bytes);
       };

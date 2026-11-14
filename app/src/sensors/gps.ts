@@ -1,16 +1,16 @@
-// GPS Stream e GPS Trigger (widget GPS_STREAMING e GPS_TRIGGER del server): funzionano anche con
-// l'app in background e scrivono il pin con l'API HTTP del server e il token del device
-// (GET https://<host>/<token>/update/V#?value=…), senza login e quindi senza acon/adis. Il server
-// rimanda il valore all'app con HARDWARE, perciò in primo piano il widget si aggiorna da solo.
+// GPS Stream and GPS Trigger (server widgets GPS_STREAMING and GPS_TRIGGER): they also work with the
+// app in the background and write the pin through the server HTTP API with the device token
+// (GET https://<host>/<token>/update/V#?value=…), without a login and therefore without acon/adis. The server
+// sends the value back to the app with HARDWARE, so in the foreground the widget updates by itself.
 //
-// - GPS Stream: aggiornamenti di posizione (expo-location in un task in background con il servizio in
-//   primo piano di Android) → "lat\0lon\0alt\0speed". Precisione 0 alta (intervallo del widget, se c'è),
-//   1 bilanciata, 2 a basso consumo, con gli intervalli di INTERVALS.
-// - GPS Trigger: geofence circolare (lat, lon, raggio) → "1" all'ingresso se triggerOnEnter, o all'uscita
-//   se no; "0" nel caso opposto.
+// - GPS Stream: location updates (expo-location in a background task with the Android foreground
+//   service) → "lat\0lon\0alt\0speed". Accuracy 0 high (the widget interval, if set),
+//   1 balanced, 2 low power, with the intervals in INTERVALS.
+// - GPS Trigger: circular geofence (lat, lon, radius) → "1" on entering if triggerOnEnter, or on exiting
+//   otherwise; "0" in the opposite case.
 //
-// La configurazione (host, token, pin) è salvata in SecureStore perché i task girano anche senza la UI.
-// Si aggiorna a ogni caricamento del profilo e si cancella al logout.
+// The configuration (host, token, pins) is stored in SecureStore because the tasks also run without the UI.
+// It is updated on every profile load and deleted on logout.
 import * as Location from 'expo-location';
 import * as SecureStore from 'expo-secure-store';
 import * as TaskManager from 'expo-task-manager';
@@ -22,7 +22,7 @@ const STREAM_TASK = 'blynk-gps-stream';
 const TRIGGER_TASK = 'blynk-gps-trigger';
 const CONFIG_KEY = 'blynk.gps';
 
-/** Intervalli per precisione 0 / 1 / 2 (ms). */
+/** Intervals for accuracy 0 / 1 / 2 (ms). */
 const INTERVALS = [30000, 300000, 1800000];
 const ACCURACY = [Location.Accuracy.High, Location.Accuracy.Balanced, Location.Accuracy.Low];
 
@@ -65,7 +65,7 @@ async function writePin(base: string, target: PinTarget, values: string[]): Prom
   try {
     await fetch(`${base}/${target.token}/update/${target.pin}?${query}`);
   } catch {
-    // Rete assente: il prossimo aggiornamento riproverà.
+    // No network: the next update will try again.
   }
 }
 
@@ -101,7 +101,7 @@ function pinTarget(widget: Widget, tokens: Map<number, string>): PinTarget | nul
   return token ? { token, pin: `${PIN_LETTER[widget.pinType]}${widget.pin}` } : null;
 }
 
-// --- Permesso di posizione (per il colore dei widget: grigi se il GPS non può funzionare) ---
+// --- Location permission (for the widget color: grey if the GPS cannot work) ---
 
 let permitted = false;
 const permissionListeners = new Set<() => void>();
@@ -120,7 +120,7 @@ function setPermitted(value: boolean): void {
   permissionListeners.forEach((l) => l());
 }
 
-/** Posizione sempre consentita (prima "durante l'uso", poi "sempre"). Chiede i permessi solo se mancano. */
+/** Location always allowed (first "while using the app", then "always"). Asks only for missing permissions. */
 async function ensureBackgroundPermission(): Promise<boolean> {
   let fg = await Location.getForegroundPermissionsAsync();
   if (!fg.granted && fg.canAskAgain) fg = await Location.requestForegroundPermissionsAsync();
@@ -133,8 +133,8 @@ async function ensureBackgroundPermission(): Promise<boolean> {
 let syncing: Promise<void> = Promise.resolve();
 
 /**
- * Allinea i task del GPS ai widget GPS Stream / GPS Trigger delle dashboard attive del profilo.
- * `null` (logout) ferma tutto e cancella la configurazione.
+ * Aligns the GPS tasks with the GPS Stream / GPS Trigger widgets of the active dashboards of the profile.
+ * `null` (logout) stops everything and deletes the configuration.
  */
 export function syncGps(profile: Profile | null, host: string): Promise<void> {
   if (!enabled) return Promise.resolve();
@@ -192,9 +192,9 @@ async function doSync(profile: Profile | null, host: string): Promise<void> {
   setPermitted(allowed);
   if (!allowed) return;
 
-  // I task si (ri)avviano sempre: la sincronizzazione avviene al caricamento del profilo, quindi con l'app in
-  // primo piano. Se il processo era stato riavviato, expo-location ripristina il task in background ma Android
-  // non gli permette di avviare il servizio in primo piano: risulta "avviato" senza ricevere posizioni.
+  // The tasks are always (re)started: syncing happens when the profile loads, so with the app in the
+  // foreground. If the process was restarted, expo-location restores the task in the background but Android
+  // does not let it start the foreground service: it looks "started" without receiving locations.
   const streamRunning = await Location.hasStartedLocationUpdatesAsync(STREAM_TASK).catch(() => false);
   if (streams.length === 0) {
     if (streamRunning) await Location.stopLocationUpdatesAsync(STREAM_TASK);
@@ -226,6 +226,6 @@ async function stopTasks(): Promise<void> {
   if (await Location.hasStartedGeofencingAsync(TRIGGER_TASK).catch(() => false)) {
     await Location.stopGeofencingAsync(TRIGGER_TASK).catch(() => undefined);
   }
-  // Per sicurezza: nessun task deve restare registrato (e quindi ripristinabile al riavvio) senza widget GPS.
+  // To be safe: no task must stay registered (and so restorable on restart) without a GPS widget.
   await TaskManager.unregisterAllTasksAsync().catch(() => undefined);
 }

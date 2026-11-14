@@ -1,5 +1,5 @@
-// Avviso temporaneo in basso (per esempio "Dispositivo offline" dopo un comando).
-// Il testo arriva da SessionState.notice, che il SessionManager azzera dopo qualche secondo.
+// Temporary notice at the bottom (for example "Device offline" after a command).
+// The text comes from SessionState.notice, which the SessionManager clears after a few seconds.
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSession } from '@/session/SessionContext';

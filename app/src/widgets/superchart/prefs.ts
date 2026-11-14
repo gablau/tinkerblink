@@ -1,7 +1,7 @@
-// Preferenze locali dei SuperChart: periodo scelto e stream nascosti dalla legenda, per dashboard e widget.
-// Restano
-// sul telefono e non vanno al server: il `period` del profilo è solo quello iniziale impostato nell'editor.
-// AsyncStorage: su Android un database locale, sul web localStorage.
+// Local SuperChart preferences: chosen period and streams hidden from the legend, per dashboard and widget.
+// They stay
+// on the phone and are not sent to the server: the profile `period` is only the initial one set in the editor.
+// AsyncStorage: a local database on Android, localStorage on the web.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { GraphPeriod } from '@tinkerblink/protocol';
 
@@ -9,7 +9,7 @@ const KEY = 'blynk.superchart';
 
 export interface ChartPrefs {
   period?: GraphPeriod;
-  /** Indici dei datastream nascosti. */
+  /** Indexes of the hidden datastreams. */
   hidden?: number[];
 }
 
@@ -18,7 +18,7 @@ let loading: Promise<Record<string, ChartPrefs>> | null = null;
 
 const keyOf = (dashId: number, widgetId: number) => `${dashId}-${widgetId}`;
 
-/** Carica le preferenze una volta sola (le chiamate successive riusano la stessa promessa). */
+/** Loads the preferences only once (later calls reuse the same promise). */
 export function loadChartPrefs(): Promise<Record<string, ChartPrefs>> {
   if (cache) return Promise.resolve(cache);
   loading ??= AsyncStorage.getItem(KEY)
@@ -28,7 +28,7 @@ export function loadChartPrefs(): Promise<Record<string, ChartPrefs>> {
   return loading;
 }
 
-/** Preferenze già caricate, oppure undefined se il caricamento non è ancora finito. */
+/** Preferences already loaded, or undefined if loading has not finished yet. */
 export function cachedChartPrefs(dashId: number, widgetId: number): ChartPrefs | undefined {
   return cache ? (cache[keyOf(dashId, widgetId)] ?? {}) : undefined;
 }

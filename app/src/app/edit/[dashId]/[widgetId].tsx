@@ -1,4 +1,4 @@
-// Editor: impostazioni di un widget. Solo per le dashboard ammesse (editor/policy.ts).
+// Editor: settings of a widget. Only for editable dashboards (editor/policy.ts).
 import { Redirect, useLocalSearchParams } from 'expo-router';
 import { Text } from 'react-native';
 import { isEditableDash } from '@/editor/policy';

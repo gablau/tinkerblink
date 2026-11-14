@@ -1,48 +1,48 @@
-// Temi delle dashboard: colori, dimensioni e opacità per i due valori del campo `theme` della dashboard
-// (enum Theme del server: Blynk scuro, BlynkLight chiaro).
+// Dashboard themes: colors, sizes and opacities for the two values of the dashboard `theme` field
+// (server Theme enum: Blynk dark, BlynkLight light).
 
-/** Gruppi di widget (Widget Box dell'editor), ognuno con il suo colore. */
+/** Widget groups (editor Widget Box), each with its own color. */
 export type WidgetGroup = 'controllers' | 'displays' | 'interface' | 'notifications' | 'other' | 'sensors';
 
 export interface DashboardTheme {
   name: 'Blynk' | 'BlynkLight';
   light: boolean;
-  /** Sfondo della dashboard in esecuzione e dei widget (coincidono). */
+  /** Background of the running dashboard and of the widgets (they are the same). */
   background: string;
-  /** Colore del testo principale (etichette, valori senza colore proprio). */
+  /** Main text color (labels, values without their own color). */
   text: string;
-  /** Opacità delle etichette dei widget. */
+  /** Opacity of the widget labels. */
   labelAlpha: number;
-  /** Bordo del cerchio dei LED. */
+  /** Border of the LED circle. */
   ledStroke: string;
-  /** Testo dei Button accesi. */
+  /** Text of Buttons that are on. */
   buttonSelectedText: string;
-  /** Sfondo del Terminal. */
+  /** Terminal background. */
   terminalBackground: string;
-  /** Gradienti: warm = verde → giallo → rosso, cold = verde → azzurro → blu (indici della palette). */
+  /** Gradients: warm = green → yellow → red, cold = green → light blue → blue (palette indexes). */
   warm: string[];
   cold: string[];
-  /** Colore di default dei widget (verde Blynk). */
+  /** Default widget color (Blynk green). */
   accent: string;
-  /** Periodi non selezionati del SuperChart. */
+  /** Unselected SuperChart periods. */
   periodText: string;
-  /** Arco di sfondo del Gauge (alfa 0,3). */
+  /** Background arc of the Gauge (alpha 0.3). */
   gaugeTrack: string;
-  /** Valore accanto al titolo, per esempio nel Level. */
+  /** Value next to the title, for example in the Level. */
   pinLabel: string;
-  /** Valori R, G, B dello zeRGBa. */
+  /** R, G, B values of the zeRGBa. */
   rgbRed: string;
   rgbGreen: string;
   rgbBlue: string;
-  /** Marker e pulsanti del widget Map. */
+  /** Markers and buttons of the Map widget. */
   mapMarker: string;
-  /** Testo dell'LCD chiaro e scuro. */
+  /** Light and dark LCD text. */
   lcdLight: string;
   lcdDark: string;
-  /** Base del Joystick e colore del valore y. */
+  /** Joystick base and color of the y value. */
   joystickBase: string;
   joystickY: string;
-  /** Colore di ogni gruppo di widget: icone del Widget Box e colore dei widget nuovi. */
+  /** Color of each widget group: Widget Box icons and color of new widgets. */
   groupColors: Record<WidgetGroup, string>;
 }
 
@@ -107,9 +107,9 @@ export function dashboardTheme(theme: string | undefined): DashboardTheme {
   return theme === 'BlynkLight' ? LIGHT_THEME : DARK_THEME;
 }
 
-/** Dimensioni del testo dei valori per FontSize (Value Display e Labeled Value). */
+/** Value text sizes per FontSize (Value Display and Labeled Value). */
 export const VALUE_FONT_SIZE = { SMALL: 16, MEDIUM: 27, LARGE: 33 } as const;
-/** Dimensioni dei testi di Styled Button e Time Input. */
+/** Text sizes of Styled Button and Time Input. */
 export const SMALL_FONT_SIZE = { SMALL: 12, MEDIUM: 16, LARGE: 20 } as const;
 export type FontSize = keyof typeof VALUE_FONT_SIZE;
 

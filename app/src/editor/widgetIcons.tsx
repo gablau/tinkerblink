@@ -1,6 +1,6 @@
-// Icone dei widget (Widget Box dell'editor), disegnate per questa app: tratto sottile
-// su griglia 48×48, un soggetto per widget (manopola del Gauge, LED, slider, terminale…).
-// Sono disegni propri di TinkerBlink.
+// Widget icons (editor Widget Box), drawn for this app: thin stroke
+// on a 48×48 grid, one subject per widget (Gauge dial, LED, slider, terminal…).
+// They are TinkerBlink's own drawings.
 import Svg, { Circle, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
 
 type El =
@@ -10,13 +10,13 @@ type El =
   | { l: [number, number, number, number] }
   | { t: [number, number, string, number] };
 
-/** Goccia con la punta in (x, y) alta h. */
+/** Drop with its tip at (x, y), h high. */
 const drop = (x: number, y: number, h: number) => {
   const w = h * 0.45;
   return `M${x} ${y} C${x} ${y} ${x - w} ${y + h * 0.55} ${x - w} ${y + h * 0.72} A${w} ${w} 0 0 0 ${x + w} ${y + h * 0.72} C${x + w} ${y + h * 0.55} ${x} ${y} ${x} ${y} Z`;
 };
 
-/** Cifra a 7 segmenti in (x, y), larga w e alta 2w; segs = lettere dei segmenti accesi (a…g). */
+/** 7-segment digit at (x, y), w wide and 2w high; segs = letters of the lit segments (a…g). */
 const seg = (x: number, y: number, w: number, segs: string) => {
   const h = w;
   const parts: Record<string, string> = {
@@ -115,7 +115,7 @@ export function WidgetIcon({ type, size = 32, color = '#FFFFFF' }: { type: strin
         }
         if ('r' in e) {
           const [x, y, w, h, rx] = e.r;
-          // I rettangoli pieni senza contorno: con il tratto i quadratini piccoli (LCD) si fonderebbero.
+          // Filled rectangles without outline: with a stroke the small squares (LCD) would merge.
           return <Rect key={i} x={x} y={y} width={w} height={h} rx={rx ?? 0} fill={fill} {...common} strokeWidth={fill === 'none' ? 1.8 : 0} />;
         }
         return <Path key={i} d={e.p} fill={fill} strokeDasharray={e.dash} {...common} />;

@@ -1,12 +1,12 @@
-// Map (modello Map del server), con OpenStreetMap/Leaflet:
-// - un marker per indice (il firmware scrive "<indice>\0<lat>\0<lon>\0<nome>"; "clr" li cancella), con il
-//   nome nel fumetto al tocco;
-// - pulsante in alto a destra: inquadra tutti i marker; in basso a destra (se isMyLocationSupported): la mia
-//   posizione, con il cerchio dell'accuratezza;
-// - la visuale (centro e zoom) si salva sul telefono per dashboard e widget; senza visuale salvata si
-//   inquadrano i marker, altrimenti si parte da lat/lon del widget;
-// - isSatelliteMode: immagini satellitari Esri.
-// Il widget non ha titolo. Mentre il dito è sulla mappa la dashboard non scorre.
+// Map (server model Map), with OpenStreetMap/Leaflet:
+// - one marker per index (the firmware writes "<index>\0<lat>\0<lon>\0<name>"; "clr" removes them), with
+//   the name in a popup on tap;
+// - button at the top right: fit all markers; at the bottom right (if isMyLocationSupported): my
+//   location, with the accuracy circle;
+// - the view (center and zoom) is saved on the phone per dashboard and widget; without a saved view the
+//   markers are fitted, otherwise the widget lat/lon is the starting point;
+// - isSatelliteMode: Esri satellite imagery.
+// The widget has no title. While a finger is on the map the dashboard does not scroll.
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
@@ -42,7 +42,7 @@ async function saveView(id: string, view: MapView): Promise<void> {
     all[id] = view;
     await AsyncStorage.setItem(VIEWS_KEY, JSON.stringify(all));
   } catch {
-    // non salvare la visuale non è un errore bloccante
+    // failing to save the view is not a blocking error
   }
 }
 
@@ -61,7 +61,7 @@ export function MapWidget({ dashId, widget, theme }: WidgetViewProps) {
     if (ready) map.current?.send({ type: 'points', points: toMessage(points), fit: false });
   }, [points, ready]);
 
-  /** Posizione dell'utente; chiede il permesso solo se `ask` (tocco sul pulsante). */
+  /** User location; asks for permission only if `ask` (tap on the button). */
   const locate = useCallback(
     async (ask: boolean, pan: boolean) => {
       try {
@@ -71,7 +71,7 @@ export function MapWidget({ dashId, widget, theme }: WidgetViewProps) {
         const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
         map.current?.send({ type: 'me', lat: pos.coords.latitude, lon: pos.coords.longitude, accuracy: pos.coords.accuracy ?? 0, pan });
       } catch {
-        // posizione non disponibile: niente da mostrare
+        // location not available: nothing to show
       }
     },
     [],

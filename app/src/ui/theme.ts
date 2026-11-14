@@ -10,7 +10,7 @@ export interface Palette {
   danger: string;
 }
 
-// Colori dell'interfaccia, in tinta con i temi delle dashboard ("Blynk" scuro, "BlynkLight" chiaro).
+// User interface colors, matching the dashboard themes ("Blynk" dark, "BlynkLight" light).
 const dark: Palette = {
   background: '#212227',
   card: '#2C2D33',
@@ -31,12 +31,12 @@ const light: Palette = {
   danger: '#C62C46',
 };
 
-/** Palette dell'app (segue il tema di sistema). */
+/** App palette (follows the system theme). */
 export function usePalette(): Palette {
   return useColorScheme() === 'light' ? light : dark;
 }
 
-/** Palette di una dashboard, in base al suo tema Blynk. */
+/** Palette of a dashboard, from its Blynk theme. */
 export function dashboardPalette(theme: string | undefined): Palette {
   return theme === 'BlynkLight' ? light : dark;
 }

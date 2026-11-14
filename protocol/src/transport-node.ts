@@ -5,8 +5,8 @@ export interface NodeTlsOptions {
   host: string;
   port: number;
   /**
-   * false = accetta qualsiasi certificato: per i server con certificato autofirmato o scaduto
-   * (il server di default ne usa uno integrato sulla 9443).
+   * false = accept any certificate: for servers with a self-signed or expired certificate
+   * (by default the server uses a built-in one on 9443).
    */
   verifyCertificate: boolean;
 }
@@ -63,7 +63,7 @@ export class NodeTlsTransport implements Transport {
     this.closeListeners.push(listener);
   }
 
-  /** Dati del certificato presentato dal server (solo diagnostica). */
+  /** Details of the certificate presented by the server (diagnostics only). */
   peerCertificate(): { subject?: string; validTo?: string; authorized: boolean; authError?: string } {
     const s = this.socket;
     if (!s) return { authorized: false };
