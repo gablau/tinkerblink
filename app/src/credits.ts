@@ -72,6 +72,16 @@ export const CREDIT_GROUPS: CreditGroup[] = [
         url: 'https://gablau.dev/blynk-legacy-docs/',
         use: say('Informazioni sui widget nel Widget Box dell\'editor', 'Widget information in the editor Widget Box'),
       },
+      {
+        name: say('Certificati radice di Let\'s Encrypt', 'Let\'s Encrypt root certificates'),
+        author: 'Internet Security Research Group (ISRG)',
+        license: say('Certificati pubblici', 'Public certificates'),
+        url: 'https://letsencrypt.org/certificates/',
+        use: say(
+          'Connessione ai server con certificato Let\'s Encrypt su Android 7.0',
+          'Connection to servers with a Let\'s Encrypt certificate on Android 7.0',
+        ),
+      },
     ],
   },
   {

@@ -29,6 +29,8 @@ yarn-error.*
 # macOS
 .DS_Store
 *.pem
+# public root certificates trusted by the app (plugins/withNetworkSecurityConfig.js)
+!/plugins/certs/*.pem
 
 # local env files
 .env*.local
