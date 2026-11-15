@@ -85,7 +85,7 @@ export class TcpCodec implements Codec {
         continue;
       }
       if (lengthOrCode > MAX_BODY_SIZE) {
-        throw new Error(`Messaggio troppo grande: ${lengthOrCode} byte (comando ${command})`);
+        throw new Error(`Message too large: ${lengthOrCode} bytes (command ${command})`);
       }
       if (this.buf.length < APP_HEADER_SIZE + lengthOrCode) break;
 
@@ -110,16 +110,16 @@ export class WsCodec implements Codec {
   }
 
   push(frame: Uint8Array): Message[] {
-    if (frame.length < WS_HEADER_SIZE) throw new Error(`Frame WebSocket troppo corto: ${frame.length} byte`);
+    if (frame.length < WS_HEADER_SIZE) throw new Error(`WebSocket frame too short: ${frame.length} bytes`);
     const view = new DataView(frame.buffer, frame.byteOffset, frame.length);
     const command = view.getUint8(0);
     const msgId = view.getUint16(1);
     if (command === Command.RESPONSE) {
-      if (frame.length < WS_HEADER_SIZE + 4) throw new Error('RESPONSE WebSocket senza codice');
+      if (frame.length < WS_HEADER_SIZE + 4) throw new Error('WebSocket RESPONSE without code');
       return [{ kind: 'response', command: 0, msgId, code: view.getUint32(3) }];
     }
     if (frame.length - WS_HEADER_SIZE > MAX_BODY_SIZE) {
-      throw new Error(`Messaggio troppo grande: ${frame.length} byte (comando ${command})`);
+      throw new Error(`Message too large: ${frame.length} bytes (command ${command})`);
     }
     return [toMessage(command, msgId, frame.slice(WS_HEADER_SIZE))];
   }

@@ -63,7 +63,7 @@ export class ProtocolError extends Error {
     readonly command: number,
     readonly code: number,
   ) {
-    super(`${commandName(command)} fallito: ${responseName(code)} (${code})`);
+    super(`${commandName(command)} failed: ${responseName(code)} (${code})`);
   }
 }
 
@@ -133,7 +133,7 @@ export class LegacyClient {
     this.stopPing();
     for (const [, p] of this.pending) {
       clearTimeout(p.timer);
-      p.reject(err ?? new Error('Connessione chiusa'));
+      p.reject(err ?? new Error('Connection closed'));
     }
     this.pending.clear();
     for (const l of this.disconnectListeners) l(err);
@@ -209,13 +209,13 @@ export class LegacyClient {
   /** Sends a command and waits for the message with the same msgId. */
   request(command: number, body = ''): Promise<Message> {
     if (!this.isAllowed(command, body)) {
-      return Promise.reject(new Error(`Comando ${commandName(command)} bloccato: client in sola lettura`));
+      return Promise.reject(new Error(`Command ${commandName(command)} blocked: read-only client`));
     }
     const msgId = this.allocId();
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(msgId);
-        reject(new Error(`Timeout su ${commandName(command)} (msgId ${msgId})`));
+        reject(new Error(`Timeout on ${commandName(command)} (msgId ${msgId})`));
       }, this.opts.requestTimeoutMs);
       this.pending.set(msgId, { command, resolve, reject, timer });
       this.transport.write(this.codec.encode(command, msgId, body));
@@ -228,7 +228,7 @@ export class LegacyClient {
    * which reaches the onMessage listeners with the same msgId returned here.
    */
   send(command: number, body = ''): number {
-    if (!this.isAllowed(command, body)) throw new Error(`Comando ${commandName(command)} bloccato: client in sola lettura`);
+    if (!this.isAllowed(command, body)) throw new Error(`Command ${commandName(command)} blocked: read-only client`);
     const msgId = this.allocId();
     this.transport.write(this.codec.encode(command, msgId, body));
     return msgId;
@@ -391,7 +391,7 @@ export class LegacyClient {
       // An unanswered ping means the connection died silently (network lost without the socket being
       // closed): declare it closed right away, so that the client user can reconnect.
       this.request(Command.PING).catch(() => {
-        if (this.pingTimer) this.handleClosed(new Error('Nessuna risposta al ping'));
+        if (this.pingTimer) this.handleClosed(new Error('No reply to ping'));
         this.transport.close();
       });
     }, this.opts.pingIntervalMs);

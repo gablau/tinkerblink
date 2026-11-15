@@ -47,7 +47,7 @@ export class NodeTlsTransport implements Transport {
   }
 
   write(data: Uint8Array): void {
-    if (!this.socket) throw new Error('Trasporto non connesso');
+    if (!this.socket) throw new Error('Transport not connected');
     this.socket.write(data);
   }
 

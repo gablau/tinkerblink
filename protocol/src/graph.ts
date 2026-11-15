@@ -55,7 +55,7 @@ export function parseGraphData(raw: Uint8Array): GraphData {
   const view = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
   let off = 0;
   const need = (n: number) => {
-    if (off + n > raw.byteLength) throw new Error(`Dati del grafico troncati all'offset ${off}`);
+    if (off + n > raw.byteLength) throw new Error(`Graph data truncated at offset ${off}`);
   };
   need(4);
   const dashId = view.getInt32(off);

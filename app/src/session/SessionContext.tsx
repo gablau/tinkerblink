@@ -54,7 +54,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
 export function useSession(): SessionValue {
   const manager = useContext(SessionContext);
-  if (!manager) throw new Error('useSession va usato dentro <SessionProvider>');
+  if (!manager) throw new Error('useSession must be used inside <SessionProvider>');
   const state = useSyncExternalStore(manager.subscribe, manager.getState);
   return {
     ...state,

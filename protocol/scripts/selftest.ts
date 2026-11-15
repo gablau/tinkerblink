@@ -81,31 +81,31 @@ import { LegacyClient, Command, encodeMessage, FrameDecoder, parseGraphData, pas
     onClose: () => {},
   };
   const ro = new LegacyClient(fake, { readOnly: true });
-  assert.throws(() => ro.writePin(1, 0, 20, ['x']), /bloccato/);
+  assert.throws(() => ro.writePin(1, 0, 20, ['x']), /blocked/);
   const hw = new LegacyClient(fake, { readOnly: true, allowHardwareWrites: true });
   hw.writePin(123456789, 0, 20, ['ciao']);
   const [m] = new WsCodec().push(written[0]!);
   assert.deepEqual(m, { kind: 'text', command: Command.HARDWARE, msgId: 1, body: '123456789-0\0vw\x0020\x00ciao' });
-  assert.throws(() => hw.send(Command.CREATE_WIDGET, '{}'), /bloccato/);
+  assert.throws(() => hw.send(Command.CREATE_WIDGET, '{}'), /blocked/);
   // Editor: edit commands only on the allowed dashboards (dashId = first field of the body).
   const ed = new LegacyClient(fake, { readOnly: true, editableDashIds: [123456789] });
   assert.doesNotThrow(() => ed.send(Command.UPDATE_WIDGET, '123456789\0{}'));
-  assert.throws(() => ed.send(Command.UPDATE_WIDGET, '999\0{}'), /bloccato/);
-  assert.throws(() => ed.send(Command.UPDATE_WIDGET, '1234567890\0{}'), /bloccato/);
-  assert.throws(() => ed.send(Command.UPDATE_DASH, '123456789\0{}'), /bloccato/);
-  assert.throws(() => ed.writePin(123456789, 0, 20, ['x']), /bloccato/);
+  assert.throws(() => ed.send(Command.UPDATE_WIDGET, '999\0{}'), /blocked/);
+  assert.throws(() => ed.send(Command.UPDATE_WIDGET, '1234567890\0{}'), /blocked/);
+  assert.throws(() => ed.send(Command.UPDATE_DASH, '123456789\0{}'), /blocked/);
+  assert.throws(() => ed.writePin(123456789, 0, 20, ['x']), /blocked/);
   // Projects and devices: same limits; stop without dashId (= all) and CREATE_DASH without the option are blocked.
   assert.doesNotThrow(() => ed.send(Command.DELETE_DEVICE, '123456789\x001'));
   assert.doesNotThrow(() => ed.send(Command.ACTIVATE_DASHBOARD, '123456789'));
-  assert.throws(() => ed.send(Command.DELETE_DASH, '999'), /bloccato/);
-  assert.throws(() => ed.send(Command.DEACTIVATE_DASHBOARD, ''), /bloccato/);
-  assert.throws(() => ed.send(Command.CREATE_DEVICE, ' 123456789\0{}'), /bloccato/);
-  assert.throws(() => ed.send(Command.CREATE_DASH, '{"id":5}'), /bloccato/);
+  assert.throws(() => ed.send(Command.DELETE_DASH, '999'), /blocked/);
+  assert.throws(() => ed.send(Command.DEACTIVATE_DASHBOARD, ''), /blocked/);
+  assert.throws(() => ed.send(Command.CREATE_DEVICE, ' 123456789\0{}'), /blocked/);
+  assert.throws(() => ed.send(Command.CREATE_DASH, '{"id":5}'), /blocked/);
   ed.allowEditing(999);
   assert.doesNotThrow(() => ed.send(Command.DELETE_DASH, '999'));
   const cr = new LegacyClient(fake, { readOnly: true, allowCreateDash: true });
   assert.doesNotThrow(() => cr.send(Command.CREATE_DASH, '{"id":5}'));
-  assert.throws(() => cr.send(Command.DELETE_DASH, '5'), /bloccato/);
+  assert.throws(() => cr.send(Command.DELETE_DASH, '5'), /blocked/);
 }
 
 console.log('✅ selftest ok');

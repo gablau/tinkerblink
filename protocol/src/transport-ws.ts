@@ -31,18 +31,18 @@ export class WebSocketTransport implements Transport {
       };
       ws.onerror = (ev: Event) => {
         const msg = (ev as Event & { message?: string }).message;
-        lastError = new Error(`Errore WebSocket${msg ? `: ${msg}` : ''}`);
+        lastError = new Error(`WebSocket error${msg ? `: ${msg}` : ''}`);
         if (!opened) reject(lastError);
       };
       ws.onclose = (ev: { code: number }) => {
-        if (!opened) reject(lastError ?? new Error(`WebSocket chiuso prima dell'apertura (codice ${ev.code})`));
+        if (!opened) reject(lastError ?? new Error(`WebSocket closed before opening (code ${ev.code})`));
         for (const l of this.closeListeners) l(lastError);
       };
     });
   }
 
   write(data: Uint8Array): void {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) throw new Error('WebSocket non connesso');
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) throw new Error('WebSocket not connected');
     this.ws.send(data);
   }
 
