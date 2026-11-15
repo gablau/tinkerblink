@@ -47,7 +47,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Mostra la tua posizione sul widget Map.",
+          "locationWhenInUsePermission": "Shows your position on the Map widget.",
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true
         }
