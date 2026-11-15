@@ -4,6 +4,7 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { StatusBanner } from '@/components/StatusBanner';
 import { t } from '@/i18n';
 import { tp } from '@/project/strings';
+import { confirmAction } from '@/project/ui';
 import type { Dashboard } from '@/model/profile';
 import { useDeviceOnline } from '@/session/hooks';
 import { useSession } from '@/session/SessionContext';
@@ -49,6 +50,13 @@ export default function ProjectsScreen() {
     <View style={{ flex: 1 }}>
       <Stack.Screen
         options={{
+          // Log out on the left, before the title (this is the first screen after the login: no back arrow), after a
+          // confirmation: it also forgets the saved password.
+          headerLeft: () => (
+            <Pressable onPress={() => confirmAction(t.logOut, t.logOutConfirm, t.logOut, () => void logout())} hitSlop={8} accessibilityLabel={t.logOut} style={styles.headerLeft}>
+              <MaterialCommunityIcons name="logout" size={24} color="#1D1E22" />
+            </Pressable>
+          ),
           headerRight: () => (
             <View style={styles.headerRight}>
               <Pressable onPress={() => router.push('/project/new')} hitSlop={8} accessibilityLabel={tp.newProject}>
@@ -56,9 +64,6 @@ export default function ProjectsScreen() {
               </Pressable>
               <Pressable onPress={() => router.push('/credits')} hitSlop={8} accessibilityLabel={t.credits}>
                 <MaterialCommunityIcons name="information-outline" size={24} color="#1D1E22" />
-              </Pressable>
-              <Pressable onPress={() => void logout()} hitSlop={8}>
-                <Text style={styles.logout}>{t.logOut}</Text>
               </Pressable>
             </View>
           ),
@@ -81,7 +86,7 @@ const styles = StyleSheet.create({
   row: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, padding: 14, gap: 4 },
   name: { fontSize: 20, fontFamily: FONT.regular },
   meta: { fontSize: 14, fontFamily: FONT.regular },
-  logout: { color: '#1D1E22', fontSize: 16, fontFamily: FONT.medium },
+  headerLeft: { marginRight: 24 },
   devices: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 4 },
   device: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   dot: { width: 8, height: 8, borderRadius: 4 },
