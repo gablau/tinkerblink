@@ -29,6 +29,8 @@ export interface SessionState {
   /** Server of that login: the certificate screen reads it from here, never from a (deep link) URL. */
   certificateHost?: string;
   profile?: Profile;
+  /** Account and server of the open session (shown in the credits): set with the profile, cleared with it. */
+  account?: { email: string; host: string };
   /** Temporary notice, for example device offline after a command. */
   notice?: string;
   /** Editable dashboards: the user's projects, including those just created by this app. */
@@ -165,7 +167,7 @@ export class SessionManager {
     this.closeClient();
     this.credentials = null;
     this.createdDashIds = [];
-    this.setState({ status: 'idle', error: undefined, profile: undefined, editableDashIds: [] });
+    this.setState({ status: 'idle', error: undefined, profile: undefined, account: undefined, editableDashIds: [] });
     void syncGps(null, '');
     await forgetPassword();
   };
@@ -468,7 +470,13 @@ export class SessionManager {
     for (const id of this.editableFor(profile)) client.allowEditing(id);
     this.store.load(profile);
     this.retryAttempt = 0;
-    this.setState({ status: 'online', error: undefined, profile, editableDashIds: this.editableFor(profile) });
+    this.setState({
+      status: 'online',
+      error: undefined,
+      profile,
+      account: { email: c.email, host: c.host },
+      editableDashIds: this.editableFor(profile),
+    });
     void syncGps(profile, c.host);
     // Sync of the active dashboards (APP_SYNC). The server resends the state of every widget,
     // including the Terminal history, which is not in the profile.
@@ -501,7 +509,7 @@ export class SessionManager {
     this.clearRetry();
     this.credentials = null;
     this.createdDashIds = [];
-    this.setState({ status: 'error', error: `${t.sessionEnded}. ${describeError(e)}`, profile: undefined, editableDashIds: [] });
+    this.setState({ status: 'error', error: `${t.sessionEnded}. ${describeError(e)}`, profile: undefined, account: undefined, editableDashIds: [] });
     void syncGps(null, '');
     void forgetPassword();
   }

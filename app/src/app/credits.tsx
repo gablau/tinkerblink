@@ -1,15 +1,18 @@
-// Credits and licenses (list in src/credits.ts). Reachable from the login and from the project list.
+// Credits and licenses (list in src/credits.ts). Reachable from the login and from the project list; when logged in
+// it also shows the account and the server in use, which are not visible anywhere else after the login.
 import Constants from 'expo-constants';
 import { Stack } from 'expo-router';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CREDIT_GROUPS, DISCLAIMER } from '@/credits';
 import { t } from '@/i18n';
+import { useSession } from '@/session/SessionContext';
 import { FONT } from '@/ui/fonts';
 import { usePalette } from '@/ui/theme';
 
 export default function CreditsScreen() {
   const palette = usePalette();
   const version = Constants.expoConfig?.version ?? '';
+  const { account, profile } = useSession();
   return (
     <ScrollView style={{ backgroundColor: palette.background }} contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title: t.credits }} />
@@ -17,6 +20,21 @@ export default function CreditsScreen() {
         {t.appTitle} {version}
       </Text>
       <Text style={[styles.disclaimer, { color: palette.muted }]}>{DISCLAIMER}</Text>
+      {account && profile && (
+        <View style={styles.group}>
+          <Text style={[styles.groupTitle, { color: palette.accent }]}>{t.signedIn.toUpperCase()}</Text>
+          <View style={[styles.item, { backgroundColor: palette.card, borderColor: palette.border }]}>
+            <Text selectable style={[styles.use, { color: palette.text, marginTop: 0 }]}>
+              <Text style={{ color: palette.muted }}>{t.email}: </Text>
+              {account.email}
+            </Text>
+            <Text selectable style={[styles.use, { color: palette.text, marginTop: 0 }]}>
+              <Text style={{ color: palette.muted }}>{t.server}: </Text>
+              {account.host}
+            </Text>
+          </View>
+        </View>
+      )}
       {CREDIT_GROUPS.map((g) => (
         <View key={g.title} style={styles.group}>
           <Text style={[styles.groupTitle, { color: palette.accent }]}>{g.title.toUpperCase()}</Text>
