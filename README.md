@@ -71,15 +71,35 @@ development build: Expo Go is not enough.
 ### Release APK
 
 ```sh
-cd app/android
-./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a,x86_64
-cd ../..
-node app/scripts/sign-release.js
+npm run build:apk                 # add -- --prebuild to regenerate app/android first
 ```
 
-`sign-release.js` aligns and signs the APK with the key in `keys/` (not versioned) and writes
-`release/tinkerblink-<version>.apk`. `keys/keystore.properties` contains `storeFile`, `keyAlias`, `storePassword`
-and `keyPassword`. Keep a copy of your key: updates only install over an app signed with the same key.
+`app/scripts/build-release.js` runs the release build with one APK per ABI and signs the APKs with the key in
+`keys/` (not versioned). It writes them to `dist/<version>/` (not versioned, one folder per release), ready to
+attach to a GitHub release:
+
+| File                                     | For                                         |
+| ---------------------------------------- | ------------------------------------------- |
+| `tinkerblink-<version>-arm64-v8a.apk`    | most phones and tablets (64-bit ARM)        |
+| `tinkerblink-<version>-armeabi-v7a.apk`  | older 32-bit ARM phones                     |
+| `tinkerblink-<version>-x86_64.apk`       | emulators and x86 Chromebooks               |
+| `tinkerblink-<version>-universal.apk`    | any device, larger                          |
+| `SHA256SUMS.txt`                         | checksums of the APKs                       |
+
+The version is `expo.version` in `app/app.json`; `expo.android.versionCode` must grow at every release (Android
+and Google Play refuse an update with a lower or equal versionCode). `keys/keystore.properties` contains
+`storeFile`, `keyAlias`, `storePassword` and `keyPassword`. Keep a copy of your key: updates only install over an
+app signed with the same key. `app/scripts/sign-release.js` alone signs again the APKs of the last Gradle build.
+
+### Google Play bundle
+
+```sh
+npm run build:aab
+```
+
+writes `dist/<version>/tinkerblink-<version>.aab`, signed by Gradle with the same key, to upload to Google Play.
+The script prints the SHA-256 of the signing certificate and stops if the bundle is still signed with the debug
+key.
 
 On Windows the native release build can exceed the 260-character path limit: the config plugin
 `app/plugins/withShortCxxPath.js` moves the CMake build folder to `C:\bl-cxx`.

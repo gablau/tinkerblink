@@ -2,9 +2,9 @@
 .env
 .env.*
 
-# Release signing key (passwords included) and generated APKs
+# Release signing key (passwords included) and signed APKs (app/scripts/build-release.js)
 keys/
-release/
+dist/
 
 # Android build
 .gradle/

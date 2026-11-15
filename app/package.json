@@ -44,7 +44,9 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "build:apk": "node scripts/build-release.js",
+    "build:aab": "node scripts/build-release.js --aab"
   },
   "private": true,
   "expo": {

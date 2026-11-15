@@ -12,6 +12,7 @@
     },
     "android": {
       "package": "app.tinkerblink",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#12202A",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -53,7 +54,9 @@
         }
       ],
       "./plugins/withShortCxxPath",
-      "./plugins/withNetworkSecurityConfig"
+      "./plugins/withNetworkSecurityConfig",
+      "./plugins/withAbiSplits",
+      "./plugins/withGradleTuning"
     ],
     "experiments": {
       "typedRoutes": true

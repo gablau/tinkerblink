@@ -28,8 +28,11 @@ app/                    Expo SDK 57 + React Native 0.86 + TypeScript (package ap
   src/credits.ts        credits and licenses shown in /credits: update it when adding a library, font, service or
                         external data
   plugins/              config plugins: withNetworkSecurityConfig (user CAs + cleartext only in debug builds),
-                        withShortCxxPath (Windows path length for the release C++ build)
-  scripts/              render-icons.mjs (icon PNGs from assets/icon-src/tiles.mjs), sign-release.js,
+                        withShortCxxPath (Windows path length for the release C++ build), withAbiSplits (one APK
+                        per ABI, only with -PtinkerblinkAbiSplits), withGradleTuning (Gradle memory + build cache)
+  scripts/              render-icons.mjs (icon PNGs from assets/icon-src/tiles.mjs), build-release.js (`npm run
+                        build:apk`: signed APKs per ABI + universal in dist/<version>/, not versioned; `npm run
+                        build:aab`: Google Play bundle in the same folder) and sign-release.js,
                         import-widget-docs.js, import-boards.js (`node app/scripts/import-boards.js <tinkerblink-boards
                         clone> <blynk-server clone>`: pin maps, board index and the board list of boardTypes.ts)
 protocol/               @tinkerblink/protocol (MIT): TypeScript client, portable Node/React Native (Uint8Array only,
