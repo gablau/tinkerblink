@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -41,6 +42,9 @@ export default function LoginScreen() {
   /** null until we know whether credentials are saved; true = automatic login in progress. */
   const [autoLogin, setAutoLogin] = useState<boolean | null>(null);
   const autoTried = useRef(false);
+  // "Next" on the keyboard: server → email → password → log in.
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
 
   useEffect(() => {
     loadCredentials().then((c) => {
@@ -100,86 +104,98 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.center}>
-        <View style={styles.form}>
-          <Text style={[styles.title, { color: palette.text }]}>{t.appTitle}</Text>
-          <Text style={[styles.subtitle, { color: palette.muted }]}>{t.loginSubtitle}</Text>
+      {/* With the keyboard open the form scrolls above it (Android too: edge-to-edge does not resize the window). */}
+      <KeyboardAvoidingView behavior="padding" style={styles.screen}>
+        <ScrollView contentContainerStyle={styles.center} keyboardShouldPersistTaps="handled">
+          <View style={styles.form}>
+            <Text style={[styles.title, { color: palette.text }]}>{t.appTitle}</Text>
+            <Text style={[styles.subtitle, { color: palette.muted }]}>{t.loginSubtitle}</Text>
 
-          <Text style={[styles.fieldLabel, { color: palette.muted }]}>{t.server}</Text>
-          <View style={styles.serverRow}>
+            <Text style={[styles.fieldLabel, { color: palette.muted }]}>{t.server}</Text>
+            <View style={styles.serverRow}>
+              <TextInput
+                style={[inputStyle, styles.serverInput]}
+                value={host}
+                onChangeText={setHost}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+                placeholder={HOST_EXAMPLE}
+                placeholderTextColor={palette.muted}
+                returnKeyType="next"
+                submitBehavior="submit"
+                onSubmitEditing={() => emailRef.current?.focus()}
+              />
+              {canShowCertificate && (
+                <Pressable
+                  onPress={showCertificate}
+                  accessibilityLabel={certLabel[certLevel]}
+                  hitSlop={4}
+                  style={({ pressed }) => [
+                    styles.certButton,
+                    { borderColor: palette.border, backgroundColor: palette.card, opacity: pressed ? 0.6 : 1 },
+                  ]}
+                >
+                  <MaterialCommunityIcons name="certificate-outline" size={24} color={certColor[certLevel]} />
+                </Pressable>
+              )}
+            </View>
+
+            <Text style={[styles.fieldLabel, { color: palette.muted }]}>{t.email}</Text>
             <TextInput
-              style={[inputStyle, styles.serverInput]}
-              value={host}
-              onChangeText={setHost}
+              ref={emailRef}
+              style={inputStyle}
+              value={email}
+              onChangeText={setEmail}
               autoCapitalize="none"
               autoCorrect={false}
-              keyboardType="url"
-              placeholder={HOST_EXAMPLE}
-              placeholderTextColor={palette.muted}
+              keyboardType="email-address"
+              autoComplete="email"
+              textContentType="username"
+              returnKeyType="next"
+              submitBehavior="submit"
+              onSubmitEditing={() => passwordRef.current?.focus()}
             />
-            {canShowCertificate && (
-              <Pressable
-                onPress={showCertificate}
-                accessibilityLabel={certLabel[certLevel]}
-                hitSlop={4}
-                style={({ pressed }) => [
-                  styles.certButton,
-                  { borderColor: palette.border, backgroundColor: palette.card, opacity: pressed ? 0.6 : 1 },
-                ]}
-              >
-                <MaterialCommunityIcons name="certificate-outline" size={24} color={certColor[certLevel]} />
+
+            <Text style={[styles.fieldLabel, { color: palette.muted }]}>{t.password}</Text>
+            <TextInput
+              ref={passwordRef}
+              style={inputStyle}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              autoComplete="password"
+              textContentType="password"
+              returnKeyType="go"
+              onSubmitEditing={() => canSubmit && void login({ host, email, password }, remember)}
+            />
+
+            {Platform.OS !== 'web' && (
+              <View style={styles.row}>
+                <Text style={[styles.text, { color: palette.text }]}>{t.rememberPassword}</Text>
+                <Switch value={remember} onValueChange={setRemember} />
+              </View>
+            )}
+
+            {error && status === 'error' && <Text style={[styles.error, { color: palette.danger }]}>{error}</Text>}
+            {status === 'error' && certificateError && tlsSupported && (
+              <Pressable onPress={showCertificate} hitSlop={8}>
+                <Text style={[styles.certLink, { color: palette.accent }]}>{t.certShow}</Text>
               </Pressable>
             )}
-          </View>
 
-          <Text style={[styles.fieldLabel, { color: palette.muted }]}>{t.email}</Text>
-          <TextInput
-            style={inputStyle}
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="email-address"
-            autoComplete="email"
-            textContentType="username"
-          />
-
-          <Text style={[styles.fieldLabel, { color: palette.muted }]}>{t.password}</Text>
-          <TextInput
-            style={inputStyle}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoComplete="password"
-            textContentType="password"
-            onSubmitEditing={() => canSubmit && void login({ host, email, password }, remember)}
-          />
-
-          {Platform.OS !== 'web' && (
-            <View style={styles.row}>
-              <Text style={[styles.text, { color: palette.text }]}>{t.rememberPassword}</Text>
-              <Switch value={remember} onValueChange={setRemember} />
-            </View>
-          )}
-
-          {error && status === 'error' && <Text style={[styles.error, { color: palette.danger }]}>{error}</Text>}
-          {status === 'error' && certificateError && tlsSupported && (
-            <Pressable onPress={showCertificate} hitSlop={8}>
-              <Text style={[styles.certLink, { color: palette.accent }]}>{t.certShow}</Text>
+            <Pressable
+              disabled={!canSubmit}
+              onPress={() => void login({ host, email, password }, remember)}
+              style={[styles.button, { backgroundColor: palette.accent, opacity: canSubmit ? 1 : 0.5 }]}
+            >
+              {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{t.logIn}</Text>}
             </Pressable>
-          )}
-
-          <Pressable
-            disabled={!canSubmit}
-            onPress={() => void login({ host, email, password }, remember)}
-            style={[styles.button, { backgroundColor: palette.accent, opacity: canSubmit ? 1 : 0.5 }]}
-          >
-            {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{t.logIn}</Text>}
-          </Pressable>
-          <Link href="/credits" style={[styles.credits, { color: palette.muted }]}>
-            {t.credits}
-          </Link>
-        </View>
+            <Link href="/credits" style={[styles.credits, { color: palette.muted }]}>
+              {t.credits}
+            </Link>
+          </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -187,7 +203,7 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 },
+  center: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: 16 },
   form: { width: '100%', maxWidth: 420, gap: 6 },
   title: { fontSize: 32, fontFamily: FONT.regular },
   subtitle: { fontSize: 16, marginBottom: 16, fontFamily: FONT.regular },
