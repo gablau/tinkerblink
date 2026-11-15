@@ -2,11 +2,11 @@
 //
 //   npm run build:apk   one APK per ABI (arm64-v8a, armeabi-v7a, x86_64) + universal, and SHA256SUMS.txt: for GitHub
 //   npm run build:aab   tinkerblink-<version>.aab, signed with the upload key: for Google Play
-//   add -- --prebuild   regenerates app/android first (e.g. after changing app.json or a config plugin)
+//   add -- --prebuild   regenerates app/android first even if app.json and the plugins did not change
 //
-// Steps: checks the signing key in keys/, runs `expo prebuild` if app/android is missing or predates the
-// withAbiSplits plugin, then runs Gradle. The APKs are signed afterwards by sign-release.js (zipalign + apksigner);
-// the AAB is signed by Gradle itself through the android.injected.signing.* properties (as Android Studio does),
+// Steps: checks the signing key in keys/, runs `expo prebuild` if app.json or a config plugin changed since the
+// last prebuild of this script, then runs Gradle. The APKs are signed afterwards by sign-release.js
+// (zipalign + apksigner); the AAB is signed by Gradle itself through the android.injected.signing.* properties (as Android Studio does),
 // given as ORG_GRADLE_PROJECT_* environment variables so that the passwords never appear on a command line.
 const fs = require('fs');
 const path = require('path');
@@ -25,21 +25,24 @@ function run(cmd, args, cwd, env = process.env) {
   exec(cmd, args, { cwd, env, stdio: 'inherit' });
 }
 
+function listFiles(dir) {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory() ? listFiles(path.join(dir, e.name)) : [path.join(dir, e.name)],
+  );
+}
+
+/**
+ * app.json and the config plugins (versions, permissions, ABI splits, certificates…) reach android/ only with
+ * prebuild: it runs when one of them is newer than the stamp written after the last prebuild of this script.
+ */
 function prebuildIfNeeded() {
-  const gradleFile = path.join(androidDir, 'app', 'build.gradle');
-  const gradle = fs.existsSync(gradleFile) ? fs.readFileSync(gradleFile, 'utf8') : '';
-  const propsFile = path.join(androidDir, 'gradle.properties');
-  const props = fs.existsSync(propsFile) ? fs.readFileSync(propsFile, 'utf8') : '';
-  const { version, versionCode } = appVersions();
-  // Plugins and versions changed in app.json reach android/ only with prebuild.
-  const stale =
-    !gradle.includes('tinkerblinkAbiSplits') ||
-    !/^org\.gradle\.caching=true$/m.test(props) ||
-    gradle.match(/versionCode\s+(\d+)/)?.[1] !== String(versionCode) ||
-    gradle.match(/versionName\s+"([^"]*)"/)?.[1] !== version;
-  if (process.argv.includes('--prebuild') || stale) {
+  const stamp = path.join(androidDir, '.release-prebuild');
+  const sources = [path.join(appDir, 'app.json'), ...listFiles(path.join(appDir, 'plugins'))];
+  const doneAt = fs.existsSync(stamp) ? fs.statSync(stamp).mtimeMs : 0;
+  if (process.argv.includes('--prebuild') || sources.some((f) => fs.statSync(f).mtimeMs > doneAt)) {
     // Inside app/: from the root prebuild creates a wrong android/ and app.json.
     run('npx', ['expo', 'prebuild', '--platform', 'android', '--no-install'], appDir);
+    fs.writeFileSync(stamp, `${new Date().toISOString()}\n`);
   }
 }
 
