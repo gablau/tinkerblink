@@ -46,9 +46,21 @@ function prebuildIfNeeded() {
   }
 }
 
+/**
+ * Gradle checks only the files under app/ to decide whether to bundle the JavaScript again: a change in the
+ * workspace package protocol/ would leave the old bundle in the APK. Removing the bundle outputs forces it.
+ */
+function forceJsBundle() {
+  const build = path.join(androidDir, 'app', 'build');
+  for (const dir of ['generated/assets/react/release', 'generated/res/react/release', 'generated/sourcemaps/react/release', 'intermediates/sourcemaps/react/release']) {
+    fs.rmSync(path.join(build, ...dir.split('/')), { recursive: true, force: true });
+  }
+}
+
 function buildApks(keys) {
   // Leftovers of an earlier build (for example app-release.apk without splits) must not be signed.
   fs.rmSync(apkDir, { recursive: true, force: true });
+  forceJsBundle();
   run(gradlew, ['assembleRelease', '-PtinkerblinkAbiSplits', `-PreactNativeArchitectures=${ABIS.join(',')}`], androidDir);
   signAll(keys);
 }
@@ -56,6 +68,7 @@ function buildApks(keys) {
 function buildAab(keys) {
   const bundleDir = path.join(androidDir, 'app', 'build', 'outputs', 'bundle', 'release');
   fs.rmSync(bundleDir, { recursive: true, force: true });
+  forceJsBundle();
   const p = 'ORG_GRADLE_PROJECT_android.injected.signing.';
   const env = {
     ...process.env,
