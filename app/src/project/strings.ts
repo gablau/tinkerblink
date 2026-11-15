@@ -28,7 +28,10 @@ const en = {
   devices: 'Devices',
   addDevice: 'Add device',
   notifyConnected: 'Notify devices when the app connects',
-  notifyConnectedHint: 'The server sends "acon"/"adis" to the devices (and to the Node-RED flows) when the app connects and disconnects.',
+  notifyConnectedHint:
+    'When on, the server sends "acon"/"adis" to the devices (and to the Node-RED flows) when the app connects and disconnects. When off, the devices get nothing.',
+  keepScreenOn: 'Keep screen always on',
+  keepScreenOnHint: 'While the dashboard of this project is open.',
   offlineNotifsOff: 'Hide offline notifications',
   play: 'Play',
   stop: 'Stop',
@@ -79,7 +82,10 @@ const it: typeof en = {
   devices: 'Device',
   addDevice: 'Aggiungi device',
   notifyConnected: "Avvisa i device quando l'app si collega",
-  notifyConnectedHint: 'Il server invia "acon"/"adis" ai device (e ai flussi Node-RED) quando l\'app si collega e si scollega.',
+  notifyConnectedHint:
+    'Se attivo, il server invia "acon"/"adis" ai device (e ai flussi Node-RED) quando l\'app si collega e si scollega. Se spento, i device non ricevono niente.',
+  keepScreenOn: 'Schermo sempre acceso',
+  keepScreenOnHint: 'Mentre è aperta la dashboard di questo progetto.',
   offlineNotifsOff: 'Non mostrare gli avvisi di device offline',
   play: 'Avvia',
   stop: 'Ferma',

@@ -1,5 +1,5 @@
-// Settings of a project (editable projects only, editor/policy.ts): name, theme, notifications, start and stop,
-// device list (with adding) and project deletion.
+// Settings of a project (editable projects only, editor/policy.ts): name, theme, notifications, screen always on,
+// start and stop, device list (with adding) and project deletion.
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -138,6 +138,10 @@ function ProjectSettings({ dash }: { dash: Dashboard }) {
           <Row label={tp.offlineNotifsOff} ct={ct}>
             <BoolField value={draft.isNotificationsOff} onChange={(v) => setDraft((d) => ({ ...d, isNotificationsOff: v }))} ct={ct} />
           </Row>
+          <Row label={tp.keepScreenOn} ct={ct}>
+            <BoolField value={draft.keepScreenOn} onChange={(v) => setDraft((d) => ({ ...d, keepScreenOn: v }))} ct={ct} />
+          </Row>
+          <Text style={[styles.hint, { color: withAlpha(theme.text, 0.6) }]}>{tp.keepScreenOnHint}</Text>
         </View>
 
         <View style={sectionStyle}>

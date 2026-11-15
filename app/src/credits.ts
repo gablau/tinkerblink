@@ -123,7 +123,7 @@ export const CREDIT_GROUPS: CreditGroup[] = [
     items: [
       { name: 'React Native', author: 'Meta Platforms', license: 'MIT', url: 'https://reactnative.dev', use: say('Interfaccia', 'User interface') },
       { name: 'React', author: 'Meta Platforms', license: 'MIT', url: 'https://react.dev', use: say('Interfaccia', 'User interface') },
-      { name: 'Expo', author: '650 Industries', license: 'MIT', url: 'https://expo.dev', use: say('Piattaforma, moduli nativi, router, video, posizione', 'Platform, native modules, router, video, location') },
+      { name: 'Expo', author: '650 Industries', license: 'MIT', url: 'https://expo.dev', use: say('Piattaforma, moduli nativi, router, video, posizione, schermo acceso', 'Platform, native modules, router, video, location, screen kept on') },
       { name: 'AndroidX Media3', author: 'Google', license: 'Apache 2.0', url: 'https://developer.android.com/media/media3', use: say('Video RTSP (tramite expo-video)', 'RTSP video (through expo-video)') },
       { name: 'react-native-svg', author: 'Software Mansion', license: 'MIT', url: 'https://github.com/software-mansion/react-native-svg', use: say('Grafici e indicatori', 'Charts and gauges') },
       { name: 'react-native-webview', author: 'react-native-webview', license: 'MIT', url: 'https://github.com/react-native-webview/react-native-webview', use: say('Mappa', 'Map') },

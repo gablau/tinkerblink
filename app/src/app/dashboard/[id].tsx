@@ -1,8 +1,9 @@
 // Dashboard: tab bar (if any) and the widget grid.
 // Colors: dashboard theme (Blynk / BlynkLight, server Theme enum) and colors of the Tabs widget.
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { DashboardGrid, type GridEdit } from '@/components/DashboardGrid';
 import { DevicesButton, DevicesPanel } from '@/components/Devices';
@@ -29,6 +30,14 @@ export default function DashboardScreen() {
   const [boxOpen, setBoxOpen] = useState(false);
   const router = useRouter();
   const editable = dash !== undefined && isEditableDash(dash.id, editableDashIds);
+  // "Keep screen always on" of the project: while this dashboard is open (also under its settings).
+  const keepOn = dash?.keepScreenOn === true;
+  useEffect(() => {
+    if (!keepOn) return;
+    const tag = `dashboard-${id}`;
+    void activateKeepAwakeAsync(tag).catch(() => undefined);
+    return () => void deactivateKeepAwake(tag).catch(() => undefined);
+  }, [keepOn, id]);
   // Editing only while the project is stopped. Starting it (also from the settings) ends editing.
   const stopped = dash?.isActive === false;
   const editing = editRequested && editable && stopped;
