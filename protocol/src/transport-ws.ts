@@ -32,10 +32,14 @@ export class WebSocketTransport implements Transport {
       ws.onerror = (ev: Event) => {
         const msg = (ev as Event & { message?: string }).message;
         lastError = new Error(`WebSocket error${msg ? `: ${msg}` : ''}`);
-        if (!opened) reject(lastError);
+        // React Native puts the reason (e.g. the certificate exception) only in the close event that always
+        // follows an error: without a message, reject there.
+        if (!opened && msg) reject(lastError);
       };
-      ws.onclose = (ev: { code: number }) => {
-        if (!opened) reject(lastError ?? new Error(`WebSocket closed before opening (code ${ev.code})`));
+      ws.onclose = (ev: { code: number; reason?: string }) => {
+        const reason = ev.reason?.trim();
+        if (reason && lastError && !lastError.message.includes(':')) lastError = new Error(`WebSocket error: ${reason}`);
+        if (!opened) reject(lastError ?? new Error(`WebSocket closed before opening (code ${ev.code}${reason ? `: ${reason}` : ''})`));
         for (const l of this.closeListeners) l(lastError);
       };
     });
