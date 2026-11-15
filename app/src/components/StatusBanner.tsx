@@ -10,14 +10,14 @@ const MESSAGES = {
   connecting: t.connecting,
 } as const;
 
-/** Bar at the top when the connection is down. */
-export function StatusBanner() {
+/** Bar at the top when the connection is down. `color`: the red of the dashboard theme (default: system theme). */
+export function StatusBanner({ color }: { color?: string } = {}) {
   const { status } = useSession();
   const palette = usePalette();
   if (status !== 'reconnecting' && status !== 'paused' && status !== 'connecting') return null;
   // No technical details: while reconnecting the error is almost always "network or server unreachable".
   return (
-    <View style={[styles.banner, { backgroundColor: palette.danger }]}>
+    <View style={[styles.banner, { backgroundColor: color ?? palette.danger }]}>
       <Text style={styles.text}>{MESSAGES[status]}</Text>
     </View>
   );

@@ -15,6 +15,7 @@ import { tp } from '@/project/strings';
 import type { TabsWidget } from '@/model/profile';
 import { useSession } from '@/session/SessionContext';
 import { dashboardTheme } from '@/ui/dashboardTheme';
+import { dashboardPalette } from '@/ui/theme';
 import { t } from '@/i18n';
 import { FONT } from '@/ui/fonts';
 import { widgetColor } from '@/widgets/color';
@@ -107,7 +108,7 @@ export default function DashboardScreen() {
           ),
         }}
       />
-      <StatusBanner />
+      <StatusBanner color={dashboardPalette(dash?.theme).danger} />
       {editing && (
         <Text style={[styles.editHint, { color: theme.background, backgroundColor: theme.accent }]}>{te.editHint}</Text>
       )}

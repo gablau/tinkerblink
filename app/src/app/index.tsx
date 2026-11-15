@@ -2,6 +2,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Link, Redirect, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -113,6 +114,8 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]}>
+      {/* No green header here: status bar icons light or dark like the system theme. */}
+      <StatusBar style={scheme === 'light' ? 'dark' : 'light'} />
       {/* With the keyboard open the form scrolls above it (Android too: edge-to-edge does not resize the window). */}
       <KeyboardAvoidingView behavior="padding" style={styles.screen}>
         <ScrollView contentContainerStyle={styles.center} keyboardShouldPersistTaps="handled">
