@@ -1,5 +1,5 @@
 // Settings of a project (editable projects only, editor/policy.ts): name, theme, notifications, screen always on,
-// start and stop, device list (with adding) and project deletion.
+// start and stop, device list (with adding), clone (duplicate or share a code) and project deletion.
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -9,7 +9,8 @@ import { isEditableDash } from '@/editor/policy';
 import { te } from '@/editor/strings';
 import type { Dashboard } from '@/model/profile';
 import { tp } from '@/project/strings';
-import { confirmDestructive, errorText, projectStyles as styles, SmallButton, useUnsavedGuard } from '@/project/ui';
+import { cloneErrorText } from '@/project/clone';
+import { confirmAction, confirmDestructive, errorText, projectStyles as styles, SmallButton, useUnsavedGuard } from '@/project/ui';
 import { useDeviceOnline } from '@/session/hooks';
 import { useSession } from '@/session/SessionContext';
 import { dashSettingsOf } from '@/session/SessionManager';
@@ -44,7 +45,7 @@ function DeviceRow({ dash, deviceId, name, board, theme, onPress }: { dash: Dash
 }
 
 function ProjectSettings({ dash }: { dash: Dashboard }) {
-  const { updateDashSettings, setDashActive, deleteDash } = useSession();
+  const { updateDashSettings, setDashActive, deleteDash, cloneProject, getCloneCode } = useSession();
   const router = useRouter();
   const saved = dashSettingsOf(dash);
   const [draft, setDraft] = useState(saved);
@@ -86,6 +87,22 @@ function ProjectSettings({ dash }: { dash: Dashboard }) {
       const devicesOnline = await setDashActive(dash.id, dash.isActive === false);
       if (!devicesOnline) setNotice(tp.noDeviceOnline);
     }, tp.playError);
+
+  // Duplicate = clone code + project from that code, in this account. The saved project is copied: with unsaved
+  // changes the button is disabled.
+  const askDuplicate = () =>
+    confirmAction(tp.duplicate, tp.duplicateConfirm(dash.name), tp.duplicate, () =>
+      void run(async () => {
+        try {
+          const id = await cloneProject(await getCloneCode(dash.id), tp.copySuffix);
+          router.dismissTo('/projects');
+          router.push(`/dashboard/${id}`);
+          return true;
+        } catch (e) {
+          setError(cloneErrorText(e));
+        }
+      }, tp.cloneError),
+    );
 
   const askDelete = () =>
     confirmDestructive(tp.deleteProject, tp.deleteProjectConfirm(dash.name), tp.delete, () =>
@@ -165,6 +182,15 @@ function ProjectSettings({ dash }: { dash: Dashboard }) {
           ))}
           <View style={styles.buttons}>
             <SmallButton icon="plus" label={tp.addDevice} onPress={() => router.push(`/project/${dash.id}/device/new`)} ct={ct} />
+          </View>
+        </View>
+
+        <View style={sectionStyle}>
+          <Text style={[styles.sectionTitle, { color: theme.accent }]}>{tp.clone.toUpperCase()}</Text>
+          <Text style={[styles.hint, { color: withAlpha(theme.text, 0.6) }]}>{tp.cloneHint}</Text>
+          <View style={styles.buttons}>
+            <SmallButton icon="content-copy" label={tp.duplicate} onPress={askDuplicate} ct={ct} disabled={busy || dirty} />
+            <SmallButton icon="qrcode" label={tp.shareClone} onPress={() => router.push(`/project/${dash.id}/clone`)} ct={ct} disabled={busy} />
           </View>
         </View>
 

@@ -130,6 +130,9 @@ export const CREDIT_GROUPS: CreditGroup[] = [
       { name: 'AsyncStorage', author: 'React Native Community', license: 'MIT', url: 'https://github.com/react-native-async-storage/async-storage', use: say('Preferenze', 'Preferences') },
       { name: '@noble/hashes', author: 'Paul Miller', license: 'MIT', url: 'https://github.com/paulmillr/noble-hashes', use: say('Hash della password del protocollo', 'Protocol password hash') },
       { name: 'fflate', author: '101arrowz', license: 'MIT', url: 'https://github.com/101arrowz/fflate', use: say('Profilo e grafici compressi', 'Compressed profile and charts') },
+      { name: 'QR Code Generator', author: 'Kazuhiko Arase', license: 'MIT', url: 'https://github.com/kazuhikoarase/qrcode-generator', use: say('QR del codice di clonazione', 'QR code of the clone code') },
+      { name: 'ZXing Android Embedded', author: 'JourneyApps', license: 'Apache 2.0', url: 'https://github.com/journeyapps/zxing-android-embedded', use: say('Lettura del QR di un progetto clonato', 'Reading the QR code of a cloned project') },
+      { name: 'ZXing', author: 'ZXing authors', license: 'Apache 2.0', url: 'https://github.com/zxing/zxing', use: say('Decodifica dei QR', 'QR code decoding') },
     ],
   },
   {

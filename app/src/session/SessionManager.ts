@@ -276,6 +276,28 @@ export class SessionManager {
     return id;
   };
 
+  /** Clone code of a project (GET_CLONE_CODE): valid only on this server. */
+  getCloneCode = (dashId: number): Promise<string> => this.requireOnline().getCloneCode(dashId);
+
+  /**
+   * Creates a project from a clone code (own or received from another user of the same server): the server
+   * chooses the id and generates new device tokens, read right away with GET_DEVICES. The server keeps the name of
+   * the cloned project: `nameSuffix` is added in brackets ("Garden (copy)"), so the two projects are not confused.
+   * If the renaming fails the copy keeps the same name. Returns the project id.
+   */
+  cloneProject = async (code: string, nameSuffix: string): Promise<number> => {
+    const client = this.requireOnline();
+    const created = (await client.cloneProject(code)) as Dashboard;
+    const dash: Dashboard = { ...created, widgets: created.widgets ?? [], devices: created.devices ?? [] };
+    const devices = (await client.getDevices(dash.id).catch(() => null)) as Device[] | null;
+    const current = this.state.profile!;
+    const others = current.dashBoards.filter((d) => d.id !== dash.id);
+    this.setState({ profile: { ...current, dashBoards: [...others, { ...dash, devices: devices ?? dash.devices }] } });
+    this.setState({ editableDashIds: this.editableFor(this.state.profile) });
+    await this.updateDashSettings(dash.id, { name: `${dash.name} (${nameSuffix})` }).catch(() => undefined);
+    return dash.id;
+  };
+
   /** Project settings (UPDATE_PROJECT_SETTINGS): starts from the current ones and changes only the given fields. */
   updateDashSettings = async (dashId: number, patch: Partial<DashSettings>): Promise<void> => {
     const client = this.requireOnline();

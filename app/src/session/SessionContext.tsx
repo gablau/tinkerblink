@@ -23,6 +23,8 @@ interface SessionValue extends SessionState {
   deleteWidget(dashId: number, widgetId: number): Promise<void>;
   getEnergy(): Promise<number>;
   createProject(p: NewProject): Promise<number>;
+  getCloneCode(dashId: number): Promise<string>;
+  cloneProject(code: string, nameSuffix: string): Promise<number>;
   updateDashSettings(dashId: number, patch: Partial<DashSettings>): Promise<void>;
   setDashActive(dashId: number, active: boolean): Promise<boolean>;
   deleteDash(dashId: number): Promise<void>;
@@ -71,6 +73,8 @@ export function useSession(): SessionValue {
     deleteWidget: manager.deleteWidget,
     getEnergy: manager.getEnergy,
     createProject: manager.createProject,
+    getCloneCode: manager.getCloneCode,
+    cloneProject: manager.cloneProject,
     updateDashSettings: manager.updateDashSettings,
     setDashActive: manager.setDashActive,
     deleteDash: manager.deleteDash,

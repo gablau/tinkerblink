@@ -43,6 +43,7 @@ const EDIT_COMMANDS: ReadonlySet<number> = new Set([
   Command.CREATE_DEVICE,
   Command.UPDATE_DEVICE,
   Command.DELETE_DEVICE,
+  Command.GET_CLONE_CODE,
 ]);
 
 /** Project settings (server DashboardSettings): the ones UPDATE_PROJECT_SETTINGS replaces. */
@@ -81,7 +82,10 @@ export interface ClientOptions {
    * Empty = no changes. Extended with allowEditing().
    */
   editableDashIds?: readonly number[];
-  /** In read-only mode, allows CREATE_DASH; the created dashboard becomes editable. */
+  /**
+   * In read-only mode, allows CREATE_DASH and the creation of a project from a clone code
+   * (GET_PROJECT_BY_CLONE_CODE "<code>\0new"); the created dashboard becomes editable.
+   */
   allowCreateDash?: boolean;
   requestTimeoutMs?: number;
   pingIntervalMs?: number;
@@ -286,6 +290,32 @@ export class LegacyClient {
     this.editable.add(dash.id);
   }
 
+  /**
+   * Clone code of a project (GET_CLONE_CODE): body = dashId. The server stores a copy of the project (widgets
+   * without their values, devices without tokens) and returns a code: with it any user of the same server can
+   * create a copy of the project in their account (cloneProject). The copy keeps the widget settings, video
+   * URLs included.
+   */
+  async getCloneCode(dashId: number): Promise<string> {
+    const reply = await this.request(Command.GET_CLONE_CODE, String(dashId));
+    if (reply.kind === 'response') throw new ProtocolError(Command.GET_CLONE_CODE, reply.code);
+    return (reply.kind === 'binary' ? strFromU8(reply.body) : reply.body).trim();
+  }
+
+  /**
+   * Creates a project from a clone code (GET_PROJECT_BY_CLONE_CODE, body "<code>\0new"): the server chooses the
+   * id (the highest + 1), generates new device tokens and charges the widget Energy (ENERGY_LIMIT, QUOTA_LIMIT;
+   * SERVER_ERROR for an unknown code). Returns the created dashboard, which becomes editable.
+   */
+  async cloneProject(code: string): Promise<{ id: number; name: string }> {
+    const reply = await this.request(Command.GET_PROJECT_BY_CLONE_CODE, joinBody(code, 'new'));
+    if (reply.kind === 'response') throw new ProtocolError(Command.GET_PROJECT_BY_CLONE_CODE, reply.code);
+    const bytes = reply.kind === 'binary' ? reply.body : strToU8(reply.body);
+    const dash = JSON.parse(strFromU8(decompressSync(bytes))) as { id: number; name: string };
+    this.editable.add(dash.id);
+    return dash;
+  }
+
   /** Replaces the settings of a project (UPDATE_PROJECT_SETTINGS): body "<dashId>\0<json>". */
   async updateDashSettings(dashId: number, settings: DashSettings): Promise<void> {
     await this.expectOk(Command.UPDATE_PROJECT_SETTINGS, joinBody(dashId, JSON.stringify(settings)));
@@ -354,6 +384,8 @@ export class LegacyClient {
     if (READ_ONLY_COMMANDS.has(command)) return true;
     if (command === Command.HARDWARE) return this.opts.allowHardwareWrites;
     if (command === Command.CREATE_DASH) return this.opts.allowCreateDash;
+    // Without the second field it only reads the cloned project; with it, the server creates the project.
+    if (command === Command.GET_PROJECT_BY_CLONE_CODE) return !body.includes('\0') || this.opts.allowCreateDash;
     if (EDIT_COMMANDS.has(command)) {
       const first = body.split('\0', 1)[0]!;
       return /^\d+$/.test(first) && this.editable.has(Number(first));

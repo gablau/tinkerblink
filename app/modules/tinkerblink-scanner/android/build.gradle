@@ -1,0 +1,25 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'app.tinkerblink.scanner'
+version = '0.1.0'
+
+android {
+  namespace "app.tinkerblink.scanner"
+  defaultConfig {
+    versionCode 1
+    versionName "0.1.0"
+  }
+  lintOptions {
+    abortOnError false
+  }
+}
+
+dependencies {
+  // QR code scanner screen (Apache-2.0, ZXing): free software, no Google Play services or ML Kit.
+  implementation 'com.journeyapps:zxing-android-embedded:4.3.0'
+  // ScanContract is an ActivityResultContract (resolved to the version the app already uses)
+  implementation 'androidx.activity:activity:1.10.1'
+}

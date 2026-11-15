@@ -18,6 +18,9 @@ app/                    Expo SDK 57 + React Native 0.86 + TypeScript (package ap
                         only after the system check fails; screen src/app/certificate.tsx, opened from the login
                         (certificate button colored by useCertificateLevel, link after a failed login), never from a
                         deep link URL: the server comes from the session (selectCertificateHost)
+  modules/tinkerblink-scanner  QR scanner (Android) with ZXing (zxing-android-embedded): no ML Kit or Google Play
+                        services, so that the APK stays free software. Used to import a cloned project
+                        (src/project/clone.ts; sharing screen project/[dashId]/clone)
   src/model/profile.ts  profile types and pin keys ("<dash>-<dev>-v<pin>")
   src/components/       DashboardGrid (8-column grid, cell height 1.35 x width, tabs row hidden), scrollLock
   src/layout/           bandLayout: wide screens show row bands side by side (pure function, data unchanged)

@@ -105,6 +105,8 @@ blocked; TinkerBlink goes back to the login screen.
 | 43 / 44 | UPDATE_DEVICE / DELETE_DEVICE | `dashId\0deviceJson` / `dashId\0deviceId` | `RESPONSE` |
 | 45 | GET_DEVICES | `dashId` | JSON array of devices |
 | 36 | GET_ENERGY | empty | the energy balance as text |
+| 62 | GET_CLONE_CODE | `dashId` | the clone code as text |
+| 63 | GET_PROJECT_BY_CLONE_CODE | `code\0new` | binary, compressed JSON of the created dashboard |
 | 70 | GET_WIDGET | `dashId\0widgetId` | widget JSON |
 
 Messages the server sends on its own (their msgId does not belong to a client request):
@@ -193,10 +195,15 @@ from the files on disk (`ReportingDiskDao`).
 - `ACTIVATE_DASHBOARD` always activates the dashboard; it replies `7` when no device is connected (`200` with
   notifications off). `DEACTIVATE_DASHBOARD` with an **empty body stops every dashboard**: `LegacyClient`
   never sends it.
+- `GET_CLONE_CODE` stores a copy of the project (widget values erased, no device tokens; widget settings and
+  video URLs included) and returns a code: 24 random bytes in URL-safe base64, 32 characters, valid only on that
+  server. `GET_PROJECT_BY_CLONE_CODE` with `code\0new` creates the copy in the account of whoever sends it: id =
+  highest id + 1, new device tokens, widget energy charged (`ENERGY_LIMIT`, `QUOTA_LIMIT`; `SERVER_ERROR` for an
+  unknown code). With the code alone it only returns the stored JSON.
 
 `LegacyClient` is read-only by default and lets the app opt in: `allowHardwareWrites` for `HARDWARE`,
-`editableDashIds` / `allowEditing()` for editing commands on given dashboards, `allowCreateDash` for
-`CREATE_DASH`.
+`editableDashIds` / `allowEditing()` for editing commands on given dashboards (`GET_CLONE_CODE` included),
+`allowCreateDash` for `CREATE_DASH` and `GET_PROJECT_BY_CLONE_CODE` with `\0new`.
 
 ## Keep-alive and reconnection
 

@@ -106,6 +106,12 @@ import { LegacyClient, Command, encodeMessage, FrameDecoder, parseGraphData, pas
   const cr = new LegacyClient(fake, { readOnly: true, allowCreateDash: true });
   assert.doesNotThrow(() => cr.send(Command.CREATE_DASH, '{"id":5}'));
   assert.throws(() => cr.send(Command.DELETE_DASH, '5'), /blocked/);
+  // Clone: the code only of editable projects; creating from a code needs allowCreateDash, reading it does not.
+  assert.doesNotThrow(() => ed.send(Command.GET_CLONE_CODE, '123456789'));
+  assert.throws(() => ed.send(Command.GET_CLONE_CODE, '5'), /blocked/);
+  assert.doesNotThrow(() => ro.send(Command.GET_PROJECT_BY_CLONE_CODE, 'abc'));
+  assert.throws(() => ro.send(Command.GET_PROJECT_BY_CLONE_CODE, 'abc\0new'), /blocked/);
+  assert.doesNotThrow(() => cr.send(Command.GET_PROJECT_BY_CLONE_CODE, 'abc\0new'));
 }
 
 console.log('✅ selftest ok');

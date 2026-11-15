@@ -88,13 +88,22 @@ export function SmallButton({
 
 /** Confirmation before a destructive action (on the web with the browser confirm). */
 export function confirmDestructive(title: string, message: string, action: string, onConfirm: () => void): void {
+  confirm(title, message, action, onConfirm, 'destructive');
+}
+
+/** Confirmation before an action that changes the account but destroys nothing (it costs Energy, for example). */
+export function confirmAction(title: string, message: string, action: string, onConfirm: () => void): void {
+  confirm(title, message, action, onConfirm, 'default');
+}
+
+function confirm(title: string, message: string, action: string, onConfirm: () => void, style: 'default' | 'destructive'): void {
   if (Platform.OS === 'web') {
     if (globalThis.confirm?.(`${title}\n\n${message}`)) onConfirm();
     return;
   }
   Alert.alert(title, message, [
     { text: tp.cancel, style: 'cancel' },
-    { text: action, style: 'destructive', onPress: onConfirm },
+    { text: action, style, onPress: onConfirm },
   ]);
 }
 
