@@ -1,5 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Redirect, Stack, router } from 'expo-router';
+import { Redirect, Stack, router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { StatusBanner } from '@/components/StatusBanner';
 import { t } from '@/i18n';
@@ -7,6 +8,7 @@ import { tp } from '@/project/strings';
 import { confirmAction } from '@/project/ui';
 import type { Dashboard } from '@/model/profile';
 import { useDeviceOnline } from '@/session/hooks';
+import { loadLastDash, saveLastDash } from '@/session/lastDash';
 import { useSession } from '@/session/SessionContext';
 import { FONT } from '@/ui/fonts';
 import { usePalette, type Palette } from '@/ui/theme';
@@ -41,9 +43,30 @@ function ProjectRow({ dash, palette }: { dash: Dashboard; palette: Palette }) {
   );
 }
 
+/** Accounts ("host|email") whose last project has already been reopened since the app started: only once, not at
+ * every reconnection (the session recreates the account object) nor when the screen is created again. */
+const restoredAccounts = new Set<string>();
+const accountKey = (a: { host: string; email: string }) => `${a.host}|${a.email}`;
+
 export default function ProjectsScreen() {
-  const { profile, logout } = useSession();
+  const { profile, account, logout } = useSession();
   const palette = usePalette();
+  // Last project opened: the first time the list appears after the login it opens that project straight away (the
+  // list stays empty meanwhile, so it does not flash). Every later return to the list forgets it.
+  const [restoring, setRestoring] = useState(account !== undefined && !restoredAccounts.has(accountKey(account)));
+  useFocusEffect(
+    useCallback(() => {
+      if (!profile || !account) return;
+      if (restoredAccounts.has(accountKey(account))) return void saveLastDash(account, undefined);
+      restoredAccounts.add(accountKey(account));
+      void loadLastDash(account).then((id) => {
+        if (id !== undefined && profile.dashBoards.some((d) => d.id === id)) {
+          router.push({ pathname: '/dashboard/[id]', params: { id: String(id) } });
+        }
+        setRestoring(false);
+      });
+    }, [profile, account]),
+  );
   if (!profile) return <Redirect href="/" />;
 
   return (
@@ -70,12 +93,14 @@ export default function ProjectsScreen() {
         }}
       />
       <StatusBanner />
-      <FlatList
-        contentContainerStyle={styles.list}
-        data={profile.dashBoards}
-        keyExtractor={(d) => String(d.id)}
-        renderItem={({ item }) => <ProjectRow dash={item} palette={palette} />}
-      />
+      {!restoring && (
+        <FlatList
+          contentContainerStyle={styles.list}
+          data={profile.dashBoards}
+          keyExtractor={(d) => String(d.id)}
+          renderItem={({ item }) => <ProjectRow dash={item} palette={palette} />}
+        />
+      )}
     </View>
   );
 }

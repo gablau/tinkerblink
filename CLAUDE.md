@@ -13,7 +13,7 @@ app/                    Expo SDK 57 + React Native 0.86 + TypeScript (package ap
                         project/new, project/[dashId] (settings), project/[dashId]/device/[deviceId], credits
   src/session/          SessionManager (connection, pause in background, reconnection), LiveStore (pin values,
                         setProperty, device status), credentials (SecureStore; on web the password is never stored),
-                        connectionError (plain-words connection errors)
+                        connectionError (plain-words connection errors), lastDash (project reopened at the next start)
   modules/tinkerblink-tls  "Trust this certificate" (Android): SHA-256 of the server certificate per host:port, checked
                         only after the system check fails; screen src/app/certificate.tsx, opened from the login
                         (certificate button colored by useCertificateLevel, link after a failed login), never from a

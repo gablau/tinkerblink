@@ -13,6 +13,7 @@ import { te } from '@/editor/strings';
 import { WidgetBox } from '@/editor/WidgetBox';
 import { tp } from '@/project/strings';
 import type { TabsWidget } from '@/model/profile';
+import { saveLastDash } from '@/session/lastDash';
 import { useSession } from '@/session/SessionContext';
 import { dashboardTheme } from '@/ui/dashboardTheme';
 import { dashboardPalette } from '@/ui/theme';
@@ -22,8 +23,13 @@ import { widgetColor } from '@/widgets/color';
 
 export default function DashboardScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { profile, updateWidget, editableDashIds, setDashActive, showNotice } = useSession();
+  const { profile, account, updateWidget, editableDashIds, setDashActive, showNotice } = useSession();
   const dash = profile?.dashBoards.find((d) => String(d.id) === id);
+  // Reopened at the next start (the project list forgets it when the user goes back to it).
+  const dashId = dash?.id;
+  useEffect(() => {
+    if (account && dashId !== undefined) void saveLastDash(account, dashId);
+  }, [account, dashId]);
   const theme = dashboardTheme(dash?.theme);
   const [tab, setTab] = useState(0);
   const [devicesOpen, setDevicesOpen] = useState(false);
