@@ -1,5 +1,7 @@
-// Project list. Projects can be pinned to the top (pin on the card, saved on this phone); the order of the pinned ones
-// changes only in the reorder mode (icon in the top bar), by dragging them by their handle.
+// Project list. Projects can be pinned to the top and hidden; both are saved on this phone and changed in the organize
+// mode (pencil in the top bar): pin and eye on each card, and the pinned ones are reordered by dragging them by their
+// handle. Outside that mode the cards only open the projects; a label separates the pinned projects from the others
+// and a row at the bottom shows or hides the hidden ones on the fly.
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Redirect, Stack, router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
@@ -7,7 +9,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View, type GestureResponderHan
 import { ReorderList } from '@/components/ReorderList';
 import { StatusBanner } from '@/components/StatusBanner';
 import { t } from '@/i18n';
-import { usePinnedProjects } from '@/project/pinned';
+import { useProjectIds } from '@/project/listPrefs';
 import { tp } from '@/project/strings';
 import { confirmAction } from '@/project/ui';
 import type { Dashboard } from '@/model/profile';
@@ -23,15 +25,21 @@ function DeviceDot({ dashId, deviceId, palette }: { dashId: number; deviceId: nu
 }
 
 type RowMode =
-  /** Normal list: the pin toggles pinning. */
-  | { kind: 'normal'; onTogglePin: () => void }
-  /** Reorder mode, pinned project: drag handle. */
-  | { kind: 'drag'; handle: GestureResponderHandlers; dragging: boolean }
-  /** Reorder mode, project not pinned: dimmed and inert. */
-  | { kind: 'inert' };
+  /** Normal list: the card opens the project. */
+  | { kind: 'normal' }
+  /** Organize mode: eye (hide/show) and pin; pinned projects also have the drag handle. */
+  | {
+      kind: 'organize';
+      pinned: boolean;
+      hidden: boolean;
+      onTogglePin: () => void;
+      onToggleHidden: () => void;
+      handle?: GestureResponderHandlers;
+      dragging?: boolean;
+    };
 
-function ProjectRow({ dash, pinned, mode, palette }: { dash: Dashboard; pinned: boolean; mode: RowMode; palette: Palette }) {
-  const lifted = mode.kind === 'drag' && mode.dragging;
+function ProjectRow({ dash, mode, palette }: { dash: Dashboard; mode: RowMode; palette: Palette }) {
+  const lifted = mode.kind === 'organize' && mode.dragging === true;
   return (
     <Pressable
       disabled={mode.kind !== 'normal'}
@@ -39,7 +47,6 @@ function ProjectRow({ dash, pinned, mode, palette }: { dash: Dashboard; pinned: 
       style={[
         styles.row,
         { backgroundColor: palette.card, borderColor: lifted ? palette.accent : palette.border },
-        mode.kind === 'inert' && { opacity: 0.4 },
         lifted && styles.lifted,
       ]}
     >
@@ -49,9 +56,18 @@ function ProjectRow({ dash, pinned, mode, palette }: { dash: Dashboard; pinned: 
           {dash.isActive === false && (
             <MaterialCommunityIcons name="stop-circle-outline" size={22} color={palette.danger} accessibilityLabel={t.notActive} />
           )}
-          {mode.kind === 'normal' && (
-            <Pressable onPress={mode.onTogglePin} hitSlop={10} accessibilityLabel={pinned ? t.unpinProject : t.pinProject}>
-              <MaterialCommunityIcons name={pinned ? 'pin' : 'pin-outline'} size={22} color={pinned ? palette.accent : palette.muted} />
+          {mode.kind === 'organize' && (
+            <Pressable onPress={mode.onToggleHidden} hitSlop={10} accessibilityLabel={mode.hidden ? t.showProject : t.hideProject}>
+              <MaterialCommunityIcons
+                name={mode.hidden ? 'eye-off-outline' : 'eye-outline'}
+                size={22}
+                color={mode.hidden ? palette.muted : palette.text}
+              />
+            </Pressable>
+          )}
+          {mode.kind === 'organize' && (
+            <Pressable onPress={mode.onTogglePin} hitSlop={10} accessibilityLabel={mode.pinned ? t.unpinProject : t.pinProject}>
+              <MaterialCommunityIcons name={mode.pinned ? 'pin' : 'pin-outline'} size={22} color={mode.pinned ? palette.accent : palette.muted} />
             </Pressable>
           )}
         </View>
@@ -69,12 +85,16 @@ function ProjectRow({ dash, pinned, mode, palette }: { dash: Dashboard; pinned: 
           ))}
         </View>
       </View>
-      {/* Handle in its own column, centered vertically: the whole right side of the card can be grabbed. */}
-      {mode.kind === 'drag' && (
-        <View {...mode.handle} hitSlop={12} accessibilityLabel={t.dragProject} style={styles.handle}>
-          <MaterialCommunityIcons name="drag-vertical" size={32} color={palette.text} />
-        </View>
-      )}
+      {/* Handle in its own column, centered vertically: the whole right side of the card can be grabbed. The cards
+          that cannot be dragged keep the space empty, so the icons stay aligned. */}
+      {mode.kind === 'organize' &&
+        (mode.handle ? (
+          <View {...mode.handle} hitSlop={12} accessibilityLabel={t.dragProject} style={styles.handle}>
+            <MaterialCommunityIcons name="drag-vertical" size={32} color={palette.text} />
+          </View>
+        ) : (
+          <View style={styles.handle} />
+        ))}
     </Pressable>
   );
 }
@@ -103,8 +123,10 @@ export default function ProjectsScreen() {
       });
     }, [profile, account]),
   );
-  const [pinnedIds, setPinnedIds] = usePinnedProjects(account);
-  const [reordering, setReordering] = useState(false);
+  const [pinnedIds, setPinnedIds] = useProjectIds('pinned', account);
+  const [hiddenIds, setHiddenIds] = useProjectIds('hidden', account);
+  const [organizing, setOrganizing] = useState(false);
+  const [showHidden, setShowHidden] = useState(false);
   const [dragging, setDragging] = useState(false);
   if (!profile) return <Redirect href="/" />;
 
@@ -113,12 +135,28 @@ export default function ProjectsScreen() {
   const pinned = (pinnedIds ?? []).flatMap((id) => byId.get(id) ?? []);
   const pinnedSet = new Set(pinned.map((d) => d.id));
   const others = profile.dashBoards.filter((d) => !pinnedSet.has(d.id));
-  const togglePin = (id: number) =>
-    setPinnedIds(pinnedSet.has(id) ? pinned.map((d) => d.id).filter((p) => p !== id) : [...pinned.map((d) => d.id), id]);
-  // The reorder icon appears only when there is something to reorder.
-  const canReorder = pinned.length >= 2;
-  const inReorder = reordering && canReorder;
-  const ready = !restoring && (pinnedIds !== undefined || account === undefined);
+  const hiddenSet = new Set((hiddenIds ?? []).filter((id) => byId.has(id)));
+  const hiddenList = [...pinned, ...others].filter((d) => hiddenSet.has(d.id));
+  const toggle = (ids: Set<number>, id: number) => (ids.has(id) ? [...ids].filter((x) => x !== id) : [...ids, id]);
+  const togglePin = (id: number) => setPinnedIds(toggle(pinnedSet, id));
+  const toggleHidden = (id: number) => setHiddenIds(toggle(hiddenSet, id));
+  const ready = !restoring && ((pinnedIds !== undefined && hiddenIds !== undefined) || account === undefined);
+
+  const row = (d: Dashboard, mode: RowMode) => <ProjectRow key={d.id} dash={d} mode={mode} palette={palette} />;
+  const organize = (d: Dashboard, handle?: GestureResponderHandlers, lifted?: boolean): RowMode => ({
+    kind: 'organize',
+    pinned: pinnedSet.has(d.id),
+    hidden: hiddenSet.has(d.id),
+    onTogglePin: () => togglePin(d.id),
+    onToggleHidden: () => toggleHidden(d.id),
+    handle,
+    dragging: lifted,
+  });
+  /** Label between the pinned projects and the others, only when there are both. */
+  const othersLabel = (pinnedCount: number, othersCount: number) =>
+    pinnedCount > 0 && othersCount > 0 && <Text style={[styles.hint, styles.sectionLabel, { color: palette.muted }]}>{t.otherProjects}</Text>;
+  const visiblePinned = pinned.filter((d) => !hiddenSet.has(d.id));
+  const visibleOthers = others.filter((d) => !hiddenSet.has(d.id));
 
   return (
     <View style={{ flex: 1 }}>
@@ -133,17 +171,15 @@ export default function ProjectsScreen() {
           ),
           headerRight: () => (
             <View style={styles.headerRight}>
-              {canReorder && (
-                <Pressable onPress={() => setReordering(!inReorder)} hitSlop={8} accessibilityLabel={inReorder ? t.reorderDone : t.reorderPinned}>
-                  <MaterialCommunityIcons name={inReorder ? 'check' : 'swap-vertical'} size={24} color="#1D1E22" />
-                </Pressable>
-              )}
-              {!inReorder && (
+              <Pressable onPress={() => setOrganizing(!organizing)} hitSlop={8} accessibilityLabel={organizing ? t.organizeDone : t.organize}>
+                <MaterialCommunityIcons name={organizing ? 'check' : 'pencil'} size={24} color="#1D1E22" />
+              </Pressable>
+              {!organizing && (
                 <Pressable onPress={() => router.push('/project/new')} hitSlop={8} accessibilityLabel={tp.newProject}>
                   <MaterialCommunityIcons name="plus" size={26} color="#1D1E22" />
                 </Pressable>
               )}
-              {!inReorder && (
+              {!organizing && (
                 <Pressable onPress={() => router.push('/credits')} hitSlop={8} accessibilityLabel={t.credits}>
                   <MaterialCommunityIcons name="information-outline" size={24} color="#1D1E22" />
                 </Pressable>
@@ -153,32 +189,34 @@ export default function ProjectsScreen() {
         }}
       />
       <StatusBanner />
-      {ready && (
+      {ready && organizing && (
+        // Every project, hidden ones included (dimmed): eye on each card, handle on the pinned ones.
         <ScrollView contentContainerStyle={styles.list} scrollEnabled={!dragging}>
-          {inReorder && <Text style={[styles.hint, { color: palette.muted }]}>{t.reorderHint}</Text>}
-          {inReorder ? (
-            <ReorderList
-              items={pinned}
-              keyOf={(d) => String(d.id)}
-              gap={GAP}
-              onDragChange={setDragging}
-              onReorder={(list) => setPinnedIds(list.map((d) => d.id))}
-              renderItem={(d, handle, lifted) => (
-                <ProjectRow dash={d} pinned mode={{ kind: 'drag', handle, dragging: lifted }} palette={palette} />
-              )}
-            />
-          ) : (
-            pinned.map((d) => <ProjectRow key={d.id} dash={d} pinned mode={{ kind: 'normal', onTogglePin: () => togglePin(d.id) }} palette={palette} />)
+          <Text style={[styles.hint, { color: palette.muted }]}>{t.organizeHint}</Text>
+          <ReorderList
+            items={pinned}
+            keyOf={(d) => String(d.id)}
+            gap={GAP}
+            onDragChange={setDragging}
+            onReorder={(list) => setPinnedIds(list.map((d) => d.id))}
+            renderItem={(d, handle, lifted) => row(d, organize(d, handle, lifted))}
+          />
+          {othersLabel(pinned.length, others.length)}
+          {others.map((d) => row(d, organize(d)))}
+        </ScrollView>
+      )}
+      {ready && !organizing && (
+        <ScrollView contentContainerStyle={styles.list}>
+          {visiblePinned.map((d) => row(d, { kind: 'normal' }))}
+          {othersLabel(visiblePinned.length, visibleOthers.length)}
+          {visibleOthers.map((d) => row(d, { kind: 'normal' }))}
+          {hiddenList.length > 0 && (
+            <Pressable onPress={() => setShowHidden(!showHidden)} hitSlop={6} style={styles.hiddenToggle} accessibilityRole="button">
+              <Text style={[styles.hint, { color: palette.muted }]}>{t.hiddenCount(hiddenList.length)}</Text>
+              <MaterialCommunityIcons name={showHidden ? 'chevron-up' : 'chevron-down'} size={22} color={palette.muted} />
+            </Pressable>
           )}
-          {others.map((d) => (
-            <ProjectRow
-              key={d.id}
-              dash={d}
-              pinned={false}
-              mode={inReorder ? { kind: 'inert' } : { kind: 'normal', onTogglePin: () => togglePin(d.id) }}
-              palette={palette}
-            />
-          ))}
+          {showHidden && hiddenList.map((d) => row(d, { kind: 'normal' }))}
         </ScrollView>
       )}
     </View>
@@ -191,6 +229,8 @@ const styles = StyleSheet.create({
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 20 },
   list: { padding: 12, gap: GAP },
   hint: { fontSize: 14, fontFamily: FONT.regular, paddingHorizontal: 4 },
+  sectionLabel: { textAlign: 'center', paddingVertical: 8 },
+  hiddenToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 8 },
   row: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, padding: 14, flexDirection: 'row', gap: 12 },
   body: { flex: 1, gap: 4 },
   lifted: { elevation: 8, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
@@ -198,7 +238,7 @@ const styles = StyleSheet.create({
   name: { fontSize: 20, fontFamily: FONT.regular, flex: 1 },
   meta: { fontSize: 14, fontFamily: FONT.regular },
   headerLeft: { marginRight: 24 },
-  handle: { alignSelf: 'stretch', justifyContent: 'center', marginVertical: -14, paddingLeft: 4 },
+  handle: { alignSelf: 'stretch', justifyContent: 'center', marginVertical: -14, paddingLeft: 4, width: 36 },
   devices: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 4 },
   device: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   dot: { width: 8, height: 8, borderRadius: 4 },

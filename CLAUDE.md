@@ -23,7 +23,8 @@ app/                    Expo SDK 57 + React Native 0.86 + TypeScript (package ap
                         (src/project/clone.ts; sharing screen project/[dashId]/clone)
   src/model/profile.ts  profile types and pin keys ("<dash>-<dev>-v<pin>")
   src/components/       DashboardGrid (8-column grid, cell height 1.35 x width, tabs row hidden), scrollLock,
-                        ReorderList (drag by a handle: pinned projects, saved per account in src/project/pinned.ts)
+                        ReorderList (drag by a handle: pinned projects; pinned and hidden projects are saved per
+                        account in src/project/listPrefs.ts)
   src/layout/           bandLayout: wide screens show row bands side by side (pure function, data unchanged)
   src/widgets/          widget components (WidgetView picks by type), color.ts, format.ts, superchart/, map/
   src/editor/           dashboard editor: policy (editable = own projects, never assigned ones), fields, PinPicker
