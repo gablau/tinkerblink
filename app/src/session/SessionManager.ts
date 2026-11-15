@@ -13,6 +13,7 @@ import { canControl, pinKey, type Dashboard, type Device, type Profile, type Wid
 import { loadCreatedDashIds, saveCreatedDashIds } from '@/editor/policy';
 import { syncGps } from '@/sensors/gps';
 import { SensorsWorker } from '@/sensors/sensorsWorker';
+import { describeConnectionError } from './connectionError';
 import { forgetPassword, saveCredentials, serverUrl, type Credentials } from './credentials';
 import { LiveStore } from './liveStore';
 
@@ -109,7 +110,7 @@ function describeError(e: unknown): string {
     if (e.code === ResponseCode.NOT_ALLOWED && e.command === Command.LOGIN) return t.loginNotAllowed;
     return e.message;
   }
-  if (e instanceof Error) return e.message;
+  if (e instanceof Error) return describeConnectionError(e.message);
   return String(e);
 }
 
