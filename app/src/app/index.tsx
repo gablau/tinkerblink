@@ -1,5 +1,6 @@
 // Login. With saved credentials (Android only) it logs in by itself.
-import { Link, Redirect } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Link, Redirect, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -14,8 +15,10 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { isSupported as tlsSupported } from '../../modules/tinkerblink-tls';
 import { SplashView } from '@/components/SplashView';
-import { DEFAULT_HOST, HOST_EXAMPLE, loadCredentials } from '@/session/credentials';
+import { DEFAULT_HOST, HOST_EXAMPLE, loadCredentials, serverAddress } from '@/session/credentials';
+import { useCertificateLevel, type CertificateLevel } from '@/session/useCertificateLevel';
 import { t } from '@/i18n';
 import { FONT } from '@/ui/fonts';
 import { useSession } from '@/session/SessionContext';
@@ -24,8 +27,11 @@ import { usePalette } from '@/ui/theme';
 /** After this time, if the automatic login has not answered yet, the login form is shown. */
 const SPLASH_PATIENCE_MS = 8000;
 
+/** Amber of the certificate button when the user trusted the certificate (not in the palette). */
+const TRUSTED_AMBER = '#E0A100';
+
 export default function LoginScreen() {
-  const { status, error, profile, login } = useSession();
+  const { status, error, certificateError, profile, login, selectCertificateHost } = useSession();
   const palette = usePalette();
   const [host, setHost] = useState(DEFAULT_HOST);
   const [email, setEmail] = useState('');
@@ -63,10 +69,32 @@ export default function LoginScreen() {
     return () => clearTimeout(timer);
   }, []);
 
-  if (profile && status !== 'idle') return <Redirect href="/projects" />;
+  const leaving = Boolean(profile && status !== 'idle');
+  // Checked only while the form is visible (not during the automatic login).
+  const certLevel = useCertificateLevel(host, !leaving && !(waiting && patient));
+
+  if (leaving) return <Redirect href="/projects" />;
   if (waiting && patient) return <SplashView />;
 
   const busy = status === 'connecting';
+  /** Certificate button next to the server: Android only, for TLS addresses. */
+  const canShowCertificate = tlsSupported && host.trim() !== '' && serverAddress(host)?.secure === true;
+  const showCertificate = () => {
+    selectCertificateHost(host);
+    router.push('/certificate');
+  };
+  const certColor: Record<CertificateLevel, string> = {
+    ok: palette.accent,
+    trusted: TRUSTED_AMBER,
+    problem: palette.danger,
+    unknown: palette.muted,
+  };
+  const certLabel: Record<CertificateLevel, string> = {
+    ok: t.certLevelOk,
+    trusted: t.certLevelTrusted,
+    problem: t.certLevelProblem,
+    unknown: t.certShow,
+  };
   const canSubmit = loaded && !busy && host.trim() !== '' && email.trim() !== '' && password !== '';
   const inputStyle = [styles.input, { color: palette.text, borderColor: palette.border, backgroundColor: palette.card }];
 
@@ -78,16 +106,31 @@ export default function LoginScreen() {
           <Text style={[styles.subtitle, { color: palette.muted }]}>{t.loginSubtitle}</Text>
 
           <Text style={[styles.fieldLabel, { color: palette.muted }]}>{t.server}</Text>
-          <TextInput
-            style={inputStyle}
-            value={host}
-            onChangeText={setHost}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="url"
-            placeholder={HOST_EXAMPLE}
-            placeholderTextColor={palette.muted}
-          />
+          <View style={styles.serverRow}>
+            <TextInput
+              style={[inputStyle, styles.serverInput]}
+              value={host}
+              onChangeText={setHost}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="url"
+              placeholder={HOST_EXAMPLE}
+              placeholderTextColor={palette.muted}
+            />
+            {canShowCertificate && (
+              <Pressable
+                onPress={showCertificate}
+                accessibilityLabel={certLabel[certLevel]}
+                hitSlop={4}
+                style={({ pressed }) => [
+                  styles.certButton,
+                  { borderColor: palette.border, backgroundColor: palette.card, opacity: pressed ? 0.6 : 1 },
+                ]}
+              >
+                <MaterialCommunityIcons name="certificate-outline" size={24} color={certColor[certLevel]} />
+              </Pressable>
+            )}
+          </View>
 
           <Text style={[styles.fieldLabel, { color: palette.muted }]}>{t.email}</Text>
           <TextInput
@@ -120,6 +163,11 @@ export default function LoginScreen() {
           )}
 
           {error && status === 'error' && <Text style={[styles.error, { color: palette.danger }]}>{error}</Text>}
+          {status === 'error' && certificateError && tlsSupported && (
+            <Pressable onPress={showCertificate} hitSlop={8}>
+              <Text style={[styles.certLink, { color: palette.accent }]}>{t.certShow}</Text>
+            </Pressable>
+          )}
 
           <Pressable
             disabled={!canSubmit}
@@ -148,6 +196,10 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16, fontFamily: FONT.regular },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 },
   error: { marginTop: 8, fontFamily: FONT.regular },
+  serverRow: { flexDirection: 'row', alignItems: 'stretch', gap: 8 },
+  serverInput: { flex: 1 },
+  certButton: { width: 48, borderWidth: 1, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  certLink: { marginTop: 8, fontFamily: FONT.medium, fontSize: 15, textDecorationLine: 'underline' },
   button: { marginTop: 20, borderRadius: 8, paddingVertical: 14, alignItems: 'center' },
   buttonText: { color: '#fff', fontSize: 17, fontFamily: FONT.medium },
   credits: { marginTop: 16, textAlign: 'center', fontSize: 14, fontFamily: FONT.regular, textDecorationLine: 'underline' },

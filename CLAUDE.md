@@ -12,7 +12,12 @@ app/                    Expo SDK 57 + React Native 0.86 + TypeScript (package ap
   src/app/              Expo Router routes: index (login), projects, dashboard/[id], edit/… (widget settings),
                         project/new, project/[dashId] (settings), project/[dashId]/device/[deviceId], credits
   src/session/          SessionManager (connection, pause in background, reconnection), LiveStore (pin values,
-                        setProperty, device status), credentials (SecureStore; on web the password is never stored)
+                        setProperty, device status), credentials (SecureStore; on web the password is never stored),
+                        connectionError (plain-words connection errors)
+  modules/tinkerblink-tls  "Trust this certificate" (Android): SHA-256 of the server certificate per host:port, checked
+                        only after the system check fails; screen src/app/certificate.tsx, opened from the login
+                        (certificate button colored by useCertificateLevel, link after a failed login), never from a
+                        deep link URL: the server comes from the session (selectCertificateHost)
   src/model/profile.ts  profile types and pin keys ("<dash>-<dev>-v<pin>")
   src/components/       DashboardGrid (8-column grid, cell height 1.35 x width, tabs row hidden), scrollLock
   src/layout/           bandLayout: wide screens show row bands side by side (pure function, data unchanged)

@@ -13,7 +13,9 @@ import { canControl, pinKey, type Dashboard, type Device, type Profile, type Wid
 import { loadCreatedDashIds, saveCreatedDashIds } from '@/editor/policy';
 import { syncGps } from '@/sensors/gps';
 import { SensorsWorker } from '@/sensors/sensorsWorker';
-import { describeConnectionError } from './connectionError';
+// Installs the trust manager of the certificates trusted by the user before the first connection (Android).
+import '../../modules/tinkerblink-tls';
+import { describeConnectionError, isCertificateError } from './connectionError';
 import { forgetPassword, saveCredentials, serverUrl, type Credentials } from './credentials';
 import { LiveStore } from './liveStore';
 
@@ -22,6 +24,10 @@ export type SessionStatus = 'idle' | 'connecting' | 'online' | 'reconnecting' | 
 export interface SessionState {
   status: SessionStatus;
   error?: string;
+  /** The last login failed on the server certificate: the login offers to look at it and trust it. */
+  certificateError?: boolean;
+  /** Server of that login: the certificate screen reads it from here, never from a (deep link) URL. */
+  certificateHost?: string;
   profile?: Profile;
   /** Temporary notice, for example device offline after a command. */
   notice?: string;
@@ -140,7 +146,7 @@ export class SessionManager {
 
   login = async (c: Credentials, rememberPassword: boolean): Promise<boolean> => {
     this.clearRetry();
-    this.setState({ status: 'connecting', error: undefined });
+    this.setState({ status: 'connecting', error: undefined, certificateError: false, certificateHost: undefined });
     try {
       await this.open(c);
       this.credentials = c;
@@ -148,7 +154,8 @@ export class SessionManager {
       return true;
     } catch (e) {
       this.closeClient();
-      this.setState({ status: 'error', error: describeError(e) });
+      const certificateError = e instanceof Error && !(e instanceof ProtocolError) && isCertificateError(e.message);
+      this.setState({ status: 'error', error: describeError(e), certificateError, certificateHost: certificateError ? c.host : undefined });
       return false;
     }
   };
@@ -493,6 +500,16 @@ export class SessionManager {
     this.retryTimer = undefined;
     this.retryAttempt = 0;
   }
+
+  /** Server whose certificate the certificate screen shows: set only by in-app actions (login screen). */
+  selectCertificateHost = (host: string): void => {
+    this.setState({ certificateHost: host.trim() });
+  };
+
+  /** Clears the error of a failed login (e.g. after trusting the server certificate). */
+  dismissError = (): void => {
+    if (this.state.status === 'error') this.setState({ status: 'idle', error: undefined, certificateError: false });
+  };
 
   showNotice = (text: string): void => {
     if (this.noticeTimer) clearTimeout(this.noticeTimer);

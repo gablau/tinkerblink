@@ -31,6 +31,8 @@ interface SessionValue extends SessionState {
   deleteDevice(dashId: number, deviceId: number): Promise<void>;
   /** Temporary notice at the bottom (NoticeToast). */
   showNotice(text: string): void;
+  dismissError(): void;
+  selectCertificateHost(host: string): void;
 }
 
 const SessionContext = createContext<SessionManager | null>(null);
@@ -76,5 +78,7 @@ export function useSession(): SessionValue {
     updateDevice: manager.updateDevice,
     deleteDevice: manager.deleteDevice,
     showNotice: manager.showNotice,
+    dismissError: manager.dismissError,
+    selectCertificateHost: manager.selectCertificateHost,
   };
 }

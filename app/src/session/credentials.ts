@@ -54,3 +54,11 @@ export function serverUrl(host: string): string {
   const h = host.trim();
   return h.includes('://') ? h : `wss://${h}/dashws`;
 }
+
+/** Host and port of the server (default 443 for wss/https, 80 otherwise), for the certificate check. */
+export function serverAddress(host: string): { host: string; port: number; secure: boolean } | null {
+  const m = serverUrl(host).match(/^([a-z]+):\/\/(\[[^\]]+\]|[^/:?#]+)(?::(\d+))?/i);
+  if (!m) return null;
+  const secure = /^(wss|https)$/i.test(m[1]!);
+  return { host: m[2]!.replace(/^\[|\]$/g, ''), port: m[3] ? Number(m[3]) : secure ? 443 : 80, secure };
+}

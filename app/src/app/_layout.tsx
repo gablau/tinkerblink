@@ -41,6 +41,7 @@ function RootStack() {
       <Stack.Screen name="project/new" options={{ title: tp.newProject, presentation: 'modal' }} />
       <Stack.Screen name="project/[dashId]/index" options={{ title: tp.projectSettings }} />
       <Stack.Screen name="project/[dashId]/device/[deviceId]" options={{ title: tp.device }} />
+      <Stack.Screen name="certificate" options={{ title: t.certTitle, presentation: 'modal' }} />
     </Stack>
   );
 }

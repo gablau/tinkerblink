@@ -38,10 +38,21 @@ const TEXT: Record<Kind, () => string> = {
   network: () => t.connNetwork,
 };
 
+function kindOf(message: string): Kind | undefined {
+  const detail = message.replace(/^WebSocket error:?\s*/, '').trim();
+  return RULES.find(([, re]) => re.test(detail))?.[0];
+}
+
+/** The server certificate was refused (untrusted, expired, other name): the user can look at it and trust it. */
+export function isCertificateError(message: string): boolean {
+  const kind = kindOf(message);
+  return kind === 'untrusted' || kind === 'expired' || kind === 'hostname';
+}
+
 /** Plain description of a connection error, followed by the technical detail when there is one. */
 export function describeConnectionError(message: string): string {
   const detail = message.replace(/^WebSocket error:?\s*/, '').trim();
   if (!detail) return Platform.OS === 'web' ? t.connFailedWeb : t.connFailed;
-  const kind = RULES.find(([, re]) => re.test(detail))?.[0];
+  const kind = kindOf(detail);
   return kind ? `${TEXT[kind]()}\n(${detail})` : message;
 }
