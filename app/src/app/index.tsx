@@ -5,6 +5,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -13,6 +14,7 @@ import {
   Switch,
   Text,
   TextInput,
+  useColorScheme,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -28,12 +30,19 @@ import { usePalette } from '@/ui/theme';
 /** After this time, if the automatic login has not answered yet, the login form is shown. */
 const SPLASH_PATIENCE_MS = 8000;
 
+/** The logo (the four tiles, no background): the splash images, light or dark like the palette. */
+const LOGO = { light: require('../../assets/splash-icon.png'), dark: require('../../assets/splash-icon-dark.png') };
+const LOGO_SIZE = 64;
+/** In the splash images the tiles are the middle 62 of 108 units, scaled by 0.82: drawn larger and cropped. */
+const LOGO_ZOOM = 108 / (62 * 0.82);
+
 /** Amber of the certificate button when the user trusted the certificate (not in the palette). */
 const TRUSTED_AMBER = '#E0A100';
 
 export default function LoginScreen() {
   const { status, error, certificateError, profile, login, selectCertificateHost } = useSession();
   const palette = usePalette();
+  const scheme = useColorScheme();
   const [host, setHost] = useState(DEFAULT_HOST);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -108,8 +117,18 @@ export default function LoginScreen() {
       <KeyboardAvoidingView behavior="padding" style={styles.screen}>
         <ScrollView contentContainerStyle={styles.center} keyboardShouldPersistTaps="handled">
           <View style={styles.form}>
-            <Text style={[styles.title, { color: palette.text }]}>{t.appTitle}</Text>
-            <Text style={[styles.subtitle, { color: palette.muted }]}>{t.loginSubtitle}</Text>
+            <View style={styles.header}>
+              <View style={styles.headerText}>
+                <Text style={[styles.title, { color: palette.text }]}>{t.appTitle}</Text>
+                <Text style={[styles.subtitle, { color: palette.muted }]}>{t.loginSubtitle}</Text>
+              </View>
+              {/* centered in the space between the text and the right margin */}
+              <View style={styles.iconSpace}>
+                <View style={styles.logoFrame}>
+                  <Image source={scheme === 'light' ? LOGO.light : LOGO.dark} style={styles.logo} />
+                </View>
+              </View>
+            </View>
 
             <Text style={[styles.fieldLabel, { color: palette.muted }]}>{t.server}</Text>
             <View style={styles.serverRow}>
@@ -205,8 +224,17 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   center: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: 16 },
   form: { width: '100%', maxWidth: 420, gap: 6 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
+  headerText: { flexShrink: 1 },
+  iconSpace: { flex: 1, alignItems: 'center' },
+  logoFrame: { width: LOGO_SIZE, height: LOGO_SIZE, overflow: 'hidden' },
+  logo: {
+    width: LOGO_SIZE * LOGO_ZOOM,
+    height: LOGO_SIZE * LOGO_ZOOM,
+    margin: (-LOGO_SIZE * (LOGO_ZOOM - 1)) / 2,
+  },
   title: { fontSize: 32, fontFamily: FONT.regular },
-  subtitle: { fontSize: 16, marginBottom: 16, fontFamily: FONT.regular },
+  subtitle: { fontSize: 16, fontFamily: FONT.regular },
   fieldLabel: { fontSize: 13, marginTop: 8, fontFamily: FONT.regular },
   text: { fontFamily: FONT.regular, fontSize: 15 },
   input: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16, fontFamily: FONT.regular },
