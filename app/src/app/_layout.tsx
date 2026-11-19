@@ -7,8 +7,6 @@ import { NoticeToast } from '@/components/NoticeToast';
 import { t } from '@/i18n';
 import { tp } from '@/project/strings';
 import { SessionProvider } from '@/session/SessionContext';
-// The background GPS tasks must be defined at startup, before Android calls them.
-import '@/sensors/gps';
 import { FONT, useAppFonts } from '@/ui/fonts';
 import { usePalette } from '@/ui/theme';
 

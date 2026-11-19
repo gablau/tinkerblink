@@ -22,7 +22,7 @@ a maintained app to talk to it.
   - SuperChart with history paging, live data and a saved period;
   - Map (Leaflet and OpenStreetMap), Video (RTSP), Music Player, WebPage Button;
   - phone sensors (accelerometer, gravity, light, proximity, barometer, humidity, temperature) and GPS Stream /
-    GPS Trigger, also in background.
+    GPS Trigger (with the app open).
 - Dashboard editor: Widget Box, widget settings, pin picker with the pins of 96 boards, move and resize on the
   grid, duplicate and delete.
 - Projects and devices: create, rename, change theme, start/stop, delete; device tokens (hidden by default).
@@ -115,8 +115,8 @@ work or at least testing before an iPhone or iPad release:
   not support RTSP, so iOS needs another player (for example one based on libVLC or FFmpeg).
 - **Phone sensors**: the local native module `tinkerblink-sensors` exists only in Kotlin; the iOS part (Core
   Motion and the environmental sensors where available) still has to be written.
-- **GPS Stream and GPS Trigger in background**: expo-location and expo-task-manager support iOS, but with different
-  rules ("Always" permission, `UIBackgroundModes` with `location`, updates throttled by the system).
+- **GPS Stream and GPS Trigger**: expo-location supports iOS; the location permission text
+  (`locationWhenInUsePermission`) is already in app.json.
 - **Network and certificates**: `app/plugins/withNetworkSecurityConfig.js` (user certificates and cleartext traffic
   in debug builds) is Android-only. On iOS, App Transport Security applies, and a private CA must be installed and
   trusted in the device settings.

@@ -19,7 +19,13 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": ["android.permission.RECEIVE_BOOT_COMPLETED"]
+      "blockedPermissions": [
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE_LOCATION",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -49,14 +55,15 @@
         "expo-location",
         {
           "locationWhenInUsePermission": "Shows your position on the Map widget.",
-          "isAndroidBackgroundLocationEnabled": true,
-          "isAndroidForegroundServiceEnabled": true
+          "isAndroidBackgroundLocationEnabled": false,
+          "isAndroidForegroundServiceEnabled": false
         }
       ],
       "./plugins/withShortCxxPath",
       "./plugins/withNetworkSecurityConfig",
       "./plugins/withAbiSplits",
-      "./plugins/withGradleTuning"
+      "./plugins/withGradleTuning",
+      "./plugins/withoutLocationService"
     ],
     "experiments": {
       "typedRoutes": true

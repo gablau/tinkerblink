@@ -114,8 +114,6 @@ const en = {
   videoNoRtspWeb: 'RTSP streams cannot be played in the browser',
   near: 'Near',
   far: 'Far',
-  gpsNotificationTitle: 'TinkerBlink',
-  gpsNotificationBody: 'Sending the position (GPS Stream)',
   months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
   /** "20:50 Oct 1, 2026". */
   formatDateTime: (d: Date) =>
@@ -231,8 +229,6 @@ const it: Strings = {
   videoNoRtspWeb: 'Il browser non può riprodurre gli stream RTSP',
   near: 'Vicino',
   far: 'Lontano',
-  gpsNotificationTitle: 'TinkerBlink',
-  gpsNotificationBody: 'Invio della posizione (GPS Stream)',
   months: ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'],
   /** "20:50 1 ott 2026". */
   formatDateTime: (d: Date) =>

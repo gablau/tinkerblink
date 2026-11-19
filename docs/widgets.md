@@ -279,13 +279,14 @@ Sensor widgets only write their pin (`PinMode.out`); nothing is read back from t
   sensor is active while a widget of its type is in a running dashboard and the app is connected. Values
   are written with `HARDWARE` at most once every `frequency` ms (default 100). Readings that are not finite
   or above 1e7 in absolute value are dropped. `--` until the first reading.
-- **GPS** (`app/src/sensors/gps.ts`, expo-location + expo-task-manager): works in the background and
-  always writes through the server's **HTTP API** with the device token
-  (`GET https://<server>/<token>/update/V<pin>?value=…`), so no login is needed and the devices get no
-  `acon`/`adis`. `accuracy` 0/1/2 = high / balanced / low power, with intervals 30 s / 5 min / 30 min (with
-  high accuracy, the widget `interval` if set). The geofence has radius `triggerRadius` (m) around
-  `triggerLat`/`triggerLon`. Without a GPS widget with a pin in a running dashboard, no task runs and no
-  location permission is requested.
+- **GPS** (`app/src/sensors/gps.ts`, expo-location): works **only with the app open** (location "while using
+  the app"; no background location, which Google Play accepts only after a declaration that is often rejected)
+  and writes through the server's **HTTP API** with the device token
+  (`GET https://<server>/<token>/update/V<pin>?value=…`). `accuracy` 0/1/2 = high / balanced / low power, with
+  intervals 30 s / 5 min / 30 min (with high accuracy, the widget `interval` if set). GPS Trigger checks the
+  circle of radius `triggerRadius` (m) around `triggerLat`/`triggerLon` at every position (Android geofencing
+  needs the background permission): the first position sends the current state, then only the changes. Without
+  a GPS widget with a pin in a running dashboard, no location is read and no permission is requested.
 
 ## Effects of the app on the devices
 

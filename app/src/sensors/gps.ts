@@ -1,26 +1,17 @@
-// GPS Stream and GPS Trigger (server widgets GPS_STREAMING and GPS_TRIGGER): they also work with the
-// app in the background and write the pin through the server HTTP API with the device token
-// (GET https://<host>/<token>/update/V#?value=…), without a login and therefore without acon/adis. The server
-// sends the value back to the app with HARDWARE, so in the foreground the widget updates by itself.
+// GPS Stream and GPS Trigger (server widgets GPS_STREAMING and GPS_TRIGGER), only with the app open: location
+// updates start when the app comes to the foreground and stop when it goes to the background (no background
+// location, which Google Play accepts only after a declaration that is often rejected). Values are written through
+// the server HTTP API with the device token (GET https://<host>/<token>/update/V#?value=…); the server sends them
+// back to the app with HARDWARE, so the widget updates by itself.
 //
-// - GPS Stream: location updates (expo-location in a background task with the Android foreground
-//   service) → "lat\0lon\0alt\0speed". Accuracy 0 high (the widget interval, if set),
+// - GPS Stream: "lat\0lon\0alt\0speed" at every update. Accuracy 0 high (the widget interval, if set),
 //   1 balanced, 2 low power, with the intervals in INTERVALS.
-// - GPS Trigger: circular geofence (lat, lon, radius) → "1" on entering if triggerOnEnter, or on exiting
-//   otherwise; "0" in the opposite case.
-//
-// The configuration (host, token, pins) is stored in SecureStore because the tasks also run without the UI.
-// It is updated on every profile load and deleted on logout.
+// - GPS Trigger: circular region (lat, lon, radius) checked at every update (Android geofencing needs the background
+//   permission): "1" on entering if triggerOnEnter, or on exiting otherwise; "0" in the opposite case. The first
+//   position reports the current state, then only the changes.
 import * as Location from 'expo-location';
-import * as SecureStore from 'expo-secure-store';
-import * as TaskManager from 'expo-task-manager';
-import { Platform } from 'react-native';
-import { t } from '@/i18n';
+import { AppState, Platform, type NativeEventSubscription } from 'react-native';
 import { canControl, type Profile, type Widget } from '@/model/profile';
-
-const STREAM_TASK = 'blynk-gps-stream';
-const TRIGGER_TASK = 'blynk-gps-trigger';
-const CONFIG_KEY = 'blynk.gps';
 
 /** Intervals for accuracy 0 / 1 / 2 (ms). */
 const INTERVALS = [30000, 300000, 1800000];
@@ -31,14 +22,21 @@ interface PinTarget {
   pin: string;
 }
 
-interface TriggerTarget extends PinTarget {
+interface Trigger extends PinTarget {
+  id: string;
+  lat: number;
+  lon: number;
+  radius: number;
   onEnter: boolean;
 }
 
-interface GpsConfig {
+/** What to watch: built from the profile at every sync. */
+interface Plan {
   base: string;
+  accuracy: Location.Accuracy;
+  timeInterval: number;
   streams: PinTarget[];
-  triggers: Record<string, TriggerTarget>;
+  triggers: Trigger[];
 }
 
 const enabled = Platform.OS === 'android';
@@ -51,15 +49,6 @@ export function httpBase(host: string): string {
   return `${u.protocol === 'ws:' || u.protocol === 'http:' ? 'http' : 'https'}://${u.host}`;
 }
 
-async function loadConfig(): Promise<GpsConfig | null> {
-  try {
-    const raw = await SecureStore.getItemAsync(CONFIG_KEY);
-    return raw ? (JSON.parse(raw) as GpsConfig) : null;
-  } catch {
-    return null;
-  }
-}
-
 async function writePin(base: string, target: PinTarget, values: string[]): Promise<void> {
   const query = values.map((v) => `value=${encodeURIComponent(v)}`).join('&');
   try {
@@ -67,30 +56,6 @@ async function writePin(base: string, target: PinTarget, values: string[]): Prom
   } catch {
     // No network: the next update will try again.
   }
-}
-
-if (enabled) {
-  TaskManager.defineTask<{ locations: Location.LocationObject[] }>(STREAM_TASK, async ({ data, error }) => {
-    const loc = data?.locations?.at(-1);
-    if (error || !loc) return;
-    const config = await loadConfig();
-    if (!config) return;
-    const c = loc.coords;
-    const values = [c.latitude, c.longitude, c.altitude ?? 0, c.speed ?? 0].map(String);
-    await Promise.all(config.streams.map((s) => writePin(config.base, s, values)));
-  });
-
-  TaskManager.defineTask<{ eventType: Location.GeofencingEventType; region: Location.LocationRegion }>(
-    TRIGGER_TASK,
-    async ({ data, error }) => {
-      if (error || !data?.region?.identifier) return;
-      const config = await loadConfig();
-      const target = config?.triggers[data.region.identifier];
-      if (!config || !target) return;
-      const entered = data.eventType === Location.GeofencingEventType.Enter;
-      await writePin(config.base, target, [entered === target.onEnter ? '1' : '0']);
-    },
-  );
 }
 
 const PIN_LETTER = { VIRTUAL: 'V', DIGITAL: 'D', ANALOG: 'A' } as const;
@@ -120,21 +85,74 @@ function setPermitted(value: boolean): void {
   permissionListeners.forEach((l) => l());
 }
 
-/** Location always allowed (first "while using the app", then "always"). Asks only for missing permissions. */
-async function ensureBackgroundPermission(): Promise<boolean> {
+/** Location "while using the app": asks only if it is missing. */
+async function ensurePermission(): Promise<boolean> {
   let fg = await Location.getForegroundPermissionsAsync();
   if (!fg.granted && fg.canAskAgain) fg = await Location.requestForegroundPermissionsAsync();
-  if (!fg.granted) return false;
-  let bg = await Location.getBackgroundPermissionsAsync();
-  if (!bg.granted && bg.canAskAgain) bg = await Location.requestBackgroundPermissionsAsync();
-  return bg.granted;
+  return fg.granted;
+}
+
+// --- Location updates with the app in the foreground ---
+
+let plan: Plan | null = null;
+let subscription: Location.LocationSubscription | null = null;
+let appState: NativeEventSubscription | null = null;
+/** Last state of each trigger (inside the region or not): kept across syncs, so a sync does not report it again. */
+const inside = new Map<string, boolean>();
+
+function watch(next: Plan | null): void {
+  plan = next;
+  const ids = new Set(next?.triggers.map((tr) => tr.id));
+  for (const id of [...inside.keys()]) if (!ids.has(id)) inside.delete(id);
+  restart();
+  if (next) appState ??= AppState.addEventListener('change', restart);
+  else {
+    appState?.remove();
+    appState = null;
+  }
+}
+
+function restart(): void {
+  subscription?.remove();
+  subscription = null;
+  const p = plan;
+  if (!p || AppState.currentState !== 'active') return;
+  Location.watchPositionAsync({ accuracy: p.accuracy, timeInterval: p.timeInterval, distanceInterval: 0 }, (loc) => {
+    if (plan === p) onPosition(p, loc.coords);
+  })
+    .then((s) => {
+      // Another restart (or a stop) may have happened while this one was starting.
+      if (plan === p && AppState.currentState === 'active' && !subscription) subscription = s;
+      else s.remove();
+    })
+    .catch(() => undefined);
+}
+
+function onPosition(p: Plan, c: Location.LocationObjectCoords): void {
+  const values = [c.latitude, c.longitude, c.altitude ?? 0, c.speed ?? 0].map(String);
+  for (const s of p.streams) void writePin(p.base, s, values);
+  for (const tr of p.triggers) {
+    const now = distance(c.latitude, c.longitude, tr.lat, tr.lon) <= tr.radius;
+    if (inside.get(tr.id) === now) continue;
+    inside.set(tr.id, now);
+    void writePin(p.base, tr, [now === tr.onEnter ? '1' : '0']);
+  }
+}
+
+/** Distance in meters between two points (haversine). */
+function distance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const rad = Math.PI / 180;
+  const dLat = (lat2 - lat1) * rad;
+  const dLon = (lon2 - lon1) * rad;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLon / 2) ** 2;
+  return 2 * 6371000 * Math.asin(Math.sqrt(a));
 }
 
 let syncing: Promise<void> = Promise.resolve();
 
 /**
- * Aligns the GPS tasks with the GPS Stream / GPS Trigger widgets of the active dashboards of the profile.
- * `null` (logout) stops everything and deletes the configuration.
+ * Aligns the location updates with the GPS Stream / GPS Trigger widgets of the active dashboards of the profile.
+ * `null` (logout) stops everything.
  */
 export function syncGps(profile: Profile | null, host: string): Promise<void> {
   if (!enabled) return Promise.resolve();
@@ -144,8 +162,7 @@ export function syncGps(profile: Profile | null, host: string): Promise<void> {
 
 async function doSync(profile: Profile | null, host: string): Promise<void> {
   const streams: PinTarget[] = [];
-  const triggers: Record<string, TriggerTarget> = {};
-  const regions: Location.LocationRegion[] = [];
+  const triggers: Trigger[] = [];
   let accuracy = 2;
   let interval = 0;
 
@@ -154,7 +171,8 @@ async function doSync(profile: Profile | null, host: string): Promise<void> {
     const tokens = new Map<number, string>();
     for (const d of dash.devices ?? []) if (typeof d.token === 'string') tokens.set(d.id, d.token);
     for (const w of dash.widgets) {
-      if (w.type !== 'GPS_STREAMING' && w.type !== 'GPS_TRIGGER') continue;      const target = pinTarget(w, tokens);
+      if (w.type !== 'GPS_STREAMING' && w.type !== 'GPS_TRIGGER') continue;
+      const target = pinTarget(w, tokens);
       if (!target) continue;
       if (w.type === 'GPS_STREAMING') {
         streams.push(target);
@@ -168,64 +186,25 @@ async function doSync(profile: Profile | null, host: string): Promise<void> {
         const lon = Number(w.triggerLon);
         const radius = Number(w.triggerRadius);
         if (!Number.isFinite(lat) || !Number.isFinite(lon) || !(radius > 0) || (lat === 0 && lon === 0)) continue;
-        const id = `${dash.id}-${w.id}`;
-        triggers[id] = { ...target, onEnter: w.triggerOnEnter === true };
-        regions.push({ identifier: id, latitude: lat, longitude: lon, radius, notifyOnEnter: true, notifyOnExit: true });
+        triggers.push({ ...target, id: `${dash.id}-${w.id}`, lat, lon, radius, onEnter: w.triggerOnEnter === true });
       }
     }
   }
 
-  const timeInterval = accuracy === 0 && interval > 0 ? interval : INTERVALS[accuracy]!;
-  const base = httpBase(host);
-
-  if (streams.length === 0 && regions.length === 0) {
-    await stopTasks();
-    await SecureStore.deleteItemAsync(CONFIG_KEY).catch(() => undefined);
+  if (streams.length === 0 && triggers.length === 0) {
+    watch(null);
     setPermitted(false);
     return;
   }
 
-  const config: GpsConfig = { base, streams, triggers };
-  await SecureStore.setItemAsync(CONFIG_KEY, JSON.stringify(config));
-
-  const allowed = await ensureBackgroundPermission().catch(() => false);
+  const allowed = await ensurePermission().catch(() => false);
   setPermitted(allowed);
-  if (!allowed) return;
-
-  // The tasks are always (re)started: syncing happens when the profile loads, so with the app in the
-  // foreground. If the process was restarted, expo-location restores the task in the background but Android
-  // does not let it start the foreground service: it looks "started" without receiving locations.
-  const streamRunning = await Location.hasStartedLocationUpdatesAsync(STREAM_TASK).catch(() => false);
-  if (streams.length === 0) {
-    if (streamRunning) await Location.stopLocationUpdatesAsync(STREAM_TASK);
-  } else {
-    await Location.startLocationUpdatesAsync(STREAM_TASK, {
-      accuracy: ACCURACY[accuracy],
-      timeInterval,
-      distanceInterval: 0,
-      foregroundService: {
-        notificationTitle: t.gpsNotificationTitle,
-        notificationBody: t.gpsNotificationBody,
-        killServiceOnDestroy: false,
-      },
-    });
-  }
-
-  const triggerRunning = await Location.hasStartedGeofencingAsync(TRIGGER_TASK).catch(() => false);
-  if (regions.length === 0) {
-    if (triggerRunning) await Location.stopGeofencingAsync(TRIGGER_TASK);
-  } else {
-    await Location.startGeofencingAsync(TRIGGER_TASK, regions);
-  }
-}
-
-async function stopTasks(): Promise<void> {
-  if (await Location.hasStartedLocationUpdatesAsync(STREAM_TASK).catch(() => false)) {
-    await Location.stopLocationUpdatesAsync(STREAM_TASK).catch(() => undefined);
-  }
-  if (await Location.hasStartedGeofencingAsync(TRIGGER_TASK).catch(() => false)) {
-    await Location.stopGeofencingAsync(TRIGGER_TASK).catch(() => undefined);
-  }
-  // To be safe: no task must stay registered (and so restorable on restart) without a GPS widget.
-  await TaskManager.unregisterAllTasksAsync().catch(() => undefined);
+  if (!allowed) return watch(null);
+  watch({
+    base: httpBase(host),
+    accuracy: ACCURACY[accuracy]!,
+    timeInterval: accuracy === 0 && interval > 0 ? interval : INTERVALS[accuracy]!,
+    streams,
+    triggers,
+  });
 }
