@@ -11,6 +11,14 @@ export type PinWriteListener = (key: string, values: string[], ts: number) => vo
 /** Lines kept in memory for each Terminal. */
 const TERMINAL_MAX_LINES = 200;
 
+/**
+ * Lines of a Terminal message. The newline at the end (terminal.println on the firmware sends "text\n") closes the
+ * line and does not add an empty one.
+ */
+function terminalLines(text: string): string[] {
+  return text.replace(/\r?\n$/, '').split(/\r?\n/);
+}
+
 // "vw" = write; "vm" = multiple values, used by the server when syncing widgets with several values,
 // such as the Terminal history (Widget.makeMultiValueHardwareBody).
 const OP_PIN_TYPE = {
@@ -228,7 +236,7 @@ export class LiveStore {
         this.updateTable(key, values, isSync);
         if (isSync && this.terminalLogs.has(key)) {
           // Terminal sync: the values are the last lines kept by the server.
-          this.terminalLogs.set(key, values.flatMap((v) => v.split('\n')).slice(-TERMINAL_MAX_LINES));
+          this.terminalLogs.set(key, values.flatMap(terminalLines).slice(-TERMINAL_MAX_LINES));
           this.set(this.values, key, values.slice(-1));
         } else {
           this.appendTerminal(key, values);
@@ -331,7 +339,7 @@ export class LiveStore {
     const log = this.terminalLogs.get(key);
     if (!log) return;
     const text = values.join(' ');
-    const next = text === 'clr' ? [] : [...log, ...text.split('\n')].slice(-TERMINAL_MAX_LINES);
+    const next = text === 'clr' ? [] : [...log, ...terminalLines(text)].slice(-TERMINAL_MAX_LINES);
     this.terminalLogs.set(key, next);
   }
 
