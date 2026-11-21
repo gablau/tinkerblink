@@ -42,7 +42,8 @@ or sent anywhere; only the content of the QR code is used.
 
 - **Map widget**: the map library (Leaflet) is loaded from unpkg.com, and map tiles from OpenStreetMap
   (tile.openstreetmap.org) and, for the satellite view, Esri (server.arcgisonline.com). These services receive your
-  IP address and the area of the map being shown, as with any web map. The app does not send them your position.
+  IP address and the area of the map being shown, as with any web map. The app does not send them your coordinates,
+  but when the map is centered on your position the area requested shows roughly where you are.
   See the privacy policies of the [OpenStreetMap Foundation](https://osmfoundation.org/wiki/Privacy_Policy) and
   [Esri](https://www.esri.com/en-us/privacy/overview).
 - **Video, web links and images** configured in a project are loaded from the addresses written in the project.
@@ -113,8 +114,9 @@ e non viene salvata né inviata; si usa solo il contenuto del codice QR.
 
 - **Widget Map**: la libreria della mappa (Leaflet) viene caricata da unpkg.com, e le tessere della mappa da
   OpenStreetMap (tile.openstreetmap.org) e, per la vista satellite, da Esri (server.arcgisonline.com). Questi servizi
-  ricevono il tuo indirizzo IP e la zona della mappa mostrata, come per qualsiasi mappa web. L'app non invia loro la
-  tua posizione. Vedi le informative della [OpenStreetMap Foundation](https://osmfoundation.org/wiki/Privacy_Policy)
+  ricevono il tuo indirizzo IP e la zona della mappa mostrata, come per qualsiasi mappa web. L'app non invia loro le
+  tue coordinate, ma quando la mappa è centrata sulla tua posizione la zona richiesta indica all'incirca dove ti
+  trovi. Vedi le informative della [OpenStreetMap Foundation](https://osmfoundation.org/wiki/Privacy_Policy)
   e di [Esri](https://www.esri.com/en-us/privacy/overview).
 - **Video, link e immagini** configurati in un progetto vengono caricati dagli indirizzi scritti nel progetto.
 

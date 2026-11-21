@@ -28,5 +28,14 @@
     <p>TinkerBlink is free software (GPL-3.0 or later) by Gabriele Lauricella. It is an independent project, not
       affiliated with or endorsed by Blynk Inc.</p>
   </footer>
+  <script>
+    // Links to other sites open in a new tab; links inside this site stay in the same tab.
+    for (const a of document.querySelectorAll('a[href]')) {
+      if (a.host && a.host !== location.host) {
+        a.target = '_blank';
+        a.rel = 'noopener';
+      }
+    }
+  </script>
 </body>
 </html>

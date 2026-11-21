@@ -6,6 +6,9 @@
 keys/
 dist/
 
+# Google Play listing: graphics and texts (store-listing/render-store.mjs)
+store-listing/
+
 # Android build
 .gradle/
 build/

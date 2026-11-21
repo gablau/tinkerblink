@@ -1,6 +1,7 @@
 # TinkerBlink
 
-Mobile app (Android + web, iOS untested) for self-hosted Blynk Legacy servers (blynk-server 0.41.x).
+Mobile app (Android + web, iOS untested) for self-hosted Blynk Legacy servers (blynk-server 0.41.x and the
+maintained fork 0.50.x, github.com/gablau/blynk-server).
 Overview, build and license: [README.md](README.md). Protocol: [docs/protocol.md](docs/protocol.md). Widget values and
 layout: [docs/widgets.md](docs/widgets.md). Personal, unversioned notes may live in `CLAUDE.local.md`.
 

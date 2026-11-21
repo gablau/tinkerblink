@@ -1,6 +1,6 @@
 # TinkerBlink
 
-TinkerBlink is a mobile app for self-hosted **Blynk Legacy** servers (blynk-server 0.41.x). It shows your
+TinkerBlink is a mobile app for self-hosted **Blynk Legacy** servers (blynk-server 0.41.x and 0.50.x). It shows your
 projects and dashboards, controls your devices and lets you edit dashboards, widgets, projects and devices
 directly on the phone.
 
@@ -12,7 +12,8 @@ a maintained app to talk to it.
 
 ## Features
 
-- Login to your own server (address, email, password); the password is kept in the Android keystore.
+- Login to your own server (address, email, password); if you choose to remember it, the password is kept in the
+  Android keystore.
 - Live dashboards over a single WebSocket connection, with tabs, themes, device status and automatic
   reconnection.
 - Widgets:
@@ -29,10 +30,23 @@ a maintained app to talk to it.
 - Projects shared with you by the administrator (on servers that support it) are shown read-only.
 - Italian and English, following the phone language. Wide screens show the dashboard in side-by-side columns.
 
+## Download
+
+- **Google Play**: in closed testing, coming soon.
+- **APK**: signed APKs for every release on [GitHub Releases](https://github.com/gablau/tinkerblink/releases)
+  (`arm64-v8a` fits most phones; `universal` works everywhere). Both are signed with the same key, so you can
+  switch between them without uninstalling.
+
+Privacy: TinkerBlink collects no data for the developer and talks only to the server you choose. See the
+[privacy policy](https://gablau.github.io/tinkerblink/privacy).
+
 ## Compatible servers
 
-- [blynk-server](https://github.com/gablau/blynk-server) 0.41.x, the open-source legacy server (GPL-3.0); the
-  linked fork is maintained.
+- **blynk-server 0.41.x** (last release 0.41.17), the open-source legacy server (GPL-3.0).
+- **blynk-server 0.50.x**, the maintained fork at [gablau/blynk-server](https://github.com/gablau/blynk-server)
+  (Java 21, new admin panel, closed registration, security fixes). TinkerBlink supports its additions: login
+  errors, projects assigned by the administrator (read-only) and rejected commands. The fork is recommended for
+  new installations: see [Installing a Blynk Legacy server on Debian or Ubuntu](docs/server-install.md).
 - The app connects to `wss://<host>/dashws`, on the server's HTTPS port (9443 by default) or through a reverse proxy
   on 443. The certificate must be trusted by the phone: a public certificate (for example Let's Encrypt) is the
   simplest choice.

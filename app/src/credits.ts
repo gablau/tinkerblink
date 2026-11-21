@@ -22,6 +22,9 @@ const say = (itText: string, enText: string) => (it ? itText : enText);
 /** TinkerBlink source (the GPL requires that people who receive the app can get it). */
 export const SOURCE_URL = 'https://github.com/gablau/tinkerblink';
 
+/** Privacy policy (docs/privacy.md, published by GitHub Pages): also linked from the Google Play listing. */
+export const PRIVACY_URL = 'https://gablau.github.io/tinkerblink/privacy';
+
 export const CREDIT_GROUPS: CreditGroup[] = [
   {
     title: 'TinkerBlink',

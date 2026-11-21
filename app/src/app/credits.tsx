@@ -3,7 +3,7 @@
 import Constants from 'expo-constants';
 import { Stack } from 'expo-router';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { CREDIT_GROUPS, DISCLAIMER } from '@/credits';
+import { CREDIT_GROUPS, DISCLAIMER, PRIVACY_URL } from '@/credits';
 import { t } from '@/i18n';
 import { useSession } from '@/session/SessionContext';
 import { FONT } from '@/ui/fonts';
@@ -20,6 +20,13 @@ export default function CreditsScreen() {
         {t.appTitle} {version}
       </Text>
       <Text style={[styles.disclaimer, { color: palette.muted }]}>{DISCLAIMER}</Text>
+      <Text
+        accessibilityRole="link"
+        onPress={() => void Linking.openURL(PRIVACY_URL).catch(() => undefined)}
+        style={[styles.link, { color: palette.accent }]}
+      >
+        {t.privacyPolicy}
+      </Text>
       {account && profile && (
         <View style={styles.group}>
           <Text style={[styles.groupTitle, { color: palette.accent }]}>{t.signedIn.toUpperCase()}</Text>
@@ -62,6 +69,7 @@ const styles = StyleSheet.create({
   content: { padding: 16, paddingBottom: 40, maxWidth: 640, width: '100%', alignSelf: 'center', gap: 8 },
   app: { fontSize: 22, fontFamily: FONT.medium },
   disclaimer: { fontSize: 13, fontFamily: FONT.regular, lineHeight: 18 },
+  link: { fontSize: 14, fontFamily: FONT.medium, textDecorationLine: 'underline', alignSelf: 'flex-start', paddingVertical: 4 },
   group: { marginTop: 16, gap: 8 },
   groupTitle: { fontSize: 13, fontFamily: FONT.medium, letterSpacing: 1 },
   item: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 8, padding: 12, gap: 2 },
