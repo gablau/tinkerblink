@@ -18,3 +18,7 @@ node_modules/
 
 # Personal notes for Claude Code
 CLAUDE.local.md
+
+# Local Jekyll preview of docs/ (GitHub Pages)
+.jekyll-cache/
+_site/

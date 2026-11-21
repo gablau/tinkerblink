@@ -1,0 +1,14 @@
+# GitHub Pages (Jekyll) settings for the site served from docs/: https://gablau.github.io/tinkerblink/
+title: TinkerBlink
+description: Mobile app for self-hosted Blynk Legacy servers
+lang: en
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: default
+plugins:
+  - jekyll-seo-tag
+  - jekyll-relative-links
+  - jekyll-optional-front-matter
+  - jekyll-titles-from-headings
